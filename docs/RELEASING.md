@@ -63,3 +63,16 @@ People who run `pnpm dev:web` or `pnpm serve` from a clone see the same
 git pull
 pnpm install
 ```
+
+## Linux CI on Mikrus
+
+Main-branch pushes run checks, tests and the web build on the
+`mikrus-ted144-planner` runner (labels: `self-hosted, Linux, X64, planner`).
+Pull requests run on GitHub-hosted Ubuntu. Mac packaging remains on GitHub's
+macOS runner.
+
+The Mikrus runner uses the unprivileged `planner-ci` account, with no sudo or
+Docker membership. Files and working copies live in
+`/home/planner-ci/actions-runner`. Manage it with `./svc.sh start`,
+`./svc.sh stop` or `./svc.sh status` from that directory as root.
+If Mikrus is unavailable, main CI queues until it returns.

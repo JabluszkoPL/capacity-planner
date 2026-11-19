@@ -37,6 +37,9 @@ machines, run `pnpm serve` on one of them and open `http://<that-machine>:5191`
 everywhere. Any browser can also be pointed at a server from the app: click the
 version in the top bar → **Sync**. More in [docs/SYNC.md](docs/SYNC.md).
 
+Used Planner in a browser before and want it all in the Mac app? Follow
+[docs/MOVING_TO_THE_MAC_APP.md](docs/MOVING_TO_THE_MAC_APP.md).
+
 ## Run from source
 
 ```bash
@@ -106,7 +109,8 @@ Details: [architecture](docs/ARCHITECTURE.md) · [sync design](docs/SYNC.md) ·
 [the Mac app](docs/DESKTOP.md) · [releasing](docs/RELEASING.md) ·
 [accessibility](docs/ACCESSIBILITY.md) ·
 [Google Sheets export](docs/GOOGLE_SHEETS.md) ·
-[Jira tracking](docs/JIRA_TRACKING.md)
+[Jira tracking](docs/JIRA_TRACKING.md) ·
+[moving to the Mac app](docs/MOVING_TO_THE_MAC_APP.md)
 
 ## Where your data lives
 

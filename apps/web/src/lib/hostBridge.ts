@@ -33,6 +33,7 @@ export interface PlannerShareBridge {
   foreignVersion?: string | null;
   /** Open that URL in the user's default browser. */
   open(): Promise<void>;
+  stop?(): Promise<void>;
 }
 
 /**

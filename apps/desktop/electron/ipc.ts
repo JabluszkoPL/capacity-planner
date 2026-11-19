@@ -26,6 +26,7 @@ export const CHANNELS = {
   /** Main -> renderer: the update state changed. */
   updateChanged: "planner:update:changed",
   /** Open the shared app in the user's default browser. */
+  stopShared: "planner:share:stop",
   openShared: "planner:share:open",
   /** The MCP endpoint's settings. See ./mcpHost. */
   mcpState: "planner:mcp:state",

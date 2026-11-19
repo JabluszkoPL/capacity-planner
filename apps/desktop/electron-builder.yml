@@ -25,6 +25,7 @@ afterPack: afterPack.mjs
 
 mac:
   category: public.app-category.productivity
+  icon: build/icon.icns
 
   # One universal binary rather than separate arm64/x64 builds: a copy handed to
   # someone else has to run on whatever Mac they happen to have, and picking the

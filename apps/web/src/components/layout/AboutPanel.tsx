@@ -132,6 +132,8 @@ function SyncSection() {
   const { url, source } = resolveSync();
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [stopped, setStopped] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const stored = readSyncUrlSetting();
 
   useEffect(() => {
@@ -169,10 +171,42 @@ function SyncSection() {
             )}
             <p className="modal-hint">Status: {status}</p>
             <div className="about-actions">
-              <Button onClick={() => void host.share?.open()}>
+              <Button
+                disabled={stopped}
+                onClick={() => void host.share?.open()}
+              >
                 Open in browser
               </Button>
+              {host.share?.stop && (
+                <Button
+                  disabled={stopping || stopped}
+                  onClick={async () => {
+                    setStopping(true);
+                    setError(null);
+                    try {
+                      await host.share?.stop?.();
+                      setStopped(true);
+                    } catch (cause) {
+                      setError(
+                        cause instanceof Error
+                          ? cause.message
+                          : "Could not stop the server.",
+                      );
+                    } finally {
+                      setStopping(false);
+                    }
+                  }}
+                >
+                  {stopping ? "Stopping…" : "Stop web server"}
+                </Button>
+              )}
             </div>
+            <p className="modal-hint" role={error ? "alert" : "status"}>
+              {error ??
+                (stopped
+                  ? "Web server stopped. Reopen Planner to start the current version. Browser access and sync are paused."
+                  : "Stop the web server if the browser still shows an old version after updating. Reopen Planner to start it again.")}
+            </p>
           </>
         ) : url ? (
           <p className="about-status">

@@ -226,3 +226,15 @@ export function stopShareServer(): void {
   child?.kill("SIGTERM");
   child = null;
 }
+
+/** Manual recovery only targets a verified app-owned local server. */
+export async function stopSharedServerManually(): Promise<void> {
+  const port = Number(process.env.PLANNER_SHARE_PORT ?? DEFAULT_PORT);
+  const holder = await portHolder(port);
+  if (holder === null) return;
+  if (!(await replaceAppServer(port, holder))) {
+    throw new Error(
+      "Could not stop this server. Only Planner app servers can be stopped here; stop a standalone server from its terminal.",
+    );
+  }
+}

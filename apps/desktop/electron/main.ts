@@ -35,6 +35,7 @@ import { createUpdater, type Updater } from "./updater";
 import {
   startShareServer,
   stopShareServer,
+  stopSharedServerManually,
   type ShareInfo,
 } from "./shareServer";
 import { createMcpHost } from "./mcpHost";
@@ -115,6 +116,9 @@ function registerUpdateChannels(u: Updater): void {
   });
   // Only ever opens the share URL this process chose, never one from the
   // renderer.
+  ipcMain.handle(CHANNELS.stopShared, async () => {
+    await stopSharedServerManually();
+  });
   ipcMain.handle(CHANNELS.openShared, () => {
     if (share.shareUrl) void shell.openExternal(share.shareUrl);
   });

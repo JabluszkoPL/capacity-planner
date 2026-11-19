@@ -25,6 +25,11 @@ one moved into a package whose dependencies say what it is allowed to touch:
         ┌──────┐└────────┬────────┘
         │ jira │         │                     Jira vocabulary; transport injected
         └───┬──┘         │
+            ├────────────┤
+            │            ▼
+            │       ┌─────────┐
+            │       │   mcp   │                MCP protocol and tools; no socket
+            │       └────┬────┘               (used by web and desktop only)
             └─────┬──────┴────────┐
         ┌─────────┼───────────────┼───────┐
         ▼         ▼               ▼       ▼
@@ -124,6 +129,21 @@ worst bug a sync system can have and the hardest to notice.
 
 `PlannerRuntime` ties a store, a clock and an optional sync client together. The
 React store takes one and knows nothing else about persistence.
+
+## packages/mcp - AI clients
+
+The Model Context Protocol server, minus the socket: JSON-RPC handling, the
+tool catalogue (each tool's JSON schema is also its argument validator) and
+every tool. Pure, like `core`. A read tool is a function of `AppState`; a write
+tool returns the typed `Action`s a click would dispatch. It imports only the
+`Action` type from client-runtime (`@planner/client-runtime/actions`), never
+the React store.
+
+Two hosts share it. The Mac app's main process serves it over loopback HTTP
+with a bearer token and lists tools from the catalogue; each call is relayed
+to the window, which runs the tool on its live store and dispatches the
+actions. So an AI client's edit takes exactly the path below, and UI tools can
+navigate the window. See [MCP.md](MCP.md).
 
 ## How an edit travels
 

@@ -7,7 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./sqlite": "./src/sqliteLocalStore.ts"
+    "./sqlite": "./src/sqliteLocalStore.ts",
+    "./actions": "./src/actions.ts"
   },
   "scripts": {
     "test": "vitest run",

@@ -53,6 +53,9 @@ importers:
       '@planner/jira':
         specifier: workspace:*
         version: link:../../packages/jira
+      '@planner/mcp':
+        specifier: workspace:*
+        version: link:../../packages/mcp
       '@planner/web':
         specifier: workspace:*
         version: link:../web
@@ -120,6 +123,9 @@ importers:
       '@planner/jira':
         specifier: workspace:*
         version: link:../../packages/jira
+      '@planner/mcp':
+        specifier: workspace:*
+        version: link:../../packages/mcp
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -247,6 +253,31 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jsdom@25.0.1(supports-color@7.2.0))(supports-color@7.2.0)
+
+  packages/mcp:
+    dependencies:
+      '@planner/client-runtime':
+        specifier: workspace:*
+        version: link:../client-runtime
+      '@planner/core':
+        specifier: workspace:*
+        version: link:../core
+      '@planner/jira':
+        specifier: workspace:*
+        version: link:../jira
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.18
+        version: 18.3.31
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

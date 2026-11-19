@@ -59,6 +59,18 @@ reachable via `Tab` / `Shift+Tab`, and shows a visible focus ring
   **ArrowUp/ArrowDown** move, **Enter** picks, **Esc** closes the list.
   Leaving the field without picking keeps the current mapping.
 
+## About panel - AI assistants (Mac app)
+
+- **Allow AI clients to connect** and **Allow changes…** are native checkboxes
+  (Space toggles); the second is disabled until the first is on. The server's
+  state ("Listening at…", or why it couldn't start) is a `role="status"` line
+  the first checkbox points to with `aria-describedby`.
+- The **Copy for Claude Code / Codex / JSON config** buttons sit in a labelled
+  group; after a copy a polite live region says what was copied. **New token**
+  is a plain button. The token itself is never shown on screen.
+- Changes an AI client makes appear as toasts ("AI assistant: …"), announced
+  like any other.
+
 ## Responsiveness
 
 Down to ~1024px the page itself never scrolls horizontally. Wide content — the

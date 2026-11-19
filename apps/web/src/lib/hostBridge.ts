@@ -47,6 +47,47 @@ export interface PlannerJiraBridge {
   canWrite: boolean;
 }
 
+/** The MCP endpoint's settings and status, as the main process reports them. */
+export interface McpHostState {
+  enabled: boolean;
+  allowWrites: boolean;
+  /** The bearer token clients must send. Shown so it can be copied. */
+  token: string;
+  /** e.g. "http://127.0.0.1:5192/mcp". */
+  url: string;
+  status: "off" | "starting" | "listening" | "error";
+  error?: string;
+}
+
+/**
+ * What the window sends back for one tool call: the result to show the
+ * client, or a message saying why it could not be done.
+ */
+export type McpCallReply = { result: unknown } | { error: string };
+
+/**
+ * The Mac app's MCP endpoint (apps/desktop/electron/mcpHost.ts). The main
+ * process holds the socket and the token; tool calls arrive here because the
+ * store is here, and every edit has to go through it.
+ */
+export interface PlannerMcpBridge {
+  state(): Promise<McpHostState>;
+  update(patch: {
+    enabled?: boolean;
+    allowWrites?: boolean;
+  }): Promise<McpHostState>;
+  regenerateToken(): Promise<McpHostState>;
+  onChange(fn: (state: McpHostState) => void): () => void;
+  /** Start taking tool calls; returns the function that stops. */
+  serve(
+    handler: (
+      name: string,
+      args: unknown,
+      allowWrites: boolean,
+    ) => Promise<McpCallReply>,
+  ): () => void;
+}
+
 export interface PlannerHost {
   db: LocalStoreBridge;
   /** Sync server URL configured by the host, if any. */
@@ -56,6 +97,8 @@ export interface PlannerHost {
   /** Absent on a host that predates self-updating. */
   updates?: PlannerUpdatesBridge;
   share?: PlannerShareBridge;
+  /** Absent on a host that predates MCP. */
+  mcp?: PlannerMcpBridge;
   /** Planner's version as the host was built; null on older hosts. */
   appVersion?: string | null;
   platform: string;

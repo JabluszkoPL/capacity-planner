@@ -21,6 +21,7 @@
     "@planner/core": "workspace:*",
     "@planner/db": "workspace:*",
     "@planner/jira": "workspace:*",
+    "@planner/mcp": "workspace:*",
     "@planner/web": "workspace:*",
     "electron": "^38.8.6",
     "electron-builder": "^25.1.8",

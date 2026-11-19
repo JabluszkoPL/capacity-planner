@@ -1042,6 +1042,12 @@ export interface StoreValue {
   /** False until the local database has been read. Nothing meaningful can be
    *  rendered before then, since we would be showing an empty app. */
   ready: boolean;
+  /**
+   * Apply one typed action as it is, ids and all. For a host that plans its
+   * edits as actions elsewhere (the MCP bridge, whose tools return the
+   * actions a click would dispatch). Components use `actions` instead.
+   */
+  dispatch: (action: Action) => void;
   actions: {
     resetSample: () => void;
     importState: (state: AppState) => void;
@@ -1255,6 +1261,7 @@ export function AppStoreProvider({
       ready,
       syncStatus,
       syncEnabled: runtime.syncEnabled,
+      dispatch,
       actions: {
         // Both of these replace the whole state; the commit effect diffs it
         // against what is stored and emits the creates/updates/tombstones.

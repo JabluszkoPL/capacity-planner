@@ -37,6 +37,7 @@ import {
   stopShareServer,
   type ShareInfo,
 } from "./shareServer";
+import { createMcpHost } from "./mcpHost";
 
 /** Injected by build.mjs from the workspace root package.json. */
 declare const __PLANNER_VERSION__: string;
@@ -56,6 +57,7 @@ let driver: SqliteDriver | null = null;
 let store: LocalStore | null = null;
 let updater: Updater | null = null;
 let share: ShareInfo = { syncUrl: null, shareUrl: null };
+let mcp: ReturnType<typeof createMcpHost> | null = null;
 
 function dataDir(): string {
   const dir = process.env.PLANNER_DATA_DIR ?? app.getPath("userData");
@@ -179,6 +181,9 @@ function createWindow(): BrowserWindow {
   });
 
   window.once("ready-to-show", () => window.show());
+  // A closed window can no longer answer MCP calls.
+  const contentsId = window.webContents.id;
+  window.on("closed", () => mcp?.forget(contentsId));
 
   // Anything that isn't the app itself belongs in the user's browser, not in a
   // chrome-less Electron window.
@@ -224,6 +229,11 @@ app.whenReady().then(async () => {
   });
   registerUpdateChannels(updater);
 
+  // Off unless the user turned it on (About -> AI assistants).
+  mcp = createMcpHost({ dataDir: dataDir(), version: __PLANNER_VERSION__ });
+  mcp.register();
+  void mcp.boot();
+
   // Before the window, because the renderer reads its sync URL once at start.
   // Bounded: if the server can't come up the app opens local-only.
   share = await startShareServer(dataDir());
@@ -243,6 +253,7 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   updater?.dispose();
   stopShareServer();
+  void mcp?.stop();
   driver?.close();
   driver = null;
   store = null;

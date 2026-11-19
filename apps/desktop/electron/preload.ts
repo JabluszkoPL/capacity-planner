@@ -4,7 +4,8 @@
  * The renderer runs with `contextIsolation` on and `nodeIntegration` off, so
  * this is the only surface it has into the host: eight database calls, the
  * narrow Jira relay (see ./jira for what it refuses), the updater's verbs (see
- * ./updater), opening the shared app in a browser, and a few read-only facts.
+ * ./updater), the MCP endpoint's settings and its tool calls (see ./mcpHost),
+ * opening the shared app in a browser, and a few read-only facts.
  * No filesystem, no shell, no arbitrary IPC.
  */
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
@@ -48,6 +49,57 @@ contextBridge.exposeInMainWorld("planner", {
       ipcRenderer.on(CHANNELS.updateChanged, listener);
       return () => {
         ipcRenderer.removeListener(CHANNELS.updateChanged, listener);
+      };
+    },
+  },
+  mcp: {
+    state: () => invoke(CHANNELS.mcpState),
+    update: (patch: unknown) => invoke(CHANNELS.mcpUpdate, patch),
+    regenerateToken: () => invoke(CHANNELS.mcpRegenerateToken),
+    onChange: (fn: (state: unknown) => void) => {
+      const listener = (_e: IpcRendererEvent, state: unknown) => fn(state);
+      ipcRenderer.on(CHANNELS.mcpChanged, listener);
+      return () => {
+        ipcRenderer.removeListener(CHANNELS.mcpChanged, listener);
+      };
+    },
+    /**
+     * Take tool calls: the window runs each one against its store and the
+     * reply goes back to the main process, never straight to a client.
+     */
+    serve: (
+      handler: (
+        name: string,
+        args: unknown,
+        allowWrites: boolean,
+      ) => Promise<unknown>,
+    ) => {
+      const listener = (_e: IpcRendererEvent, call: unknown) => {
+        const c = (call ?? {}) as {
+          id?: unknown;
+          name?: unknown;
+          args?: unknown;
+          allowWrites?: unknown;
+        };
+        if (typeof c.id !== "string" || typeof c.name !== "string") return;
+        const id = c.id;
+        Promise.resolve()
+          .then(() =>
+            handler(c.name as string, c.args ?? {}, c.allowWrites === true),
+          )
+          .then(
+            (reply) => invoke(CHANNELS.mcpResult, id, reply),
+            (err: unknown) =>
+              invoke(CHANNELS.mcpResult, id, {
+                error: err instanceof Error ? err.message : String(err),
+              }),
+          );
+      };
+      ipcRenderer.on(CHANNELS.mcpCall, listener);
+      void invoke(CHANNELS.mcpReady, true);
+      return () => {
+        ipcRenderer.removeListener(CHANNELS.mcpCall, listener);
+        void invoke(CHANNELS.mcpReady, false);
       };
     },
   },

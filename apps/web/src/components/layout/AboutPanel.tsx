@@ -13,6 +13,7 @@ import {
 } from "../../lib/syncSettings";
 import { resolveSync } from "../../runtime";
 import { BackupSection } from "./BackupSection";
+import { McpSection } from "./McpSection";
 
 interface AboutPanelProps {
   open: boolean;
@@ -260,8 +261,9 @@ function SyncSection() {
 }
 
 /**
- * Version, updates, where the data is shared, and backup/transfer — the
- * app's "About" box, opened from the version in the header.
+ * Version, updates, where the data is shared, backup/transfer and AI
+ * assistants (MCP): the app's "About" box, opened from the version in the
+ * header.
  */
 export function AboutPanel({ open, onClose }: AboutPanelProps) {
   return (
@@ -288,6 +290,7 @@ export function AboutPanel({ open, onClose }: AboutPanelProps) {
       <UpdatesSection />
       <SyncSection />
       <BackupSection />
+      <McpSection />
       <div className="modal-actions">
         <Button onClick={onClose}>Close</Button>
       </div>

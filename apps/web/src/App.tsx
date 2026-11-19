@@ -17,6 +17,7 @@ import { ProjectDetail } from "./routes/ProjectDetail";
 import { TeamPage } from "./routes/TeamPage";
 import { TrackingPage } from "./routes/TrackingPage";
 import { TrackerDetail } from "./routes/TrackerDetail";
+import { McpBridge } from "./mcp/McpBridge";
 
 /**
  * The packaged Mac app is loaded from disk over `file://`, which has no History
@@ -57,6 +58,9 @@ export default function App({ runtime }: { runtime: PlannerRuntime }) {
           <Router>
             <TitleBar />
             <Header />
+            {/* AI clients' tool calls, in the Mac app only. Inside the router
+                so a tool can open a page. */}
+            <McpBridge />
             <PageBoundary>
               <Routes>
                 <Route path="/" element={<ProjectsDashboard />} />

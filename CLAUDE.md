@@ -115,6 +115,21 @@ full backup in the About panel (`apps/web/src/lib/backup.ts`): only when the
 user ticks "Include the Jira API token", in a `device` key that `parseBackup`
 splits off before anything reaches the store. `allowWrites` is never carried.
 
+**MCP is the Mac app's, and tools run in the window.** `packages/mcp` is pure
+(protocol, tool catalogue, every tool); the main process serves it on
+`127.0.0.1:5192/mcp` (`apps/desktop/electron/mcpServer.ts`, guard in
+`mcpGuard.ts`) and relays each `tools/call` over IPC to
+`apps/web/src/mcp/McpBridge.tsx`, which runs it on the live store. A write
+tool returns the typed `Action`s a click would dispatch, never a new state, so
+MCP edits persist and sync like any other. Keep it that way: no tool that
+deletes, refreshes from Jira or writes to Jira, and no tool that reads
+`jiraSettings`. Writes are a second switch (`allowWrites`), off by default and
+checked in both processes. The endpoint refuses any `Origin` (browsers) and
+needs the per-Mac bearer token in `mcp.json` (0600); don't loosen either, and
+don't check `Sec-Fetch-*`: Node's own `fetch`, which MCP clients use, sends
+it. A new tool goes in `packages/mcp/src/catalog.ts` with a test in
+`tools.test.ts`. See [docs/MCP.md](docs/MCP.md).
+
 ## Conventions
 
 - **Absent field = backward-compatible default**, by design. Absent

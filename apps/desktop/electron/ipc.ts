@@ -27,6 +27,18 @@ export const CHANNELS = {
   updateChanged: "planner:update:changed",
   /** Open the shared app in the user's default browser. */
   openShared: "planner:share:open",
+  /** The MCP endpoint's settings. See ./mcpHost. */
+  mcpState: "planner:mcp:state",
+  mcpUpdate: "planner:mcp:update",
+  mcpRegenerateToken: "planner:mcp:regenerate-token",
+  /** Main -> renderer: the MCP settings or status changed. */
+  mcpChanged: "planner:mcp:changed",
+  /** Main -> renderer: run one tool call. */
+  mcpCall: "planner:mcp:call",
+  /** Renderer -> main: a tool call's outcome. */
+  mcpResult: "planner:mcp:result",
+  /** Renderer -> main: this window can (true) or can no longer take calls. */
+  mcpReady: "planner:mcp:ready",
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

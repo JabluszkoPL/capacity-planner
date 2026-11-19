@@ -104,6 +104,10 @@
   margin-top: var(--space-2);
 }
 
+.about-actions.about-wrap {
+  flex-wrap: wrap;
+}
+
 .about-actions a.btn {
   text-decoration: none;
 }

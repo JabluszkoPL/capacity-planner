@@ -142,6 +142,7 @@ function SyncSection() {
 
   if (host) {
     const shareUrl = host.share?.url ?? null;
+    const foreignVersion = host.share?.foreignVersion ?? null;
     return (
       <section className="about-section" aria-labelledby="about-sync">
         <h4 id="about-sync">Sharing</h4>
@@ -151,6 +152,20 @@ function SyncSection() {
               Open <code>{shareUrl}</code> in any browser on this Mac to see and
               edit the same projects. Changes appear everywhere live.
             </p>
+            {foreignVersion && (
+              <p className="modal-hint about-warning" role="note">
+                {foreignVersion === "unknown"
+                  ? "Another Planner server was already running on this port, "
+                  : `Another Planner server (v${foreignVersion}) was already running on this port, `}
+                for example <code>pnpm dev</code> or <code>pnpm serve</code>.
+                This app is syncing with it, and the browser shows that server's
+                version of Planner
+                {foreignVersion !== "unknown" && foreignVersion !== APP_VERSION
+                  ? `, not v${APP_VERSION}`
+                  : ""}
+                . Stop it and reopen Planner to use the app's own server.
+              </p>
+            )}
             <p className="modal-hint">Status: {status}</p>
             <div className="about-actions">
               <Button onClick={() => void host.share?.open()}>

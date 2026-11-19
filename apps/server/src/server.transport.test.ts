@@ -72,6 +72,31 @@ describe("HTTP surface", () => {
     });
   });
 
+  it("reports its version, and whether the Mac app owns it", async () => {
+    const plain = await (
+      await fetch(`http://127.0.0.1:${server.port}/health`)
+    ).json();
+    expect(plain).toMatchObject({ version: null, managed: false });
+    expect(plain).not.toHaveProperty("pid");
+
+    const owned = await listen(db, randomUUID(), 0, "127.0.0.1", {
+      version: "9.9.9",
+      managed: true,
+    });
+    try {
+      const body = await (
+        await fetch(`http://127.0.0.1:${owned.port}/health`)
+      ).json();
+      expect(body).toMatchObject({
+        version: "9.9.9",
+        managed: true,
+        pid: process.pid,
+      });
+    } finally {
+      await owned.close();
+    }
+  });
+
   it("serves a read-only state dump", async () => {
     const res = await fetch(`http://127.0.0.1:${server.port}/api/state`);
     await expect(res.json()).resolves.toEqual({ projects: [], teams: [] });

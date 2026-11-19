@@ -10,12 +10,18 @@
  */
 import { context, build } from "esbuild";
 import { spawn } from "node:child_process";
-import { rmSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 
 const watch = process.argv.includes("--watch");
 const outfile = "dist/server.cjs";
 
 rmSync("dist", { recursive: true, force: true });
+
+// The workspace root package.json is the one version (see CLAUDE.md); /health
+// reports it so the Mac app can tell which build is answering on its port.
+const rootPackage = JSON.parse(
+  readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+);
 
 const options = {
   entryPoints: ["src/main.ts"],
@@ -29,6 +35,9 @@ const options = {
   // bundling them is neither possible nor needed.
   external: ["bufferutil", "utf-8-validate"],
   logLevel: "info",
+  define: {
+    __PLANNER_VERSION__: JSON.stringify(rootPackage.version ?? "0.0.0"),
+  },
 };
 
 if (!watch) {

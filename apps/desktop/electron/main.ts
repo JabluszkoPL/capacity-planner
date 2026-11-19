@@ -168,6 +168,9 @@ function createWindow(): BrowserWindow {
         `--planner-version=${__PLANNER_VERSION__}`,
         ...(share.syncUrl ? [`--planner-sync-url=${share.syncUrl}`] : []),
         ...(share.shareUrl ? [`--planner-share-url=${share.shareUrl}`] : []),
+        ...(share.foreign
+          ? [`--planner-share-foreign=${share.foreign.version ?? "unknown"}`]
+          : []),
       ],
       contextIsolation: true,
       nodeIntegration: false,

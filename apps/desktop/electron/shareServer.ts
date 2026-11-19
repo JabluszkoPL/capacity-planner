@@ -15,34 +15,111 @@
  * other machines is a deliberate step — run the standalone server for that
  * (docs/SYNC.md). If anything here fails the app simply stays local-only,
  * which is exactly how it behaved before this existed.
+ *
+ * When something already answers on the port, ./shareDecision says whether
+ * it is this app's own leftover server (replaced, so an update never leaves
+ * the browser on the old version) or one the user runs (joined, and reported
+ * to the About panel through `foreign`).
  */
 import { app } from "electron";
-import { spawn, type ChildProcess } from "node:child_process";
+import { execFile, spawn, type ChildProcess } from "node:child_process";
+import { promisify } from "node:util";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
+import {
+  decideShareStart,
+  isAppServerCommand,
+  parseHealth,
+  type ServerHealth,
+} from "./shareDecision";
+
+const run = promisify(execFile);
 
 export interface ShareInfo {
   /** WebSocket URL this app's renderer syncs with, or null for local-only. */
   syncUrl: string | null;
   /** Where a browser on this Mac can open the shared app, or null. */
   shareUrl: string | null;
+  /**
+   * Set when the port was already held by a server the user runs (`pnpm dev`,
+   * a standalone server) and the app joined it instead of starting its own.
+   * The browser then shows that server's web app, whatever its version.
+   */
+  foreign?: { version: string | null } | null;
 }
 
 const DEFAULT_PORT = 5191;
 
 let child: ChildProcess | null = null;
 
-async function isPlannerServer(port: number): Promise<boolean> {
+async function readHealth(port: number): Promise<ServerHealth | null> {
   try {
     const res = await fetch(`http://127.0.0.1:${port}/health`, {
       signal: AbortSignal.timeout(800),
     });
-    if (!res.ok) return false;
-    const body = (await res.json()) as { protocol?: unknown };
-    return typeof body.protocol === "number";
+    if (!res.ok) return null;
+    return parseHealth(await res.json());
+  } catch {
+    return null;
+  }
+}
+
+async function isPlannerServer(port: number): Promise<boolean> {
+  return (await readHealth(port)) !== null;
+}
+
+/** The pid listening on `port`, via lsof (always present on macOS). */
+async function portHolder(port: number): Promise<number | null> {
+  try {
+    const { stdout } = await run("/usr/sbin/lsof", [
+      "-nP",
+      "-t",
+      `-iTCP:${port}`,
+      "-sTCP:LISTEN",
+    ]);
+    const pid = Number(stdout.trim().split("\n")[0]);
+    return Number.isInteger(pid) && pid > 1 ? pid : null;
+  } catch {
+    return null;
+  }
+}
+
+async function commandOf(pid: number): Promise<string> {
+  try {
+    const { stdout } = await run("/bin/ps", [
+      "-p",
+      String(pid),
+      "-o",
+      "command=",
+    ]);
+    return stdout;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Stop a Planner app's leftover server and wait for the port to free up.
+ * The pid is only signalled after its command line proves it is one.
+ */
+async function replaceAppServer(
+  port: number,
+  pid: number | null,
+): Promise<boolean> {
+  const target = pid ?? (await portHolder(port));
+  if (target === null || target === process.pid) return false;
+  if (!isAppServerCommand(await commandOf(target))) return false;
+  try {
+    process.kill(target, "SIGTERM");
   } catch {
     return false;
   }
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    if (!(await isPlannerServer(port))) return true;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return false;
 }
 
 async function waitForServer(port: number, ms: number): Promise<boolean> {
@@ -85,9 +162,32 @@ export async function startShareServer(dataDir: string): Promise<ShareInfo> {
     shareUrl: `http://localhost:${port}`,
   };
 
-  // Something already answers there — a `pnpm dev:server`, or the standalone
-  // server. Join it rather than fight it for the port.
-  if (await isPlannerServer(port)) return info;
+  const health = await readHealth(port);
+  if (health) {
+    // Only servers too old to report an owner need the process lookup.
+    let holderIsAppServer = false;
+    if (health.version === null && !health.managed) {
+      const holder = await portHolder(port);
+      holderIsAppServer =
+        holder !== null && isAppServerCommand(await commandOf(holder));
+    }
+    const decision = decideShareStart(health, holderIsAppServer);
+    if (decision.kind === "join") {
+      console.warn(
+        `[planner] port ${port} is held by another Planner server` +
+          (decision.foreignVersion ? ` (v${decision.foreignVersion})` : "") +
+          "; syncing with it",
+      );
+      return { ...info, foreign: { version: decision.foreignVersion } };
+    }
+    if (decision.kind === "replace") {
+      console.log(`[planner] replacing a leftover Planner server on ${port}`);
+      if (!(await replaceAppServer(port, decision.pid))) {
+        // Couldn't clear it: joining is still better than local-only.
+        return { ...info, foreign: { version: health.version } };
+      }
+    }
+  }
 
   const { script, webDir } = resourcePaths();
   if (!existsSync(script)) {

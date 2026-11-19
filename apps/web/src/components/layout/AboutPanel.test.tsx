@@ -141,3 +141,52 @@ describe("sync settings in a browser", () => {
     expect(localStorage.getItem(SYNC_URL_KEY)).toBeNull();
   });
 });
+
+describe("sharing in the Mac app", () => {
+  function host(share: PlannerHost["share"]) {
+    const idle: UpdateState = {
+      status: "idle",
+      currentVersion: APP_VERSION,
+      latest: null,
+      progress: null,
+      canInstall: false,
+      message: null,
+      checkedAt: null,
+    };
+    window.planner = {
+      db: {} as PlannerHost["db"],
+      syncUrl: null,
+      platform: "darwin",
+      version: "38",
+      updates: {
+        state: async () => idle,
+        check: async () => idle,
+        download: async () => idle,
+        install: async () => idle,
+        onChange: () => () => {},
+      },
+      share,
+    };
+  }
+
+  it("explains when the browser shows another server's older version", () => {
+    host({
+      url: "http://localhost:5191",
+      foreignVersion: "0.0.1",
+      open: async () => {},
+    });
+    renderHeader();
+    fireEvent.click(screen.getByRole("button", { name: /About Planner/ }));
+    const note = screen.getByRole("note");
+    expect(note).toHaveTextContent("Another Planner server (v0.0.1)");
+    expect(note).toHaveTextContent(`not v${APP_VERSION}`);
+    expect(note).toHaveTextContent("pnpm dev");
+  });
+
+  it("says nothing extra when the app runs its own server", () => {
+    host({ url: "http://localhost:5191", open: async () => {} });
+    renderHeader();
+    fireEvent.click(screen.getByRole("button", { name: /About Planner/ }));
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+});

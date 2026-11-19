@@ -53,6 +53,7 @@ contextBridge.exposeInMainWorld("planner", {
   },
   share: {
     url: arg("share-url"),
+    foreignVersion: arg("share-foreign"),
     open: () => invoke(CHANNELS.openShared),
   },
   syncUrl: arg("sync-url"),

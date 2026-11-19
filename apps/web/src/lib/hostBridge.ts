@@ -24,6 +24,13 @@ export interface PlannerUpdatesBridge {
 export interface PlannerShareBridge {
   /** e.g. "http://localhost:5191", or null when sharing is off. */
   url: string | null;
+  /**
+   * Set when that URL belongs to a server the user runs (e.g. `pnpm dev`)
+   * that the app joined instead of starting its own: its version, or
+   * "unknown". The browser then shows that server's web app. Null or absent
+   * when the app runs its own server (absent on older hosts).
+   */
+  foreignVersion?: string | null;
   /** Open that URL in the user's default browser. */
   open(): Promise<void>;
 }

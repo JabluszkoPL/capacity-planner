@@ -49,6 +49,15 @@ export interface SyncServerOptions {
   /** The web app's production build, served at `/` when set. */
   webDir?: string | null;
   access?: AccessOptions;
+  /** Planner version this server was built as; reported by `/health`. */
+  version?: string | null;
+  /**
+   * Started by the Mac app as its own child process. Reported by `/health`
+   * with the pid, so the next launch can tell its own leftover server (an
+   * orphan, or the previous version after an update) from one the user runs
+   * deliberately (`pnpm dev`, a standalone server) and replace only the first.
+   */
+  managed?: boolean;
 }
 
 function isPermitted(req: IncomingMessage, access: AccessOptions): boolean {
@@ -105,6 +114,9 @@ export function createSyncServer(
         // *why* refreshing is unavailable instead of failing on the attempt.
         jira: { proxy: true, writes: jiraOptions.allowWrites },
         web: serveStatic !== null,
+        version: options.version ?? null,
+        managed: options.managed === true,
+        ...(options.managed ? { pid: process.pid } : {}),
       });
     }
     if (url === "/api/state") {

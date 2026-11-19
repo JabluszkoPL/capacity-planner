@@ -12,6 +12,11 @@ import { openNodeDatabase } from "@planner/db/node";
 import { loadConfig } from "./config";
 import { listen } from "./server";
 
+/** Injected by the bundlers (apps/server/build.mjs, apps/desktop/build.mjs). */
+declare const __PLANNER_VERSION__: string | undefined;
+const VERSION =
+  typeof __PLANNER_VERSION__ === "string" ? __PLANNER_VERSION__ : null;
+
 async function main(): Promise<void> {
   const config = loadConfig();
   const db = openNodeDatabase(config.dbPath);
@@ -25,10 +30,13 @@ async function main(): Promise<void> {
     setMeta(db, "server_id", serverId);
   }
 
+  const managed = process.env.PLANNER_EXIT_WITH_PARENT === "1";
   const running = await listen(db, serverId, config.port, config.host, {
     webDir: config.webDir,
+    version: VERSION,
+    managed,
   });
-  console.log(`[sync] Planner sync server`);
+  console.log(`[sync] Planner sync server${VERSION ? ` v${VERSION}` : ""}`);
   console.log(`[sync]   database  ${config.dbPath} (schema v${version})`);
   console.log(`[sync]   listening ws://${config.host}:${running.port}/ws`);
   console.log(`[sync]   health    http://localhost:${running.port}/health`);
@@ -47,7 +55,7 @@ async function main(): Promise<void> {
 
   // Started by the Mac app: don't outlive it if it crashes or is force-quit,
   // or the next launch finds the port taken by an orphan.
-  if (process.env.PLANNER_EXIT_WITH_PARENT === "1") {
+  if (managed) {
     const parent = process.ppid;
     setInterval(() => {
       try {

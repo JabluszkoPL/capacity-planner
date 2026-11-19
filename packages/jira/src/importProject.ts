@@ -205,21 +205,6 @@ function namedSpecialization(
 }
 
 /**
- * The specialization an issue's tags name: its Jira labels first, then the
- * bracketed tags in its summary ("[QA] smoke pass"). Undefined when neither
- * names one, or when one names two at once.
- */
-export function issueTagSpecialization(
-  issue: Pick<JiraIssue, "labels" | "summary">,
-  lookup: Map<string, string>,
-): string | undefined {
-  return (
-    namedSpecialization(issue.labels ?? [], lookup) ??
-    namedSpecialization(bracketTags(issue.summary), lookup)
-  );
-}
-
-/**
  * Jira search has no inherent order and the snapshot does not carry rank, so
  * sort on what the team has told Jira about timing: start date, then due date
  * (milestone epics usually carry one), then creation order.

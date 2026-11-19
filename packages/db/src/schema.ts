@@ -239,13 +239,6 @@ ALTER TABLE members
 ADD COLUMN jira_account_id TEXT;
 `;
 
-// Jira epics a tracker follows as nice-to-have work, on top of the plan, as a
-// JSON array of epic keys. NOT NULL with '[]', like untracked_epics.
-const V9 = `
-ALTER TABLE trackers
-ADD COLUMN nice_to_have_epics TEXT NOT NULL DEFAULT '[]';
-`;
-
 export const MIGRATIONS: Migration[] = [
   { version: 1, name: "initial", up: V1 },
   { version: 2, name: "trackers", up: V2 },
@@ -255,7 +248,6 @@ export const MIGRATIONS: Migration[] = [
   { version: 6, name: "tracker-untracked-epics", up: V6 },
   { version: 7, name: "tracker-teams", up: V7 },
   { version: 8, name: "jira-teams", up: V8 },
-  { version: 9, name: "tracker-nice-to-have-epics", up: V9 },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

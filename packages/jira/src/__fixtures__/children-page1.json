@@ -37,11 +37,7 @@
         "issuetype": { "name": "Story", "hierarchyLevel": 0 },
         "status": {
           "name": "In Progress",
-          "statusCategory": {
-            "id": 4,
-            "key": "indeterminate",
-            "name": "In Progress"
-          }
+          "statusCategory": { "id": 4, "key": "indeterminate", "name": "In Progress" }
         },
         "assignee": {
           "accountId": "5f00aa11bb22cc33dd44ee57",

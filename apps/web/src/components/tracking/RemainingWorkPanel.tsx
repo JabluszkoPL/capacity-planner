@@ -97,9 +97,7 @@ function Tags({ item }: { item: ForecastItem }) {
       ? { text: "suggested", className: "forecast-tag suggested" }
       : { text: "assigned in Jira", className: "forecast-tag" },
   );
-  if (item.niceToHave) {
-    tags.push({ text: "nice to have", className: "forecast-tag nice" });
-  } else if (!item.inPlan) {
+  if (!item.inPlan) {
     tags.push({ text: "not in the plan", className: "forecast-tag extra" });
   }
   return (
@@ -245,18 +243,12 @@ export function compareWithStatus(
       );
       const sum = (list: ForecastItem[], f: (a: ForecastItem) => number) =>
         list.reduce((n, a) => n + f(a), 0);
-      // Nice-to-have work is never in the status, whatever else it is.
-      const nice = sum(
-        mine.filter((a) => a.niceToHave),
-        (a) => a.estimateDays,
-      );
-      const mustDo = mine.filter((a) => !a.niceToHave);
       const extra = sum(
-        mustDo.filter((a) => !a.inPlan),
+        mine.filter((a) => !a.inPlan),
         (a) => a.estimateDays,
       );
       const fromJira = sum(
-        mustDo.filter((a) => a.inPlan && a.estimateFrom === "jira"),
+        mine.filter((a) => a.inPlan && a.estimateFrom === "jira"),
         (a) => a.estimateDays,
       );
       const shorter = sum(
@@ -264,14 +256,9 @@ export function compareWithStatus(
         (a) => a.plannedDays - a.estimateDays,
       );
       const reasons: string[] = [];
-      if (nice > 0.05) {
-        reasons.push(
-          `+${days(nice)} d of nice-to-have work, which the status leaves out`,
-        );
-      }
       if (extra > 0.05) {
         reasons.push(
-          `+${days(extra)} d of Jira tasks not in the plan, which the status leaves out until they have a specialization`,
+          `+${days(extra)} d of Jira tasks not in the plan, which the status leaves out until they are marked as added scope`,
         );
       }
       if (fromJira > 0.05) {
@@ -370,17 +357,9 @@ export function RemainingWorkPanel({
   // Only To Do and In Progress by default: nobody needs to pick up work in
   // review. Ticking the box plans it too, as the status counts it.
   const [countWaiting, setCountWaiting] = useState(false);
-  // Must-do work only by default, as the status reads it; ticking the box
-  // lays out the nice-to-have epics on top.
-  const [includeNiceToHave, setIncludeNiceToHave] = useState(false);
-  const hasNiceToHave = (tracker.niceToHaveEpics ?? []).length > 0;
   const work = useMemo(
-    () =>
-      remainingWork(tracker, project, teams, today, {
-        countWaiting,
-        includeNiceToHave,
-      }),
-    [tracker, project, teams, today, countWaiting, includeNiceToHave],
+    () => remainingWork(tracker, project, teams, today, { countWaiting }),
+    [tracker, project, teams, today, countWaiting],
   );
   const offDays = useMemo(() => mergedOffDays(teams), [teams]);
   // "fit" spreads the days over the width; a number is a fixed day width.
@@ -553,17 +532,6 @@ export function RemainingWorkPanel({
           />{" "}
           Also plan tasks in review or ready to deploy (as the status counts
           them)
-        </label>
-      )}
-      {hasNiceToHave && (
-        <label className="forecast-option">
-          <input
-            type="checkbox"
-            checked={includeNiceToHave}
-            onChange={(e) => setIncludeNiceToHave(e.target.checked)}
-          />{" "}
-          Also plan nice-to-have work (on top of the plan; the status leaves it
-          out)
         </label>
       )}
       <Comparison rows={comparison} />

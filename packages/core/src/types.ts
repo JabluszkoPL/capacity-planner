@@ -283,23 +283,19 @@ export interface Tracker {
    */
   epicMap?: { [jiraEpicKey: string]: ID | null };
   /**
-   * Jira child issue key -> Planner task id, matched by name, never by hand.
-   * This is the primary comparison map: Jira epics often get reorganised while
-   * the underlying work stays the same. `null` marks an issue that is added
-   * scope (see `addedScope`), so name matching never claims it; an absent key
-   * matched nothing. Absent on older trackers.
+   * Jira child issue key -> Planner task id. This is the primary comparison
+   * map: Jira epics often get reorganised while the underlying work stays the
+   * same. An explicit `null` means the Jira issue is deliberately outside the
+   * plan; an absent key is still undecided. Absent on older trackers.
    */
   taskMap?: { [jiraIssueKey: string]: ID | null };
   /**
    * Jira child issue key -> the specialization that does it, for work that is
-   * not in the plan: scope added after the plan was made. A new task gets one
-   * from its tags (a Jira label or a "[QA]" tag in its summary) when they name
-   * a specialization; otherwise it stays unmapped, counting for nothing, until
-   * one is picked. The tracker counts added scope as extra plan work, sized by
-   * Jira's estimate, on top of the baseline; the promised dates stay the
-   * baseline's, so added scope uses up buffer instead of moving the deadline.
-   * The same key is `null` in `taskMap`. Absent = none. See `trackerMapping`
-   * in packages/jira.
+   * not in the plan but is still this team's to do: scope added after the plan
+   * was made. The tracker counts it as extra plan work, sized by Jira's
+   * estimate, on top of the baseline; the promised dates stay the baseline's,
+   * so added scope uses up buffer instead of moving the deadline. The same key
+   * is `null` in `taskMap`, so name matching never claims it. Absent = none.
    */
   addedScope?: { [jiraIssueKey: string]: string };
   /**
@@ -310,15 +306,6 @@ export interface Tracker {
    * restores them. Absent = every epic is tracked.
    */
   untrackedEpics?: string[];
-  /**
-   * Jira epic keys of nice-to-have work: tracked on top of what the plan
-   * must deliver, never as part of it. Their tasks show in the task table,
-   * matched and given specializations like any other, but every reading of
-   * the must-do work (status, buffer, samples) leaves them out, like an
-   * untracked epic. The work-left planner can lay them out on request. An
-   * epic is in at most one of this list and `untrackedEpics`. Absent = none.
-   */
-  niceToHaveEpics?: string[];
   /**
    * The teams whose work the reading covers, by name, as Jira's "Team" field
    * spells them ("Stars"): their Jira tasks, the plan tasks those map to, and
@@ -345,12 +332,6 @@ export interface Tracker {
   /** The dates progress is judged against. Absent = every default below. */
   deadlines?: TrackerDeadlines;
 }
-
-/**
- * How a tracker follows one Jira epic: as work the plan must deliver, not at
- * all (another team's), or as nice-to-have work on top of the plan.
- */
-export type EpicTracking = "tracked" | "untracked" | "niceToHave";
 
 /**
  * The dates a tracker judges progress against, and which work belongs to the

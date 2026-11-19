@@ -63,7 +63,6 @@ import {
   teamScope,
   trackedMapping,
   untrackedIssueKeys,
-  mustDoTracker,
   withAddedScope,
 } from "./tracking";
 
@@ -109,9 +108,6 @@ export interface ForecastItem extends Assignment {
   inPlan: boolean;
   /** In review or ready to deploy, counted as work left (see options). */
   waiting: boolean;
-  /** Under a nice-to-have epic: planned only on request, never in the status
-   *  (see `RemainingWorkOptions.includeNiceToHave`). */
-  niceToHave: boolean;
   /** Where its estimate came from: the plan, or Jira when the plan has none. */
   estimateFrom: "plan" | "jira";
   /** Its whole estimate; more than `estimateDays` when Jira says less is left. */
@@ -126,12 +122,6 @@ export interface RemainingWorkOptions {
    * To Do and In Progress are planned, as if the rest were closed today.
    */
   countWaiting?: boolean;
-  /**
-   * Also plan the tracker's nice-to-have epics (`Tracker.niceToHaveEpics`),
-   * after and alongside the must-do work. Default false: they are left out,
-   * as the status leaves them out.
-   */
-  includeNiceToHave?: boolean;
 }
 
 /** An open task with no estimate in the plan or Jira: not laid out. */
@@ -335,12 +325,6 @@ export function remainingWork(
   options: RemainingWorkOptions = {},
 ): RemainingWork | null {
   const countWaiting = options.countWaiting ?? false;
-  // Issues under nice-to-have epics, to mark the work they become.
-  const niceKeys = options.includeNiceToHave
-    ? untrackedIssueKeys(tracker.snapshot, tracker.niceToHaveEpics)
-    : new Set<string>();
-  const isNice = (keys: string[]) => keys.some((k) => niceKeys.has(k));
-  if (!options.includeNiceToHave) tracker = mustDoTracker(tracker);
   const scoped = teamScope(tracker, project, teams);
   if (scoped) {
     tracker = scoped.tracker;
@@ -478,7 +462,6 @@ export function remainingWork(
         assignedBy: "jira",
         inPlan: inPlan.has(task.id),
         waiting: false,
-        niceToHave: isNice(state.open.map((i) => i.key)),
         estimateFrom: from,
         plannedDays: round2(estimate),
       });
@@ -638,7 +621,6 @@ export function remainingWork(
         assignedBy: assignees[a.taskId] === a.memberId ? "jira" : "planner",
         inPlan: inPlan.has(a.taskId),
         waiting: state?.awaiting ?? false,
-        niceToHave: isNice(state?.open.map((i) => i.key) ?? []),
         estimateFrom: estimates.get(a.taskId)?.from ?? "plan",
         plannedDays: round2(estimates.get(a.taskId)?.days ?? a.estimateDays),
       };

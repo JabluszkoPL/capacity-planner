@@ -810,11 +810,6 @@ interface StatusPanelProps {
   onOpenProject?: () => void;
   /** Tasks in review or ready, and the reading if they were closed today. */
   awaitingClose?: AwaitingCloseWhatIf | null;
-  /**
-   * Whether tasks past To Do and In Progress (review, QA, ready to deploy)
-   * read as done. Absent when there are none, and the box is not shown.
-   */
-  pastInProgress?: { checked: boolean; onChange: (checked: boolean) => void };
 }
 
 export function StatusPanel({
@@ -823,7 +818,6 @@ export function StatusPanel({
   planStale,
   onOpenProject,
   awaitingClose,
-  pastInProgress,
 }: StatusPanelProps) {
   const label = statusLabel(status);
   const comparable = status.kind !== "no-baseline";
@@ -840,17 +834,6 @@ export function StatusPanel({
       </p>
       {label.endDate && <p className="status-enddate">{label.endDate}</p>}
       {status.teamScope && <TeamScopeNote scope={status.teamScope} />}
-      {pastInProgress && (
-        <label className="status-option">
-          <input
-            type="checkbox"
-            checked={pastInProgress.checked}
-            onChange={(e) => pastInProgress.onChange(e.target.checked)}
-          />{" "}
-          Count tasks past To Do and In Progress as done (in review, QA, ready
-          to deploy)
-        </label>
-      )}
 
       {comparable && (
         <p className="status-explain">{bufferExplanation(status)}</p>

@@ -267,7 +267,7 @@ describe("refreshTracker", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok || !result.sample) throw new Error("expected a sample");
-    expect(result.mapping?.taskMap).toMatchObject({
+    expect(result.taskMap).toMatchObject({
       "ACME-11": "t1",
       "ACME-12": "t2",
       "ACME-21": "t3",

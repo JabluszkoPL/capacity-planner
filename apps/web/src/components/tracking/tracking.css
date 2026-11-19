@@ -445,25 +445,6 @@
   border: 1px solid var(--border);
   color: var(--muted);
 }
-/* Followed on top of the plan, not part of it: named in words, outlined in
- * the accent so it reads apart from the must-do work. */
-/* The team an epic's tasks belong to, beside its key. */
-.epic-team {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 1px 7px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.nice-to-have-label {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 1px 7px;
-  border-radius: var(--radius-pill);
-  border: 1px dashed var(--accent);
-  color: var(--accent);
-}
 .epic-tracking {
   margin-left: auto;
   font-size: 12px;
@@ -477,29 +458,6 @@
   display: block;
   margin-top: var(--space-1);
   font-size: 12px;
-}
-.added-scope-spec.needs-spec {
-  border-color: var(--warn-border);
-}
-/* A Jira task that matched a plan task by name: read-only, with its epic. */
-.plan-task-name {
-  display: flex;
-  flex-direction: column;
-}
-.plan-task-epic {
-  font-size: 12px;
-  color: var(--muted);
-}
-.added-scope-label,
-.unmapped-label {
-  font-size: 12px;
-  font-weight: 600;
-}
-.added-scope-label {
-  color: var(--accent);
-}
-.unmapped-label {
-  color: var(--warn-text);
 }
 .added-scope-count {
   font-size: 12px;
@@ -887,12 +845,6 @@
   color: var(--text);
   max-width: 72ch;
 }
-.status-option {
-  display: block;
-  margin: var(--space-2) 0;
-  font-size: 13px;
-  color: var(--muted);
-}
 .status-footnote {
   font-size: 12px;
   margin: var(--space-2) 0 0;
@@ -1099,11 +1051,6 @@
 }
 .forecast-tag.extra {
   color: var(--warn-text);
-}
-.forecast-tag.nice {
-  border-style: dashed;
-  border-color: var(--accent);
-  color: var(--accent);
 }
 .forecast-toolbar {
   display: flex;

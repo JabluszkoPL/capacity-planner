@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, it, expect } from "vitest";
+import { render, screen, within } from "@testing-library/react";
 import type { SpecializationStatus, TrackerStatus } from "@planner/core";
 import {
   StatusPanel,
@@ -107,24 +107,6 @@ describe("StatusPanel", () => {
     expect(
       screen.getByRole("img", { name: /25% of the buffer used/i }),
     ).toBeInTheDocument();
-  });
-
-  it("offers to count tasks past In Progress as done", () => {
-    const onChange = vi.fn();
-    const { rerender } = render(<StatusPanel status={status()} />);
-    expect(screen.queryByRole("checkbox")).toBeNull();
-    rerender(
-      <StatusPanel
-        status={status()}
-        pastInProgress={{ checked: false, onChange }}
-      />,
-    );
-    const box = screen.getByRole("checkbox", {
-      name: /Count tasks past To Do and In Progress as done/,
-    });
-    expect(box).not.toBeChecked();
-    fireEvent.click(box);
-    expect(onChange).toHaveBeenCalledWith(true);
   });
 
   it("explains what is missing instead of showing plan numbers", () => {

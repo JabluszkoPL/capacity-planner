@@ -251,10 +251,8 @@ describe("Tracking tab", () => {
     await user.click(await screen.findByRole("button", { name: "Meta loop" }));
     await waitFor(() =>
       expect(
-        screen
-          .getByRole("row", { name: /ACME-11/ })
-          .querySelector(".plan-task-name"),
-      ).toHaveTextContent("Quest board"),
+        screen.getByLabelText("Plan task for ACME-11 Quest board"),
+      ).toHaveValue("Quest board"),
     );
   });
 
@@ -312,7 +310,9 @@ describe("Tracking tab", () => {
       screen.queryByRole("button", { name: "Review estimates…" }),
     ).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Meta loop" }));
-    const row = screen.getByRole("row", { name: /ACME-11/ });
+    const row = screen
+      .getByLabelText("Plan task for ACME-11 Quest board")
+      .closest("tr")!;
     expect(row).toHaveTextContent("5");
   });
 

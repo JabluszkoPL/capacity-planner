@@ -5,7 +5,6 @@ import { useToast } from "../ui/Toast";
 import { createJiraTransport } from "../../lib/jiraTransport";
 import { useJiraSettings } from "../../lib/useJiraSettings";
 import { refreshTracker } from "../../lib/refreshTracker";
-import { readTagAliases } from "../../lib/tagAliases";
 
 /**
  * Refreshing, shared by the list page and a single tracker.
@@ -35,12 +34,10 @@ export function useTrackerRefresh() {
           state,
           today: todayISO(),
           now: new Date().toISOString(),
-          tagAliases: readTagAliases(),
         });
         if (result.ok) {
-          if (result.mapping) {
-            actions.setTrackerTaskMap(tracker.id, result.mapping.taskMap);
-            actions.setTrackerAddedScope(tracker.id, result.mapping.addedScope);
+          if (result.taskMap) {
+            actions.setTrackerTaskMap(tracker.id, result.taskMap);
           }
           actions.setTrackerSnapshot(
             tracker.id,

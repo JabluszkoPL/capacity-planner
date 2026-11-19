@@ -1,6 +1,5 @@
 import type {
   AppState,
-  EpicTracking,
   Helper,
   ID,
   JiraSnapshot,
@@ -230,12 +229,6 @@ export type Action =
       taskMap: { [jiraIssueKey: string]: ID | null };
     }
   | { type: "setTrackerUntrackedEpics"; id: ID; epicKeys: string[] }
-  | {
-      type: "setTrackerEpicTracking";
-      id: ID;
-      epicKey: string;
-      tracking: EpicTracking;
-    }
   | { type: "setTrackerViewTeams"; id: ID; teamNames: string[] }
   | {
       type: "setTrackerTaskTeam";

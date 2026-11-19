@@ -411,7 +411,6 @@ export function describeLocalStoreContract(
           taskMap: { "ACME-31": null },
           addedScope: { "ACME-31": "QA" },
           untrackedEpics: ["ACME-40"],
-          niceToHaveEpics: ["ACME-50"],
           viewTeams: ["team-stars"],
           taskTeams: { "ACME-31": "team-bulls" },
         }),
@@ -428,7 +427,6 @@ export function describeLocalStoreContract(
         taskMap: { "ACME-31": null },
         addedScope: { "ACME-31": "QA" },
         untrackedEpics: ["ACME-40"],
-        niceToHaveEpics: ["ACME-50"],
         viewTeams: ["team-stars"],
         taskTeams: { "ACME-31": "team-bulls" },
       });

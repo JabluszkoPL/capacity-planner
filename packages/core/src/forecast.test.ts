@@ -356,37 +356,6 @@ describe("remainingWork", () => {
       ]);
       expect(w.items.some((a) => a.jiraKeys.includes("J-30"))).toBe(false);
     });
-
-    it("plans nice-to-have epics only when asked, and marks them", () => {
-      const t = tracker(CHILDREN);
-      const snapshot = t.snapshot!;
-      const nice: Tracker = {
-        ...t,
-        niceToHaveEpics: ["J-NICE"],
-        snapshot: {
-          ...snapshot,
-          epics: [
-            ...snapshot.epics,
-            {
-              ...snapshot.epics[0],
-              key: "J-NICE",
-              summary: "Nice",
-              children: [extra("J-40", { labels: ["dev"] })],
-            },
-          ],
-        },
-      };
-      const without = remainingWork(nice, PROJECT, TEAMS, TODAY)!;
-      expect(without.items.some((a) => a.jiraKeys.includes("J-40"))).toBe(
-        false,
-      );
-      const withNice = remainingWork(nice, PROJECT, TEAMS, TODAY, {
-        includeNiceToHave: true,
-      })!;
-      const item = withNice.items.find((a) => a.jiraKeys.includes("J-40"));
-      expect(item).toMatchObject({ niceToHave: true, specialization: "dev" });
-      expect(withNice.items.filter((a) => a.niceToHave)).toHaveLength(1);
-    });
   });
 
   describe("tasks waiting to be closed", () => {

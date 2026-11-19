@@ -30,16 +30,11 @@ import {
   suggestedEndPhase,
   teamCalendar,
   trackedMapping,
-  selectedTeams,
-  epicTracking,
-  mustDoTracker,
   trackerStatus,
   jiraTaskTeams,
   trackerTeams,
   awaitingCloseWhatIf,
   isAwaitingClose,
-  isPastInProgress,
-  pastInProgressAsDone,
   untrackedIssueKeys,
   withAddedScope,
   workdaysBetween,
@@ -1908,28 +1903,6 @@ describe("teams sharing an initiative", () => {
     expect(owners.get("J-g2")).toEqual({ team: "Stars", source: "epic" });
   });
 
-  it("gives an epic's Jira team to its tasks before guessing from assignees", () => {
-    const project = fixtureProject();
-    const tracker = sharedTracker(project);
-    tracker.snapshot!.epics[0].team = "Bulls";
-    const owners = jiraTaskTeams(tracker.snapshot!, project, teams, undefined);
-    // A task's own Jira Team still wins.
-    expect(owners.get("J-a2")).toEqual({ team: "Stars", source: "jira" });
-    // Everything else is the epic's, assignee or not.
-    expect(owners.get("J-g1")).toEqual({ team: "Bulls", source: "epic" });
-    expect(owners.get("J-b1")).toEqual({ team: "Bulls", source: "epic" });
-  });
-
-  it("says which teams the reading is limited to", () => {
-    const project = fixtureProject();
-    const read = (viewTeams?: string[]) =>
-      selectedTeams(sharedTracker(project, { viewTeams }), project, teams);
-    expect(read()).toBeNull();
-    expect(read(["stars"])).toEqual(["Stars"]);
-    expect(read(["Stars", "Bulls"])).toBeNull();
-    expect(read(["Lions"])).toBeNull();
-  });
-
   it("lists the tracker's teams, most tasks first", () => {
     const project = fixtureProject();
     expect(trackerTeams(sharedTracker(project), project, teams)).toEqual([
@@ -2019,73 +1992,6 @@ describe("teams sharing an initiative", () => {
     expect(w.bySpecialization).toEqual([
       { specialization: "dev", tasks: 1, days: 10, people: 1, workingDays: 10 },
     ]);
-  });
-});
-
-describe("tasks past In Progress", () => {
-  const at = (status: string, category: JiraStatusCategory = "indeterminate") =>
-    isPastInProgress({ ...jiraTask("K-1", "x", category), status });
-
-  it("matches open work handed on, not work in hand or not begun", () => {
-    for (const s of [
-      "In Review",
-      "Code Review",
-      "QA",
-      "Testing",
-      "Ready to Deploy",
-    ]) {
-      expect(at(s)).toBe(true);
-    }
-    for (const s of ["In Progress", "In Development", "Blocked", "On Hold"]) {
-      expect(at(s)).toBe(false);
-    }
-    expect(at("Ready for Development")).toBe(false);
-    expect(at("To Do", "new")).toBe(false);
-    expect(at("Done", "done")).toBe(false);
-  });
-
-  it("reads them as done, so they count as earned", () => {
-    const project = fixtureProject();
-    const ids = project.epics.flatMap((e) => e.tasks.map((t) => t.id));
-    const tracker = fixtureTracker({
-      epicMap: undefined,
-      snapshot: snapshotOf([
-        jiraEpic(
-          "E-1",
-          "Ours",
-          {},
-          "indeterminate",
-          ids.map((id) => ({
-            ...jiraTask(
-              `J-${id}`,
-              id.toUpperCase(),
-              id === "a1" ? "done" : "new",
-            ),
-            ...(id === "a2"
-              ? {
-                  status: "In Review",
-                  statusCategory: "indeterminate" as const,
-                }
-              : {}),
-            ...(id === "a3"
-              ? {
-                  status: "In Progress",
-                  statusCategory: "indeterminate" as const,
-                }
-              : {}),
-          })),
-        ),
-      ]),
-      taskMap: Object.fromEntries(ids.map((id) => [`J-${id}`, id])),
-    });
-    const out = pastInProgressAsDone(tracker);
-    expect(out.tasks).toBe(1);
-    const before = trackerStatus(tracker, project, TEAMS, TODAY);
-    const after = trackerStatus(out.tracker, project, TEAMS, TODAY);
-    expect(after.earnedDays).toBe(before.earnedDays + 10);
-    // Nothing to close: the same tracker back.
-    const none = pastInProgressAsDone({ ...tracker, snapshot: undefined });
-    expect(none.tasks).toBe(0);
   });
 });
 
@@ -2187,64 +2093,6 @@ describe("untracked epics", () => {
     // O-2 is called "A4" too, but only our J-a4 may claim plan task a4.
     expect(map["O-2"]).toBeUndefined();
     expect(map["J-a4"]).toBe("a4");
-  });
-});
-
-describe("nice-to-have epics", () => {
-  function niceTracker(niceToHaveEpics?: string[]): Tracker {
-    const project = fixtureProject();
-    const ids = project.epics.flatMap((e) => e.tasks.map((t) => t.id));
-    const ours = ids.map((id) =>
-      jiraTask(
-        `J-${id}`,
-        id.toUpperCase(),
-        ["a1", "a2", "a3"].includes(id) ? "done" : "new",
-      ),
-    );
-    return fixtureTracker({
-      epicMap: undefined,
-      snapshot: snapshotOf([
-        jiraEpic("E-1", "Ours", {}, "indeterminate", ours),
-        jiraEpic("E-3", "Polish", {}, "indeterminate", [
-          jiraTask("N-1", "Shiny animations", "done", 20 * 8 * H),
-        ]),
-      ]),
-      taskMap: {
-        ...Object.fromEntries(ids.map((id) => [`J-${id}`, id])),
-        "N-1": null,
-      },
-      addedScope: { "N-1": "dev" },
-      niceToHaveEpics,
-    });
-  }
-
-  it("leaves nice-to-have work out of the status, like an untracked epic", () => {
-    const all = trackerStatus(niceTracker(), fixtureProject(), TEAMS, TODAY);
-    expect(all.unbufferedEnd).not.toBe(U); // N-1 adds 20 dev days
-    const s = trackerStatus(
-      niceTracker(["E-3"]),
-      fixtureProject(),
-      TEAMS,
-      TODAY,
-    );
-    expect(s.unbufferedEnd).toBe(U);
-    expect(s.earnedDays).toBe(30);
-  });
-
-  it("reads each epic's tracking, and folds nice-to-have only for readings", () => {
-    const tracker = {
-      ...niceTracker(["E-3"]),
-      untrackedEpics: ["E-9"],
-    };
-    expect(epicTracking(tracker, "E-1")).toBe("tracked");
-    expect(epicTracking(tracker, "E-3")).toBe("niceToHave");
-    expect(epicTracking(tracker, "E-9")).toBe("untracked");
-    const mustDo = mustDoTracker(tracker);
-    expect(mustDo.untrackedEpics).toEqual(["E-9", "E-3"]);
-    expect(mustDo.niceToHaveEpics).toBeUndefined();
-    // Nothing nice to have: the same tracker back.
-    const plain = niceTracker();
-    expect(mustDoTracker(plain)).toBe(plain);
   });
 });
 

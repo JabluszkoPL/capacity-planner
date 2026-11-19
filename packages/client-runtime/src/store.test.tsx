@@ -688,6 +688,74 @@ describe("reducer — helpers", () => {
   });
 });
 
+describe("reducer — timeline markers", () => {
+  const alpha = (s: AppState) =>
+    reducer(s, {
+      type: "addPlanMarker",
+      projectId: "p1",
+      markerId: "mk1",
+      marker: { name: "Alpha gate", date: "2026-02-02" },
+    });
+
+  it("addPlanMarker appends a marker", () => {
+    expect(project(alpha(base())).markers).toEqual([
+      { id: "mk1", name: "Alpha gate", date: "2026-02-02" },
+    ]);
+  });
+
+  it("editPlanMarker patches its name and date", () => {
+    const s = reducer(alpha(base()), {
+      type: "editPlanMarker",
+      projectId: "p1",
+      markerId: "mk1",
+      patch: { name: "Beta gate", date: "2026-03-02" },
+    });
+    expect(project(s).markers).toEqual([
+      { id: "mk1", name: "Beta gate", date: "2026-03-02" },
+    ]);
+  });
+
+  it("deleting the last marker drops the field", () => {
+    const s = reducer(alpha(base()), {
+      type: "deletePlanMarker",
+      projectId: "p1",
+      markerId: "mk1",
+    });
+    expect(project(s)).not.toHaveProperty("markers");
+  });
+
+  it("setMarkersHidden stores only true; showing again drops the field", () => {
+    const hidden = reducer(alpha(base()), {
+      type: "setMarkersHidden",
+      projectId: "p1",
+      hidden: true,
+    });
+    expect(project(hidden).hideMarkers).toBe(true);
+    const shown = reducer(hidden, {
+      type: "setMarkersHidden",
+      projectId: "p1",
+      hidden: false,
+    });
+    expect(project(shown)).not.toHaveProperty("hideMarkers");
+    expect(project(shown).markers).toHaveLength(1);
+  });
+
+  it("copyProject copies markers with fresh ids", () => {
+    const s = reducer(alpha(base()), {
+      type: "copyProject",
+      sourceId: "p1",
+      newId: "p2",
+    });
+    const copy = s.projects.find((p) => p.id === "p2")!;
+    expect(copy.markers).toHaveLength(1);
+    expect(copy.markers![0]).toMatchObject({
+      name: "Alpha gate",
+      date: "2026-02-02",
+    });
+    expect(copy.markers![0].id).not.toBe("mk1");
+  });
+});
+
 describe("reducer — member start overrides", () => {
   it("setMemberStart sets an override date", () => {
     const s = reducer(base(), {

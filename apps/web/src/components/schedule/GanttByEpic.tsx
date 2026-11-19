@@ -4,6 +4,7 @@ import {
   type UnassignedTask,
   colorFor,
   epicSpans,
+  type PlanMarker,
 } from "@planner/core";
 
 import {
@@ -20,6 +21,8 @@ interface GanttByEpicProps {
   epics: Epic[];
   unassigned: UnassignedTask[];
   range: GanttRange;
+  /** Named dates drawn on the grid. */
+  markers?: PlanMarker[];
 }
 
 function plural(n: number, word: string): string {
@@ -36,6 +39,7 @@ export function GanttByEpic({
   epics,
   unassigned,
   range,
+  markers,
 }: GanttByEpicProps) {
   const rows: GanttRow[] = epicSpans(assignments, epics, unassigned).map(
     (s) => {
@@ -94,6 +98,7 @@ export function GanttByEpic({
       labelWidth={220}
       wideLabels
       rows={rows}
+      markers={markers}
     />
   );
 }

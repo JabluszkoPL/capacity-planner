@@ -33,6 +33,8 @@ import {
   type Direction,
   type HelperInput,
   type HelperPatch,
+  type PlanMarkerInput,
+  type PlanMarkerPatch,
   type JiraMemberInput,
   type MemberPatch,
   type SprintItemApplied,
@@ -288,6 +290,8 @@ function cloneProject(source: Project, newProjectId: ID): Project {
     // Assignments key off member ids (unchanged) but epic ids (remapped above).
     epicAssignments,
     teamInclusions,
+    markers: source.markers?.map((m) => ({ ...m, id: newId() })),
+    hideMarkers: source.hideMarkers,
   };
 }
 
@@ -753,6 +757,42 @@ export function reducer(state: AppState, action: Action): AppState {
         helpers: (p.helpers ?? []).filter((h) => h.id !== action.helperId),
       }));
 
+    case "addPlanMarker":
+      return updateProject(state, action.projectId, (p) => ({
+        ...p,
+        markers: [
+          ...(p.markers ?? []),
+          { id: action.markerId, ...action.marker },
+        ],
+      }));
+
+    case "editPlanMarker":
+      return updateProject(state, action.projectId, (p) => ({
+        ...p,
+        markers: (p.markers ?? []).map((m) =>
+          m.id === action.markerId ? { ...m, ...action.patch } : m,
+        ),
+      }));
+
+    case "deletePlanMarker":
+      return updateProject(state, action.projectId, (p) => {
+        const markers = (p.markers ?? []).filter(
+          (m) => m.id !== action.markerId,
+        );
+        const next: Project = { ...p, markers };
+        if (markers.length === 0) delete next.markers;
+        return next;
+      });
+
+    case "setMarkersHidden":
+      return updateProject(state, action.projectId, (p) => {
+        // Only `true` is stored: absent already means "shown".
+        const next = { ...p };
+        if (action.hidden) next.hideMarkers = true;
+        else delete next.hideMarkers;
+        return next;
+      });
+
     case "setMemberStart":
       return updateProject(state, action.projectId, (p) => {
         const next = { ...(p.memberStarts ?? {}) };
@@ -1071,6 +1111,14 @@ export interface StoreValue {
     toggleTeamInclusionEpic: (projectId: ID, teamId: ID, epicId: ID) => void;
     addHelper: (projectId: ID, helper: HelperInput) => ID;
     editHelper: (projectId: ID, helperId: ID, patch: HelperPatch) => void;
+    addPlanMarker: (projectId: ID, marker: PlanMarkerInput) => ID;
+    editPlanMarker: (
+      projectId: ID,
+      markerId: ID,
+      patch: PlanMarkerPatch,
+    ) => void;
+    deletePlanMarker: (projectId: ID, markerId: ID) => void;
+    setMarkersHidden: (projectId: ID, hidden: boolean) => void;
     deleteHelper: (projectId: ID, helperId: ID) => void;
     setMemberStart: (projectId: ID, memberId: ID, date: string | null) => void;
     setPlan: (projectId: ID, plan: Plan | null) => void;
@@ -1349,6 +1397,17 @@ export function AppStoreProvider({
         },
         editHelper: (projectId, helperId, patch) =>
           dispatch({ type: "editHelper", projectId, helperId, patch }),
+        addPlanMarker: (projectId, marker) => {
+          const markerId = newId();
+          dispatch({ type: "addPlanMarker", projectId, markerId, marker });
+          return markerId;
+        },
+        editPlanMarker: (projectId, markerId, patch) =>
+          dispatch({ type: "editPlanMarker", projectId, markerId, patch }),
+        deletePlanMarker: (projectId, markerId) =>
+          dispatch({ type: "deletePlanMarker", projectId, markerId }),
+        setMarkersHidden: (projectId, hidden) =>
+          dispatch({ type: "setMarkersHidden", projectId, hidden }),
         deleteHelper: (projectId, helperId) =>
           dispatch({ type: "deleteHelper", projectId, helperId }),
         setMemberStart: (projectId, memberId, date) =>

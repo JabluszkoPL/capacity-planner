@@ -6,6 +6,7 @@ import type {
   JiraSnapshot,
   JiraTeamSource,
   Plan,
+  PlanMarker,
   PlanViewMode,
   Project,
   SprintDraft,
@@ -24,6 +25,8 @@ export type TaskPatch = Partial<Omit<TaskItem, "id">>;
 
 export type HelperInput = Omit<Helper, "id">;
 export type HelperPatch = Partial<Omit<Helper, "id">>;
+export type PlanMarkerInput = Omit<PlanMarker, "id">;
+export type PlanMarkerPatch = Partial<Omit<PlanMarker, "id">>;
 export type MemberPatch = Partial<{
   name: string;
   specialization: string;
@@ -188,6 +191,21 @@ export type Action =
       patch: HelperPatch;
     }
   | { type: "deleteHelper"; projectId: ID; helperId: ID }
+  // timeline markers
+  | {
+      type: "addPlanMarker";
+      projectId: ID;
+      markerId: ID;
+      marker: PlanMarkerInput;
+    }
+  | {
+      type: "editPlanMarker";
+      projectId: ID;
+      markerId: ID;
+      patch: PlanMarkerPatch;
+    }
+  | { type: "deletePlanMarker"; projectId: ID; markerId: ID }
+  | { type: "setMarkersHidden"; projectId: ID; hidden: boolean }
   | {
       type: "setMemberStart";
       projectId: ID;

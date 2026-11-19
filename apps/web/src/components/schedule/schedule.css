@@ -127,6 +127,52 @@
   margin-bottom: 14px;
 }
 
+/* --- timeline markers editor + toggle --- */
+.markers-editor {
+  margin-bottom: 14px;
+}
+.markers-head {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.marker-list {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.marker-row,
+.marker-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.marker-row input[type="text"],
+.marker-add input[type="text"] {
+  width: 200px;
+  max-width: 100%;
+}
+.marker-swatch {
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--marker);
+}
+.marker-add {
+  padding-left: 12px;
+}
+.markers-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
 /* --- overview timeline (compact, always-fits summary) --- */
 .overview-timeline {
   border: 1px solid var(--border);
@@ -231,6 +277,36 @@
   min-width: 2px;
   border-radius: 3px;
   opacity: 0.9;
+}
+.overview-markers {
+  position: relative;
+  margin-left: 72px;
+}
+.overview-markerlabel {
+  position: absolute;
+  height: 14px;
+  transform: translateX(-1px);
+  background: var(--marker);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 14px;
+  padding: 0 4px;
+  border-radius: 0 3px 3px 0;
+  white-space: nowrap;
+}
+.overview-markerlabel.flip,
+.gantt-markerlabel.flip {
+  transform: translateX(calc(-100% + 1px));
+  border-radius: 3px 0 0 3px;
+}
+.overview-markerline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px dashed var(--marker);
+  z-index: 1;
 }
 .overview-todayline {
   position: absolute;
@@ -378,6 +454,31 @@
   width: 2px;
   background: var(--danger);
   z-index: 1;
+}
+
+/* --- timeline markers (alpha gate, beta gate...) --- */
+.gantt-markerline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px dashed var(--marker);
+  transform: translateX(-1px);
+  z-index: 1;
+  pointer-events: none;
+}
+.gantt-markerlabel {
+  position: absolute;
+  height: 16px;
+  transform: translateX(-1px);
+  background: var(--marker);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  padding: 0 5px;
+  border-radius: 0 3px 3px 0;
+  white-space: nowrap;
 }
 
 /* --- hover highlight --- */

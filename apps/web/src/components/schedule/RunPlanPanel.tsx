@@ -9,6 +9,8 @@ import {
   mergedOffDays,
   buildPlanWorkbook,
   planFilenameStem,
+  planMarkersOf,
+  visiblePlanMarkers,
 } from "@planner/core";
 import { useAppStore } from "@planner/client-runtime";
 import { downloadPlanExcel } from "../../lib/download";
@@ -28,6 +30,7 @@ import { OverviewTimeline } from "./OverviewTimeline";
 import { AssignmentsTable } from "./AssignmentsTable";
 import { TeamBreakdown } from "./TeamBreakdown";
 import { UnassignedCallout } from "./UnassignedCallout";
+import { PlanMarkersEditor } from "./PlanMarkersEditor";
 import "./schedule.css";
 
 interface RunPlanPanelProps {
@@ -164,6 +167,8 @@ export function RunPlanPanel({ project }: RunPlanPanelProps) {
         </label>
       </div>
 
+      <PlanMarkersEditor project={project} />
+
       <div className="run-row">
         <Button variant="primary" onClick={handleRun}>
           ▶ Run Plan
@@ -220,8 +225,14 @@ function PlanResults({ project }: { project: Project }) {
     );
   }
 
+  // Markers the timelines draw (none while hidden), and how many exist at all
+  // so the show/hide toggle appears only when there is something to toggle.
+  const markers = visiblePlanMarkers(project);
+  const markerCount = planMarkersOf(project).length;
+  const markersShown = !project.hideMarkers;
+
   // The range comes from the whole plan, so filtering never shifts the dates.
-  const range = computeGanttRange(project.startDate, assignments);
+  const range = computeGanttRange(project.startDate, assignments, markers);
   const mode = planViewModeOf(project.planViewMode);
   const q = query.trim().toLowerCase();
   const shown = q ? assignments.filter((a) => matchesQuery(a, q)) : assignments;
@@ -335,8 +346,21 @@ function PlanResults({ project }: { project: Project }) {
         )}
       </div>
 
+      {markerCount > 0 && (
+        <label className="markers-toggle">
+          <input
+            type="checkbox"
+            checked={markersShown}
+            onChange={(e) =>
+              actions.setMarkersHidden(project.id, !e.target.checked)
+            }
+          />
+          Show timeline markers ({markerCount})
+        </label>
+      )}
+
       {shown.length > 0 ? (
-        <OverviewTimeline assignments={shown} range={range} />
+        <OverviewTimeline assignments={shown} range={range} markers={markers} />
       ) : (
         <p className="muted plan-search-empty">
           No tasks or epics match “{query.trim()}”.
@@ -371,13 +395,19 @@ function PlanResults({ project }: { project: Project }) {
       </div>
 
       {shown.length === 0 ? null : mode === "person" ? (
-        <GanttByPerson assignments={shown} team={team} range={range} />
+        <GanttByPerson
+          assignments={shown}
+          team={team}
+          range={range}
+          markers={markers}
+        />
       ) : mode === "epic" ? (
         <GanttByEpic
           assignments={shown}
           epics={project.epics}
           unassigned={unassigned}
           range={range}
+          markers={markers}
         />
       ) : (
         <GanttByTask
@@ -385,6 +415,7 @@ function PlanResults({ project }: { project: Project }) {
           epics={project.epics}
           offDays={team.offDays}
           range={range}
+          markers={markers}
         />
       )}
 

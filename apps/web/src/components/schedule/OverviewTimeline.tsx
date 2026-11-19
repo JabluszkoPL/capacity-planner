@@ -1,12 +1,20 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import {
   type Assignment,
+  type PlanMarker,
+  addDays,
   diffDays,
   fromISO,
   toISO,
   colorFor,
 } from "@planner/core";
-import { formatHoverDate, formatShortDate, type GanttRange } from "./DateGrid";
+import {
+  formatHoverDate,
+  formatShortDate,
+  markerLabelWidth,
+  stackLabels,
+  type GanttRange,
+} from "./DateGrid";
 
 /** Width of the sticky discipline-label column (must match .overview-label). */
 const LABEL_W = 72;
@@ -51,9 +59,14 @@ function classify(spec: string): Discipline | null {
   return null;
 }
 
+/** Height of one row of marker labels above the lanes. */
+const MARKER_ROW_H = 16;
+
 interface OverviewTimelineProps {
   assignments: Assignment[];
   range: GanttRange;
+  /** Named dates drawn across every lane. Sorted by date. */
+  markers?: PlanMarker[];
 }
 
 /**
@@ -66,17 +79,26 @@ interface OverviewTimelineProps {
 export function OverviewTimeline({
   assignments,
   range,
+  markers = [],
 }: OverviewTimelineProps) {
   const { rangeStart, todayIndex } = range;
 
   // Unlike the detailed Gantt (which pads a week past the end for breathing
   // room), the overview ends exactly on the last day of work — no trailing
-  // empty space. Everything below scales to this trimmed span.
-  const totalDays = Math.max(
+  // empty space — unless a marker falls later, when it ends on that marker.
+  // Everything below scales to this trimmed span.
+  const finishDays = Math.max(
     diffDays(rangeStart, fromISO(range.rangeEnd)) + 1,
     1,
   );
-  const dates = range.dates.slice(0, totalDays);
+  const shownMarkers = markers.filter((m) => m.date >= toISO(rangeStart));
+  const totalDays = shownMarkers.reduce(
+    (max, m) => Math.max(max, diffDays(rangeStart, fromISO(m.date)) + 1),
+    finishDays,
+  );
+  const dates = Array.from({ length: totalDays }, (_, i) =>
+    addDays(rangeStart, i),
+  );
 
   // Day the mouse is currently over (null when outside the tracks). Drives the
   // vertical cursor line and the floating date label, like the detailed Gantt.
@@ -105,8 +127,12 @@ export function OverviewTimeline({
   // right-anchored (occupies ~one label width at the far right) and each tick
   // is left-anchored, so a tick needs ~two label widths of clearance. Until the
   // width is measured, keep every tick (the layout effect corrects before paint).
-  const clearsEnd = (i: number) =>
-    trackW === 0 || (i / totalDays) * trackW <= trackW - LABEL_EST_PX * 2;
+  const finishX = (finishDays / totalDays) * trackW;
+  const clearsEnd = (i: number) => {
+    if (trackW === 0) return true;
+    const x = (i / totalDays) * trackW;
+    return x <= finishX - LABEL_EST_PX * 2 || x >= finishX + 4;
+  };
 
   function handleMove(e: React.MouseEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -133,6 +159,24 @@ export function OverviewTimeline({
   if (lanes.length === 0) return null;
 
   const pct = (days: number) => (days / totalDays) * 100;
+
+  // Marker labels sit in their own strip above the lanes, stacked into rows
+  // when they would overlap (measured against the real track width).
+  const placedMarkers = shownMarkers.map((m) => {
+    const at = pct(diffDays(rangeStart, fromISO(m.date)) + 0.5);
+    const x = (at / 100) * trackW;
+    const width = trackW === 0 ? 0 : markerLabelWidth(m.name) - 12;
+    // A label that would run off the right edge sits left of its line.
+    return { marker: m, at, x, width, flip: x + width > trackW };
+  });
+  const markerLevels = stackLabels(
+    placedMarkers.map(({ x, width, flip }) => ({
+      x: flip ? x - width : x,
+      width,
+    })),
+  );
+  const markerRows =
+    placedMarkers.length > 0 ? Math.max(...markerLevels) + 1 : 0;
 
   return (
     <div className="overview-timeline">
@@ -177,10 +221,31 @@ export function OverviewTimeline({
           {/* The plan's actual last day, right-anchored to the end of the track.
               Without this the final label falls on the last Monday, leaving the
               real finish (a few days later) unlabelled. */}
-          <span className="overview-datelabel end" style={{ left: "100%" }}>
+          <span
+            className="overview-datelabel end"
+            style={{ left: `${pct(finishDays)}%` }}
+          >
             {formatShortDate(range.rangeEnd)}
           </span>
         </div>
+
+        {markerRows > 0 && (
+          <div
+            className="overview-markers"
+            style={{ height: markerRows * MARKER_ROW_H }}
+          >
+            {placedMarkers.map(({ marker, at, flip }, i) => (
+              <span
+                key={marker.id}
+                className={"overview-markerlabel" + (flip ? " flip" : "")}
+                style={{ left: `${at}%`, top: markerLevels[i] * MARKER_ROW_H }}
+                title={`${marker.name} · ${formatHoverDate(fromISO(marker.date))}`}
+              >
+                {marker.name}
+              </span>
+            ))}
+          </div>
+        )}
 
         {lanes.map(({ key, label }) => (
           <div className="overview-row" key={key}>
@@ -202,6 +267,13 @@ export function OverviewTimeline({
                   />
                 );
               })}
+              {placedMarkers.map(({ marker, at }) => (
+                <div
+                  key={marker.id}
+                  className="overview-markerline"
+                  style={{ left: `${at}%` }}
+                />
+              ))}
               {todayIndex >= 0 && todayIndex <= totalDays && (
                 <div
                   className="overview-todayline"

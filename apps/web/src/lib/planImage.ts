@@ -14,6 +14,8 @@ import {
   personRows,
   taskRows,
   toISO,
+  visiblePlanMarkers,
+  type PlanMarker,
   type PlanViewMode,
   type Project,
   type TeamMember,
@@ -39,6 +41,8 @@ const MONTHS = [
 const COL_W = 26;
 const ROW_H = 40;
 const HEADER_H = 40;
+const MARKER_ROW_H = 20;
+const MARKER_COLOR = "#7048e8";
 const PAD = 16;
 const SCALE = 2;
 
@@ -57,6 +61,7 @@ interface TimelineImageOptions {
 interface Layout {
   rows: TimelineRow[];
   dates: Date[];
+  markers: PlanMarker[];
   labelWidth: number;
   title: string;
 }
@@ -79,12 +84,21 @@ function buildLayout(opts: TimelineImageOptions): Layout | null {
     const e = fromISO(a.end);
     if (e > end) end = e;
   }
+  // Markers later than the finish stretch the image so they stay in it.
+  const markers = visiblePlanMarkers(project).filter(
+    (m) => fromISO(m.date) >= start,
+  );
+  for (const m of markers) {
+    const d = fromISO(m.date);
+    if (d > end) end = d;
+  }
   const total = Math.max(diffDays(start, end) + 3, 7);
   const dates = Array.from({ length: total }, (_, i) => addDays(start, i));
 
   return {
     rows,
     dates,
+    markers,
     labelWidth: mode === "person" ? 150 : 240,
     title: `${project.name} — ${VIEW_TITLES[mode]}`,
   };
@@ -99,12 +113,35 @@ export function renderTimelineCanvas(
 ): HTMLCanvasElement | null {
   const layout = buildLayout(opts);
   if (!layout) return null;
-  const { rows, dates, labelWidth, title } = layout;
+  const { rows, dates, markers, labelWidth, title } = layout;
 
   const titleH = 34;
   const gridW = labelWidth + dates.length * COL_W;
   const width = gridW + PAD * 2;
-  const height = titleH + HEADER_H + rows.length * ROW_H + PAD * 2;
+
+  // Marker labels go in a strip under the date labels, stacked into rows
+  // where they would overlap. Measured with the same font they draw in.
+  const measure = document.createElement("canvas").getContext("2d");
+  if (measure) measure.font = "600 11px system-ui, -apple-system, sans-serif";
+  const markerX = (m: PlanMarker) =>
+    diffDays(dates[0], fromISO(m.date)) * COL_W + COL_W / 2;
+  const tracksW = dates.length * COL_W;
+  const labelW = (m: PlanMarker) =>
+    (measure?.measureText(m.name).width ?? m.name.length * 7) + 12;
+  // A label that would run off the right edge sits left of its line.
+  const flips = markers.map((m) => markerX(m) + labelW(m) > tracksW);
+  const levelEnds: number[] = [];
+  const markerLevels = markers.map((m, i) => {
+    const w = labelW(m);
+    const x = flips[i] ? markerX(m) - w : markerX(m);
+    let level = levelEnds.findIndex((e) => e <= x);
+    if (level === -1) level = levelEnds.length;
+    levelEnds[level] = x + w + 4;
+    return level;
+  });
+  const markersH = levelEnds.length * MARKER_ROW_H;
+  const headerH = HEADER_H + markersH;
+  const height = titleH + headerH + rows.length * ROW_H + PAD * 2;
 
   const canvas = document.createElement("canvas");
   canvas.width = width * SCALE;
@@ -128,7 +165,7 @@ export function renderTimelineCanvas(
 
   const gridTop = originY + titleH;
   const tracksLeft = originX + labelWidth;
-  const tracksTop = gridTop + HEADER_H;
+  const tracksTop = gridTop + headerH;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayISO = toISO(today);
@@ -143,7 +180,7 @@ export function renderTimelineCanvas(
     }
     if (i === 0 || d.getDay() === 1) {
       ctx.fillStyle = "#e2e8f0";
-      ctx.fillRect(x, gridTop, 1, HEADER_H + rows.length * ROW_H);
+      ctx.fillRect(x, gridTop, 1, headerH + rows.length * ROW_H);
       ctx.fillStyle = "#64748b";
       ctx.textBaseline = "top";
       ctx.fillText(
@@ -217,8 +254,33 @@ export function renderTimelineCanvas(
   if (todayIdx >= 0) {
     const x = tracksLeft + todayIdx * COL_W;
     ctx.fillStyle = "#e03131";
-    ctx.fillRect(x, gridTop, 2, HEADER_H + rows.length * ROW_H);
+    ctx.fillRect(x, gridTop, 2, headerH + rows.length * ROW_H);
   }
+
+  // Markers: a dashed line down the tracks and a labelled flag above them.
+  markers.forEach((m, i) => {
+    const x = tracksLeft + markerX(m);
+    const ly = gridTop + HEADER_H + markerLevels[i] * MARKER_ROW_H + 2;
+    ctx.save();
+    ctx.strokeStyle = MARKER_COLOR;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x, ly);
+    ctx.lineTo(x, tracksTop + rows.length * ROW_H);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.font = "600 11px system-ui, -apple-system, sans-serif";
+    const w = ctx.measureText(m.name).width + 12;
+    const lx = flips[i] ? x - w + 1 : x - 1;
+    ctx.fillStyle = MARKER_COLOR;
+    roundRect(ctx, lx, ly, w, MARKER_ROW_H - 4, 3);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.textBaseline = "middle";
+    ctx.fillText(m.name, lx + 6, ly + (MARKER_ROW_H - 4) / 2);
+  });
 
   return canvas;
 }

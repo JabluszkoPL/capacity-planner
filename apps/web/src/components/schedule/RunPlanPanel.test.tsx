@@ -150,4 +150,50 @@ describe("RunPlanPanel", () => {
       screen.getByText("No tasks or epics match “nothing”."),
     ).toBeInTheDocument();
   });
+
+  it("adds a timeline marker and toggles it off and on the timeline", () => {
+    const { container } = renderPanel();
+    fireEvent.change(screen.getByLabelText("New marker name"), {
+      target: { value: "Alpha gate" },
+    });
+    fireEvent.change(screen.getByLabelText("New marker date"), {
+      target: { value: "2026-07-29" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Add marker/i }));
+    expect(screen.getByLabelText("Marker name")).toHaveValue("Alpha gate");
+
+    fireEvent.click(screen.getByRole("button", { name: /Run Plan/i }));
+    const toggle = screen.getByRole("checkbox", {
+      name: /Show timeline markers \(1\)/,
+    });
+    expect(toggle).toBeChecked();
+    expect(container.querySelectorAll(".gantt-markerline")).toHaveLength(1);
+    expect(container.querySelectorAll(".overview-markerline").length).toBe(
+      container.querySelectorAll(".overview-row").length,
+    );
+
+    fireEvent.click(toggle);
+    expect(toggle).not.toBeChecked();
+    expect(container.querySelectorAll(".gantt-markerline")).toHaveLength(0);
+    expect(container.querySelectorAll(".overview-markerline")).toHaveLength(0);
+    // Hiding keeps the marker itself.
+    expect(screen.getByLabelText("Marker name")).toHaveValue("Alpha gate");
+
+    fireEvent.click(toggle);
+    expect(container.querySelectorAll(".gantt-markerline")).toHaveLength(1);
+  });
+
+  it("removes a marker, and the toggle goes with the last one", () => {
+    renderPanel();
+    fireEvent.change(screen.getByLabelText("New marker name"), {
+      target: { value: "Beta gate" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Add marker/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Run Plan/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Beta gate" }));
+    expect(screen.queryByLabelText("Marker name")).toBeNull();
+    expect(
+      screen.queryByRole("checkbox", { name: /timeline markers/ }),
+    ).toBeNull();
+  });
 });

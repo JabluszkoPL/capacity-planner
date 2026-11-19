@@ -6,6 +6,7 @@ import {
   isWeekend,
   toISO,
   personRows,
+  type PlanMarker,
 } from "@planner/core";
 import {
   COL_WIDTH,
@@ -19,12 +20,15 @@ interface GanttByPersonProps {
   assignments: Assignment[];
   team: { members: TeamMember[]; offDays: OffDayMap };
   range: GanttRange;
+  /** Named dates drawn on the grid. */
+  markers?: PlanMarker[];
 }
 
 export function GanttByPerson({
   assignments,
   team,
   range,
+  markers,
 }: GanttByPersonProps) {
   // One lane per assignee (team members and helpers alike), first-seen order.
   const lanes = personRows(assignments, team.offDays);
@@ -69,6 +73,7 @@ export function GanttByPerson({
         colWidth={COL_WIDTH}
         labelWidth={130}
         rows={rows}
+        markers={markers}
       />
       <div className="util-grid">
         {util.map((u) => (

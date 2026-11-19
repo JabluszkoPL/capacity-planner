@@ -7,6 +7,7 @@ import {
   DateGrid,
   computeGanttRange,
   formatShortDate,
+  stackLabels,
   type GanttRange,
 } from "./DateGrid";
 
@@ -38,11 +39,35 @@ describe("computeGanttRange", () => {
     expect(r.dates).toHaveLength(17);
   });
 
+  it("stretches to a marker after the finish, keeping the plan's end", () => {
+    const r = computeGanttRange(
+      "2026-07-27",
+      [assignment({ end: "2026-08-05" })],
+      [{ id: "mk", name: "Beta gate", date: "2026-08-20" }],
+    );
+    expect(r.rangeEnd).toBe("2026-08-05");
+    // diffDays(Jul27, Aug20) = 24, +8 = 32.
+    expect(r.totalDays).toBe(32);
+  });
+
   it("enforces the 14-day minimum for short plans", () => {
     const r = computeGanttRange("2026-07-27", [
       assignment({ end: "2026-07-28" }),
     ]);
     expect(r.totalDays).toBe(14);
+  });
+});
+
+describe("stackLabels", () => {
+  it("keeps apart labels on one row and stacks overlapping ones", () => {
+    expect(
+      stackLabels([
+        { x: 0, width: 50 },
+        { x: 30, width: 50 }, // overlaps the first
+        { x: 60, width: 20 }, // clears the first
+        { x: 100, width: 20 },
+      ]),
+    ).toEqual([0, 1, 0, 0]);
   });
 });
 
@@ -107,5 +132,28 @@ describe("DateGrid", () => {
     const line = container.querySelector(".gantt-todayline") as HTMLElement;
     expect(line).toBeTruthy();
     expect(line.style.left).toBe(`${130 + 2 * COL_WIDTH}px`);
+  });
+
+  it("draws each marker in range as a line with a label", () => {
+    const { container, getByText, queryByText } = render(
+      <DateGrid
+        range={range}
+        colWidth={COL_WIDTH}
+        labelWidth={130}
+        rows={[{ key: "r1", label: "Row", offDays: new Set(), bars: null }]}
+        markers={[
+          { id: "a", name: "Alpha gate", date: "2026-07-28" },
+          { id: "z", name: "Too late", date: "2026-09-01" },
+        ]}
+      />,
+    );
+    const lines = container.querySelectorAll(".gantt-markerline");
+    expect(lines).toHaveLength(1);
+    // Centred on its day's column.
+    expect((lines[0] as HTMLElement).style.left).toBe(
+      `${130 + 1 * COL_WIDTH + COL_WIDTH / 2}px`,
+    );
+    expect(getByText("Alpha gate")).toBeInTheDocument();
+    expect(queryByText("Too late")).toBeNull();
   });
 });

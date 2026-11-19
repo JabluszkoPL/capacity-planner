@@ -5,6 +5,7 @@ import {
   fromISO,
   toISO,
   includedTeams,
+  visiblePlanMarkers,
 } from "@planner/core";
 import { Button } from "../ui/Button";
 import { IconButton } from "../ui/IconButton";
@@ -261,7 +262,12 @@ export function ProjectCard({
       {assignments.length > 0 && (
         <OverviewTimeline
           assignments={assignments}
-          range={computeGanttRange(project.startDate, assignments)}
+          range={computeGanttRange(
+            project.startDate,
+            assignments,
+            visiblePlanMarkers(project),
+          )}
+          markers={visiblePlanMarkers(project)}
         />
       )}
       <div className="row card-actions">

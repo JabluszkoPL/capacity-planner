@@ -14,6 +14,7 @@ export * from "./teams";
 export * from "./scheduling";
 export * from "./dependencies";
 export * from "./planLayout";
+export * from "./markers";
 export * from "./planTotals";
 export * from "./parseImport";
 export * from "./seed";

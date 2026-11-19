@@ -229,6 +229,24 @@ export interface Project {
    * teams participate, each with its own epic-scope / time-window constraints.
    */
   teamInclusions?: TeamInclusion[];
+  /**
+   * Named dates drawn on the plan's timelines, e.g. "Alpha gate", "Beta
+   * gate", "Internal test". Purely visual: the scheduler never reads them.
+   * Absent/empty = none.
+   */
+  markers?: PlanMarker[];
+  /**
+   * True hides {@link markers} from every timeline without deleting them.
+   * Absent = shown.
+   */
+  hideMarkers?: boolean;
+}
+
+/** A named date on a project's timeline. See {@link Project.markers}. */
+export interface PlanMarker {
+  id: ID;
+  name: string;
+  date: string; // ISO date
 }
 
 export interface AppState {

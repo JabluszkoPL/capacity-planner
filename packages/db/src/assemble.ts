@@ -16,6 +16,7 @@ import type {
   JiraSnapshot,
   JiraTeamSource,
   Plan,
+  PlanMarker,
   Project,
   SprintDraft,
   TrackerDeadlines,
@@ -183,6 +184,10 @@ export function assemble(source: Iterable<Entry>): AppState {
       }),
     );
 
+    const markers = Array.isArray(pe.payload.markers)
+      ? (pe.payload.markers as PlanMarker[])
+      : [];
+
     const memberStarts = (pe.payload.memberStarts ?? {}) as Record<
       string,
       string
@@ -206,6 +211,8 @@ export function assemble(source: Iterable<Entry>): AppState {
       epicAssignments:
         Object.keys(epicAssignments).length > 0 ? epicAssignments : undefined,
       teamInclusions: teamInclusions.length > 0 ? teamInclusions : undefined,
+      markers: markers.length > 0 ? markers : undefined,
+      hideMarkers: pe.payload.hideMarkers === true ? true : undefined,
     });
   });
 

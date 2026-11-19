@@ -6,6 +6,7 @@ import {
   fromISO,
   isWeekend,
   toISO,
+  type PlanMarker,
   type TimelineBar,
 } from "@planner/core";
 
@@ -47,17 +48,23 @@ export interface GanttRange {
 }
 
 /** Compute the visible date range for a set of assignments. Assumes at least
- *  one assignment. */
+ *  one assignment. Markers later than the plan's finish stretch the range so
+ *  they stay on screen; `rangeEnd` is still the plan's own finish. */
 export function computeGanttRange(
   startISO: string,
   assignments: Assignment[],
+  markers: PlanMarker[] = [],
 ): GanttRange {
   const rangeStart = fromISO(startISO);
   const rangeEnd = assignments.reduce(
     (max, a) => (a.end > max ? a.end : max),
     assignments[0].end,
   );
-  const totalDays = Math.max(diffDays(rangeStart, fromISO(rangeEnd)) + 8, 14);
+  const lastDay = markers.reduce(
+    (max, m) => (m.date > max ? m.date : max),
+    rangeEnd,
+  );
+  const totalDays = Math.max(diffDays(rangeStart, fromISO(lastDay)) + 8, 14);
   const dates = Array.from({ length: totalDays }, (_, i) =>
     addDays(rangeStart, i),
   );
@@ -109,6 +116,30 @@ export function GanttBar({
   );
 }
 
+/** Rough rendered width of a marker label (10px semibold text plus padding).
+ *  Only used to stack labels that would otherwise overlap. */
+export function markerLabelWidth(name: string): number {
+  return name.length * 6 + 12;
+}
+
+/**
+ * Give each label the first level (row) where it does not overlap the label
+ * before it. Labels are left-anchored at `x`; input must be sorted by `x`.
+ * Returns one level per label, 0 being the top row.
+ */
+export function stackLabels(items: { x: number; width: number }[]): number[] {
+  const ends: number[] = [];
+  return items.map(({ x, width }) => {
+    let level = ends.findIndex((end) => end <= x);
+    if (level === -1) level = ends.length;
+    ends[level] = x + width + 4;
+    return level;
+  });
+}
+
+/** Marker height per label row in the gantt header. */
+const MARKER_ROW_H = 18;
+
 export interface GanttRow {
   key: string;
   label: ReactNode;
@@ -127,6 +158,8 @@ interface DateGridProps {
   /** Label every day under the week labels; for wide columns. */
   dayLabels?: boolean;
   rows: GanttRow[];
+  /** Named dates drawn as labelled vertical lines. Sorted by date. */
+  markers?: PlanMarker[];
 }
 
 function backgroundCells(
@@ -164,9 +197,27 @@ export function DateGrid({
   wideLabels = false,
   dayLabels = false,
   rows,
+  markers = [],
 }: DateGridProps) {
-  const { dates, totalDays, todayIndex } = range;
+  const { dates, totalDays, todayIndex, rangeStart } = range;
   const innerWidth = labelWidth + totalDays * colWidth;
+
+  // Markers inside the visible range, centred on their day's column, with
+  // their labels stacked into rows under the date labels when they collide.
+  const placed = markers
+    .map((m) => ({ marker: m, col: diffDays(rangeStart, fromISO(m.date)) }))
+    .filter(({ col }) => col >= 0 && col < totalDays)
+    .map((p) => {
+      const x = labelWidth + p.col * colWidth + colWidth / 2;
+      const width = markerLabelWidth(p.marker.name);
+      // A label that would run off the right edge sits left of its line.
+      return { ...p, x, width, flip: x + width > innerWidth };
+    });
+  const levels = stackLabels(
+    placed.map(({ x, width, flip }) => ({ x: flip ? x - width : x, width })),
+  );
+  const markerRows = placed.length > 0 ? Math.max(...levels) + 1 : 0;
+  const baseHeaderH = dayLabels ? 40 : 24;
 
   // Column the mouse is currently over (null when outside the tracks). Drives
   // the full-height highlight and the floating date tooltip.
@@ -212,7 +263,14 @@ export function DateGrid({
 
         {/* Date labels: sticky to the top so the date is always visible while
             scrolling down through the rows. */}
-        <div className={"gantt-header" + (dayLabels ? " with-days" : "")}>
+        <div
+          className={"gantt-header" + (dayLabels ? " with-days" : "")}
+          style={
+            markerRows > 0
+              ? { height: baseHeaderH + markerRows * MARKER_ROW_H }
+              : undefined
+          }
+        >
           {dates.map((d, i) =>
             i === 0 || d.getDay() === 1 ? (
               <div
@@ -246,6 +304,16 @@ export function DateGrid({
               {formatHoverDate(dates[hoverCol])}
             </div>
           )}
+          {placed.map(({ marker, x, flip }, i) => (
+            <div
+              key={marker.id}
+              className={"gantt-markerlabel" + (flip ? " flip" : "")}
+              style={{ left: x, top: baseHeaderH + levels[i] * MARKER_ROW_H }}
+              title={`${marker.name} · ${formatHoverDate(fromISO(marker.date))}`}
+            >
+              {marker.name}
+            </div>
+          ))}
         </div>
 
         {rows.map((row) => (
@@ -271,6 +339,15 @@ export function DateGrid({
               {row.bars}
             </div>
           </div>
+        ))}
+
+        {placed.map(({ marker, x }) => (
+          <div
+            key={"ml" + marker.id}
+            className="gantt-markerline"
+            data-testid="gantt-marker"
+            style={{ left: x }}
+          />
         ))}
 
         {todayIndex >= 0 && todayIndex <= totalDays && (

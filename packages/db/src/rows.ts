@@ -14,6 +14,7 @@ import type {
   JiraSnapshot,
   JiraTeamSource,
   Plan,
+  PlanMarker,
   Project,
   SprintDraft,
   TaskItem,
@@ -89,6 +90,8 @@ export const PROJECT: EntityDescriptor = {
     "plan_lookahead",
     "buffer",
     "member_starts",
+    "markers",
+    "hide_markers",
     "position",
   ],
   toRow: (p) => ({
@@ -101,6 +104,8 @@ export const PROJECT: EntityDescriptor = {
     plan_lookahead: optNum(p.planLookahead),
     buffer: optNum(p.buffer),
     member_starts: json(p.memberStarts ?? {}),
+    markers: json(p.markers ?? []),
+    hide_markers: optBool(p.hideMarkers),
     position: num(p.position),
   }),
   fromRow: (r) => ({
@@ -113,6 +118,8 @@ export const PROJECT: EntityDescriptor = {
     planLookahead: r.plan_lookahead ?? undefined,
     buffer: r.buffer ?? undefined,
     memberStarts: parseJson<Record<string, string>>(r.member_starts, {}),
+    markers: parseJson<PlanMarker[]>(r.markers, []),
+    hideMarkers: r.hide_markers == null ? undefined : bool(r.hide_markers),
     position: num(r.position),
   }),
 };
@@ -422,6 +429,9 @@ export function projectPayload(p: Project, position: number): Payload {
     planLookahead: p.planLookahead,
     buffer: p.buffer,
     memberStarts: p.memberStarts ?? {},
+    markers: p.markers ?? [],
+    // Only `true` is ever stored; false and absent both mean "shown".
+    hideMarkers: p.hideMarkers ? true : undefined,
     position,
   });
 }

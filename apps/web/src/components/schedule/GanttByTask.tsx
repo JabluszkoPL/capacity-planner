@@ -3,6 +3,7 @@ import {
   type Epic,
   type OffDayMap,
   taskRows,
+  type PlanMarker,
 } from "@planner/core";
 
 import {
@@ -18,6 +19,8 @@ interface GanttByTaskProps {
   epics: Epic[];
   offDays: OffDayMap;
   range: GanttRange;
+  /** Named dates drawn on the grid. */
+  markers?: PlanMarker[];
 }
 
 export function GanttByTask({
@@ -25,6 +28,7 @@ export function GanttByTask({
   epics,
   offDays,
   range,
+  markers,
 }: GanttByTaskProps) {
   const rows: GanttRow[] = taskRows(assignments, epics, offDays).map((r) => ({
     key: r.key,
@@ -53,6 +57,7 @@ export function GanttByTask({
       labelWidth={220}
       wideLabels
       rows={rows}
+      markers={markers}
     />
   );
 }

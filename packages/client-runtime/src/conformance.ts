@@ -164,6 +164,33 @@ export function describeLocalStoreContract(
       }
     });
 
+    it("round-trips timeline markers and whether they are hidden", async () => {
+      const store = await createStore();
+      const clock = new Clock(store.deviceId);
+      const seeded = seedState();
+      const markers = [
+        { id: "m1", name: "Alpha gate", date: "2026-03-02" },
+        { id: "m2", name: "Beta gate", date: "2026-04-13" },
+      ];
+      const state = {
+        ...seeded,
+        projects: seeded.projects.map((p, i) =>
+          i === 0 ? { ...p, markers, hideMarkers: true } : p,
+        ),
+      };
+      await store.applyLocal(snapshotOps(state, clock));
+      const read = await store.read();
+      expect(read.projects[0].markers).toEqual(markers);
+      expect(read.projects[0].hideMarkers).toBe(true);
+      // A project without markers reads back without the fields at all.
+      if (read.projects[1]) {
+        expect(read.projects[1].markers).toBeUndefined();
+        expect(read.projects[1].hideMarkers).toBeUndefined();
+      }
+      expect(read).toEqual(canonicalState(state));
+      await store.close();
+    });
+
     it("round-trips a team imported from Jira next to a hand-made one", async () => {
       const store = await createStore();
       const clock = new Clock(store.deviceId);

@@ -246,6 +246,16 @@ ALTER TABLE trackers
 ADD COLUMN nice_to_have_epics TEXT NOT NULL DEFAULT '[]';
 `;
 
+// A project's timeline markers (named dates such as an alpha gate) as a JSON
+// array, and whether the timelines hide them. NOT NULL with '[]': no markers
+// and an empty list are the same. hide_markers is nullable: absent = shown.
+const V10 = `
+ALTER TABLE projects
+ADD COLUMN markers TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE projects
+ADD COLUMN hide_markers INTEGER;
+`;
+
 export const MIGRATIONS: Migration[] = [
   { version: 1, name: "initial", up: V1 },
   { version: 2, name: "trackers", up: V2 },
@@ -256,6 +266,7 @@ export const MIGRATIONS: Migration[] = [
   { version: 7, name: "tracker-teams", up: V7 },
   { version: 8, name: "jira-teams", up: V8 },
   { version: 9, name: "tracker-nice-to-have-epics", up: V9 },
+  { version: 10, name: "project-markers", up: V10 },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

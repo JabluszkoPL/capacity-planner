@@ -34,6 +34,7 @@
  */
 
 import type {
+  EpicTracking,
   ID,
   JiraEpic,
   JiraIssue,
@@ -46,7 +47,7 @@ import type {
   TrackerSample,
 } from "./types";
 import { addDays, fromISO, isWeekend, toISO } from "./dates";
-import { includedTeams } from "./teams";
+import { includedMembers, includedTeams } from "./teams";
 import { runPlan, type PlanOptions } from "./scheduling";
 
 /**
@@ -646,6 +647,55 @@ export function jiraIssueEstimate(
   return { days: 0, source: "none" };
 }
 
+/**
+ * Every specialization that could do a tracker's added scope: the plan's own
+ * first, then those of the project's people and helpers who have no task yet.
+ * Each once, whatever its case, spelled as first seen.
+ */
+export function trackerSpecializations(
+  project: Project,
+  teams: Team[],
+): string[] {
+  const out: string[] = [];
+  const add = (spec: string | undefined) => {
+    const s = (spec ?? "").trim();
+    if (s && !out.some((o) => o.toLowerCase() === s.toLowerCase())) {
+      out.push(s);
+    }
+  };
+  for (const epic of project.epics) {
+    for (const task of epic.tasks) add(task.specialization);
+  }
+  for (const m of includedMembers(project, teams)) add(m.specialization);
+  for (const h of project.helpers ?? []) add(h.specialization);
+  return out;
+}
+
+/** How a tracker follows one Jira epic. */
+export function epicTracking(
+  tracker: Pick<Tracker, "untrackedEpics" | "niceToHaveEpics">,
+  epicKey: string,
+): EpicTracking {
+  if ((tracker.untrackedEpics ?? []).includes(epicKey)) return "untracked";
+  if ((tracker.niceToHaveEpics ?? []).includes(epicKey)) return "niceToHave";
+  return "tracked";
+}
+
+/**
+ * The tracker as a reading of the must-do work sees it: nice-to-have epics
+ * left out exactly like another team's. The same tracker back when it has
+ * none, so a tracker without them reads exactly as it always has.
+ */
+export function mustDoTracker<T extends Tracker>(tracker: T): T {
+  const nice = tracker.niceToHaveEpics ?? [];
+  if (nice.length === 0) return tracker;
+  return {
+    ...tracker,
+    untrackedEpics: [...new Set([...(tracker.untrackedEpics ?? []), ...nice])],
+    niceToHaveEpics: undefined,
+  };
+}
+
 /** Jira issue keys under the epics a tracker does not track. */
 export function untrackedIssueKeys(
   snapshot: JiraSnapshot | undefined,
@@ -1224,6 +1274,8 @@ export function trackerStatus(
   teams: Team[],
   today: string,
 ): TrackerStatus {
+  // The status is about what the plan must deliver.
+  tracker = mustDoTracker(tracker);
   const scoped = project ? teamScope(tracker, project, teams) : null;
   if (!scoped) return readStatus(tracker, project, teams, today);
   const status = readStatus(scoped.tracker, scoped.project, teams, today);
@@ -1466,16 +1518,17 @@ function readStatus(
 export type TaskTeamSource = "set" | "jira" | "assignee" | "epic";
 
 /** Teams are matched on name, whatever the case or spacing. */
-function teamKey(name: string): string {
+export function teamKey(name: string): string {
   return normPerson(name);
 }
 
 /**
  * The team each Jira task belongs to, by name.
  *
- * Work is owned per task, not per epic: one epic can hold tasks of two teams.
- * In order: a team set by hand on the task; the issue's own Jira "Team" field;
- * the Planner team of its Jira assignee (matched on display name, as the Jira
+ * Work is owned per task, not per epic: one epic can hold tasks of two teams,
+ * though usually an epic is one team's. In order: a team set by hand on the
+ * task; the issue's own Jira "Team" field; its epic's Jira "Team" field; the
+ * Planner team of its Jira assignee (matched on display name, as the Jira
  * import matches people); and for a task with none of those, the team most of
  * its epic's tasks belong to. A task none of these places is absent from the
  * map. Names come back as Jira spells them, else as the Planner team does.
@@ -1492,6 +1545,7 @@ export function jiraTaskTeams(
     if (key && !spelling.has(key)) spelling.set(key, name.trim());
     return spelling.get(key) ?? name.trim();
   };
+  for (const epic of snapshot.epics ?? []) if (epic.team) spell(epic.team);
   for (const issue of jiraTasks(snapshot)) if (issue.team) spell(issue.team);
   const included = includedTeams(project, teams);
   for (const team of included) spell(team.name);
@@ -1517,6 +1571,7 @@ export function jiraTaskTeams(
       const chosen = (set[issue.key] ?? "").trim();
       if (chosen) place(issue.key, spell(chosen), "set");
       else if (issue.team) place(issue.key, spell(issue.team), "jira");
+      else if (epic.team) place(issue.key, spell(epic.team), "epic");
       else {
         const owner = issue.assignee
           ? byPerson.get(normPerson(issue.assignee.displayName))
@@ -1641,6 +1696,24 @@ export interface TeamScopeInfo {
  * buffer, its own capacity. Dates you set on the tracker still apply; dates
  * left to the plan come from this team's part of it.
  */
+/**
+ * The teams a tracker's reading is limited to (`Tracker.viewTeams`), spelled
+ * as `trackerTeams` lists them, or null when it reads every team: nothing
+ * selected, everything selected, or only names that are no team any more.
+ */
+export function selectedTeams(
+  tracker: Tracker,
+  project: Project,
+  teams: Team[],
+): string[] | null {
+  if (!tracker.snapshot) return null;
+  const listed = trackerTeams(tracker, project, teams);
+  const wanted = new Set((tracker.viewTeams ?? []).map(teamKey));
+  const chosen = listed.filter((t) => wanted.has(teamKey(t.name)));
+  if (chosen.length === 0 || chosen.length === listed.length) return null;
+  return chosen.map((t) => t.name);
+}
+
 export function teamScope(
   tracker: Tracker,
   project: Project,
@@ -1648,13 +1721,9 @@ export function teamScope(
 ): { tracker: Tracker; project: Project; info: TeamScopeInfo } | null {
   const snapshot = tracker.snapshot;
   if (!snapshot) return null;
-  const listed = trackerTeams(tracker, project, teams);
-  const chosen = new Set(
-    (tracker.viewTeams ?? [])
-      .map(teamKey)
-      .filter((key) => listed.some((t) => teamKey(t.name) === key)),
-  );
-  if (chosen.size === 0 || chosen.size === listed.length) return null;
+  const names = selectedTeams(tracker, project, teams);
+  if (!names) return null;
+  const chosen = new Set(names.map(teamKey));
 
   const owners = jiraTaskTeams(snapshot, project, teams, tracker.taskTeams);
   const skip = untrackedIssueKeys(snapshot, tracker.untrackedEpics);
@@ -1725,9 +1794,7 @@ export function teamScope(
     tracker: { ...tracker, snapshot: kept, viewTeams: undefined },
     project: { ...project, epics, plan: null, ...people },
     info: {
-      teamNames: listed
-        .filter((t) => chosen.has(teamKey(t.name)))
-        .map((t) => t.name),
+      teamNames: names,
       peopleFrom: peopleTeams.map((t) => t.name),
       otherTeamTasks,
       noTeamTasks,
@@ -1751,6 +1818,52 @@ export function isAwaitingClose(issue: JiraIssue): boolean {
 
 const READY_TO_START =
   /\bready\s+(for|to)\s+(dev|development|work|start|refinement|grooming|estimation|planning|sprint)\b/i;
+
+/** Statuses that are work in hand, not work handed on: still in progress. */
+const STILL_IN_PROGRESS =
+  /\b(in\s*progress|in\s*development|doing|blocked|on\s*hold|paused)\b/i;
+
+/**
+ * Open work past To Do and In Progress: in review, in QA or testing, ready to
+ * deploy — any status Jira puts in its "In Progress" category except the ones
+ * that mean the work is still in hand ("In Progress", "In Development",
+ * "Blocked", "On Hold") or not begun ("Ready for development"). Wider than
+ * {@link isAwaitingClose}, which only matches review and ready.
+ */
+export function isPastInProgress(issue: JiraIssue): boolean {
+  if (issue.statusCategory !== "indeterminate") return false;
+  const name = String(issue.status ?? "");
+  return !STILL_IN_PROGRESS.test(name) && !READY_TO_START.test(name);
+}
+
+/**
+ * The tracker with every task past In Progress ({@link isPastInProgress})
+ * counted as done, for a reading that treats handed-on work as finished, and
+ * how many tasks that closed. The same tracker back when none is.
+ */
+export function pastInProgressAsDone(tracker: Tracker): {
+  tracker: Tracker;
+  tasks: number;
+} {
+  const snapshot = tracker.snapshot;
+  if (!snapshot) return { tracker, tasks: 0 };
+  const skip = untrackedIssueKeys(
+    snapshot,
+    mustDoTracker(tracker).untrackedEpics,
+  );
+  let tasks = 0;
+  const close = (issue: JiraIssue): JiraIssue => {
+    if (!isPastInProgress(issue)) return issue;
+    if (!skip.has(issue.key)) tasks++;
+    return { ...issue, statusCategory: "done" };
+  };
+  const epics = snapshot.epics.map((epic) => ({
+    ...epic,
+    children: epic.children?.map(close),
+  }));
+  if (tasks === 0) return { tracker, tasks: 0 };
+  return { tracker: { ...tracker, snapshot: { ...snapshot, epics } }, tasks };
+}
 
 /** Work waiting in review or ready states, and what closing it today buys. */
 export interface AwaitingCloseWhatIf {
@@ -1793,6 +1906,7 @@ export function awaitingCloseWhatIf(
   today: string,
 ): AwaitingCloseWhatIf | null {
   if (!project || !tracker.snapshot) return null;
+  tracker = mustDoTracker(tracker);
   // A team selection reads only those teams' queue, against their people.
   const forTeams = teamScope(tracker, project, teams);
   if (forTeams) {

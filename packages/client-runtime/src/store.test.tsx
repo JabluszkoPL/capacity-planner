@@ -3,6 +3,7 @@ import { Clock } from "@planner/contracts";
 import { diffStates } from "@planner/db";
 import type {
   AppState,
+  EpicTracking,
   JiraIssue,
   JiraSnapshot,
   Plan,
@@ -1271,6 +1272,27 @@ describe("reducer — trackers", () => {
     expect(samples).toHaveLength(200);
     expect(samples[0].date).toBe("2026-01-11");
     expect(samples[199].date).toBe("2026-07-29");
+  });
+
+  it("setTrackerEpicTracking keeps each epic in one list at most", () => {
+    const set = (state: AppState, epicKey: string, tracking: EpicTracking) =>
+      reducer(state, {
+        type: "setTrackerEpicTracking",
+        id: "tr1",
+        epicKey,
+        tracking,
+      });
+    const nice = set(withTracker(), "E-1", "niceToHave");
+    expect(tracker(nice).niceToHaveEpics).toEqual(["E-1"]);
+    expect("untrackedEpics" in tracker(nice)).toBe(false);
+
+    const off = set(nice, "E-1", "untracked");
+    expect(tracker(off).untrackedEpics).toEqual(["E-1"]);
+    expect("niceToHaveEpics" in tracker(off)).toBe(false);
+
+    const back = set(off, "E-1", "tracked");
+    expect("untrackedEpics" in tracker(back)).toBe(false);
+    expect("niceToHaveEpics" in tracker(back)).toBe(false);
   });
 
   it("setTrackerSprintDraft stores, then clears, the draft", () => {

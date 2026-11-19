@@ -23,6 +23,7 @@ describe("package purity", () => {
       "map.ts",
       "refresh.ts",
       "teams.ts",
+      "trackerMapping.ts",
       "transport.ts",
       "writeback.ts",
     ]);

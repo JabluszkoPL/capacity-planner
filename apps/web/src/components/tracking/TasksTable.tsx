@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   earnedTaskDays,
+  teamKey,
   trackedMapping,
+  type EpicTracking,
   withAddedScope,
   type JiraIssue,
   type JiraSnapshot,
@@ -12,39 +14,37 @@ import {
 } from "@planner/core";
 import { estimateOf } from "@planner/jira";
 import { Button } from "../ui/Button";
-import { SearchSelect, type SearchSelectOption } from "../ui/SearchSelect";
 import { days } from "./StatusPanel";
 
 type SortKey = "order" | "unmatched" | "shortfall";
 
-const NOT_IN_PLAN = "__none__";
-/** The specialization filter's value for tasks mapped to no plan task. */
+/** The specialization filter's value for new tasks with none picked yet. */
 const NO_SPECIALIZATION = "__unmapped__";
-const ADDED_SCOPE = "__added__";
 
 interface TasksTableProps {
   snapshot: JiraSnapshot;
   baseUrl: string;
   project: Project;
+  /** Jira task -> the plan task it matched by name (see `trackerMapping`). */
   taskMap: Tracker["taskMap"];
-  onMapTask: (jiraIssueKey: string, plannerTaskId: string | null) => void;
   /** Converts Jira's time estimates to days for the no-estimate hint. */
   hoursPerDay?: number;
   /** Opens the estimate review, offered on a task Jira has an estimate for. */
   onReviewEstimates?: () => void;
-  /** Jira issues counted as added scope, with the specialization doing each. */
+  /** New Jira tasks counted as added scope, with the specialization doing
+   *  each: read from their tags, or picked here. */
   addedScope?: Tracker["addedScope"];
-  /** Specializations to pick from for added scope; the first is the default. */
+  /** Specializations to pick from for a new task. */
   specializations?: readonly string[];
-  /** Mark an issue as added scope for `specialization`, or unmark it (null). */
-  onSetAddedScope?: (
-    jiraIssueKey: string,
-    specialization: string | null,
-  ) => void;
+  /** Set the specialization doing a new task, which makes it added scope. */
+  onSetAddedScope?: (jiraIssueKey: string, specialization: string) => void;
   /** Jira epics left out as another team's work. */
   untrackedEpics?: Tracker["untrackedEpics"];
-  /** Track a whole Jira epic, or leave it out as another team's (false). */
-  onSetEpicTracked?: (jiraEpicKey: string, tracked: boolean) => void;
+  /** Jira epics followed as nice-to-have work, on top of the plan. */
+  niceToHaveEpics?: Tracker["niceToHaveEpics"];
+  /** Track a whole Jira epic, leave it out as another team's, or follow it
+   *  as nice to have. */
+  onSetEpicTracking?: (jiraEpicKey: string, tracking: EpicTracking) => void;
   /**
    * The tracker's teams, when there is more than one: each Jira task then
    * shows the team it belongs to, from Jira or set by hand.
@@ -54,9 +54,19 @@ interface TasksTableProps {
   taskTeams?: Map<string, { team: string; source: TaskTeamSource }>;
   /** Set a Jira task's team by hand, or go back to Jira's (null). */
   onSetTaskTeam?: (jiraIssueKey: string, team: string | null) => void;
+  /**
+   * The teams the tracker's reading is limited to (`selectedTeams`), or
+   * null/absent for every team. Other teams' tasks are hidden, and so is an
+   * epic left with none. A task with no team stays, so it can be given one.
+   */
+  shownTeams?: string[] | null;
 }
 
-type MappingState = "mapped" | "excluded" | "undecided" | "added";
+/**
+ * A Jira task is a plan task (matched by name), added scope (new work with a
+ * specialization), or undecided: new work whose tags name no specialization.
+ */
+type MappingState = "mapped" | "added" | "undecided";
 
 function mappingState(
   taskMap: Tracker["taskMap"],
@@ -64,30 +74,7 @@ function mappingState(
   key: string,
 ): MappingState {
   if ((addedScope ?? {})[key]) return "added";
-  const map = taskMap ?? {};
-  if (!Object.prototype.hasOwnProperty.call(map, key)) return "undecided";
-  return map[key] === null ? "excluded" : "mapped";
-}
-
-/**
- * The specialization an added task most likely needs: one named as a whole
- * word in its summary ("[QA] Integration test"), else the first one there is.
- */
-function guessSpecialization(
-  summary: string,
-  specializations: readonly string[],
-): string | null {
-  const words = new Set(
-    summary
-      .toLowerCase()
-      .split(/[^\p{L}\p{N}]+/u)
-      .filter(Boolean),
-  );
-  return (
-    specializations.find((s) => words.has(s.trim().toLowerCase())) ??
-    specializations[0] ??
-    null
-  );
+  return typeof (taskMap ?? {})[key] === "string" ? "mapped" : "undecided";
 }
 
 /** Id of an epic's tracking control, so focus can follow it when it moves. */
@@ -162,22 +149,26 @@ export function TasksTable({
   baseUrl,
   project,
   taskMap,
-  onMapTask,
   hoursPerDay,
   onReviewEstimates,
   addedScope,
   specializations = [],
   onSetAddedScope,
   untrackedEpics,
-  onSetEpicTracked,
+  niceToHaveEpics,
+  onSetEpicTracking,
   teams,
   taskTeams,
   onSetTaskTeam,
+  shownTeams,
 }: TasksTableProps) {
   const showTeams = (teams?.length ?? 0) > 1;
   const [sort, setSort] = useState<SortKey>("unmatched");
   // Local UI state, like the sort: "" shows every specialization.
   const [specFilter, setSpecFilter] = useState("");
+  // Local UI state too: hides Jira tasks in the Done category, and any epic
+  // left with none, so the table reads as the work still open.
+  const [hideDone, setHideDone] = useState(false);
   // Local UI state, not persisted: which Jira epics show their tasks. Epics
   // start collapsed so a large initiative opens as a compact list, and an
   // epic that appears after a refresh is not in the set, so it starts
@@ -186,6 +177,10 @@ export function TasksTable({
   const untracked = useMemo(
     () => new Set(untrackedEpics ?? []),
     [untrackedEpics],
+  );
+  const niceToHave = useMemo(
+    () => new Set(niceToHaveEpics ?? []),
+    [niceToHaveEpics],
   );
   // Measured exactly as the tracker measures it: another team's epics count
   // for nothing, and added scope becomes plan tasks of its own, sized by Jira,
@@ -211,26 +206,19 @@ export function TasksTable({
   );
   const stateOf = (key: string) => mappingState(taskMap, addedScope, key);
 
-  // One list shared by every row's picker. Skipped tasks stay selectable: a
-  // Jira issue with no estimate maps onto one, and hiding it would make that
-  // row read as unmapped.
-  const planTaskOptions = useMemo<SearchSelectOption[]>(
-    () => [
-      { value: "", label: "Unmapped" },
-      { value: NOT_IN_PLAN, label: "Not tracked (another team)" },
-      ...(onSetAddedScope
-        ? [{ value: ADDED_SCOPE, label: "Added scope (our team)" }]
-        : []),
-      ...project.epics.flatMap((epic) =>
-        epic.tasks.map((task) => ({
-          value: task.id,
-          label: task.excluded ? `${task.name} (skipped)` : task.name,
-          group: epic.name,
-        })),
-      ),
-    ],
-    [project.epics, onSetAddedScope],
-  );
+  // The plan task each matched Jira task counts as, by id, for its row.
+  const planTaskNames = useMemo(() => {
+    const out = new Map<string, { name: string; epic: string }>();
+    for (const epic of project.epics) {
+      for (const task of epic.tasks) {
+        out.set(task.id, {
+          name: task.excluded ? `${task.name} (skipped)` : task.name,
+          epic: epic.name,
+        });
+      }
+    }
+    return out;
+  }, [project.epics]);
 
   // Mapped onto a plan task that counts for nothing: no estimate, or skipped.
   // Only the plan's estimate is measured, so these are worth fixing first.
@@ -292,20 +280,57 @@ export function TasksTable({
         ? specFilter
         : "";
 
+  // The team(s) each epic's tasks belong to, most tasks first. An epic is
+  // usually one team's; a mixed one names every team in it.
+  const epicTeams = useMemo(() => {
+    const out = new Map<string, string[]>();
+    for (const group of taskGroups(snapshot)) {
+      const counts = new Map<string, { name: string; n: number }>();
+      for (const issue of group.issues) {
+        const owner = taskTeams?.get(issue.key);
+        if (!owner) continue;
+        const key = teamKey(owner.team);
+        const entry = counts.get(key) ?? { name: owner.team, n: 0 };
+        entry.n++;
+        counts.set(key, entry);
+      }
+      out.set(
+        group.epicKey,
+        [...counts.values()].sort((a, b) => b.n - a.n).map((e) => e.name),
+      );
+    }
+    return out;
+  }, [snapshot, taskTeams]);
+
   const groups = useMemo(() => {
     const shortfall = (issue: JiraIssue) => {
       const row = earned.perJiraTask.get(issue.key);
       return (row?.plannedDays ?? 0) - (row?.earned ?? 0);
     };
     let list = taskGroups(snapshot);
+    // Each filter keeps the tasks it wants and drops an epic left with none.
+    // An epic set to not be tracked is never filtered: it stays in view, with
+    // all its tasks, so it can always be tracked again.
+    const narrow = (keep: (issue: JiraIssue) => boolean) => {
+      list = list
+        .map((group) =>
+          untracked.has(group.epicKey)
+            ? group
+            : { ...group, issues: group.issues.filter(keep) },
+        )
+        .filter((group) => group.issues.length > 0);
+    };
+    if (shownTeams && shownTeams.length > 0) {
+      const wanted = new Set(shownTeams.map(teamKey));
+      narrow((issue) => {
+        const owner = taskTeams?.get(issue.key);
+        return !owner || wanted.has(teamKey(owner.team));
+      });
+    }
+    if (hideDone) narrow((issue) => issue.statusCategory !== "done");
     if (activeSpec) {
       const wanted = activeSpec === NO_SPECIALIZATION ? null : activeSpec;
-      list = list
-        .map((group) => ({
-          ...group,
-          issues: group.issues.filter((i) => specOf(i.key) === wanted),
-        }))
-        .filter((group) => group.issues.length > 0);
+      narrow((issue) => specOf(issue.key) === wanted);
     }
     for (const group of list) {
       if (sort === "unmatched") {
@@ -317,17 +342,12 @@ export function TasksTable({
         group.issues.sort((a, b) => shortfall(b) - shortfall(a));
       }
       // Whatever the sort, work still to do comes first and done work last,
-      // grouped by status within each category (Done before Cancelled), and
-      // tasks marked not tracked sink below everything that counts. The sort
-      // is stable, so the order above holds within each status.
-      const notTracked = (issue: JiraIssue) =>
-        Number(stateOf(issue.key) === "excluded");
+      // grouped by status within each category (Done before Cancelled). The
+      // sort is stable, so the order above holds within each status.
       group.issues.sort(
         (a, b) =>
-          notTracked(a) - notTracked(b) ||
           (STATUS_RANK[a.statusCategory] ?? 0) -
-            (STATUS_RANK[b.statusCategory] ?? 0) ||
-          compareStatus(a, b),
+            (STATUS_RANK[b.statusCategory] ?? 0) || compareStatus(a, b),
       );
     }
     // Epics keep Jira order while mapping, so an epic never jumps away from
@@ -338,13 +358,13 @@ export function TasksTable({
         group.issues.reduce((sum, issue) => sum + shortfall(issue), 0);
       list.sort((a, b) => total(b) - total(a));
     }
-    // Another team's epics go last in every sort but Jira's own order, so your
-    // work reads as one block. The sort is stable: order within each is kept.
+    // In every sort but Jira's own order, the must-do work reads as one
+    // block: nice-to-have epics after it, another team's last. The sort is
+    // stable: order within each is kept.
     if (sort !== "order") {
-      list.sort(
-        (a, b) =>
-          Number(untracked.has(a.epicKey)) - Number(untracked.has(b.epicKey)),
-      );
+      const rank = (key: string) =>
+        untracked.has(key) ? 2 : niceToHave.has(key) ? 1 : 0;
+      list.sort((a, b) => rank(a.epicKey) - rank(b.epicKey));
     }
     return list;
     // stateOf only reads taskMap and addedScope.
@@ -357,8 +377,12 @@ export function TasksTable({
     addedScope,
     noEstimate,
     untracked,
+    niceToHave,
     activeSpec,
     specOf,
+    shownTeams,
+    taskTeams,
+    hideDone,
   ]);
 
   // Tracking or untracking an epic can move it to the other end of the list,
@@ -402,10 +426,13 @@ export function TasksTable({
         <div>
           <h2 className="section-title">Task comparison</h2>
           <p className="muted">
-            Jira tasks are matched to planned tasks by name. Only Jira tasks in
-            the Done category count as earned. Added scope is work your team
-            took on after planning: it counts, sized by Jira&apos;s estimate,
-            and uses up buffer.
+            Jira tasks are matched to planned tasks by name. A Jira task with no
+            match is added scope: work taken on after planning, sized by
+            Jira&apos;s estimate, that uses up buffer. Its specialization comes
+            from a Jira label or a [tag] in its summary; where neither names
+            one, the task stays unmapped until you pick it. Only Jira tasks in
+            the Done category count as earned. A nice-to-have epic is followed
+            here but left out of the status above.
           </p>
         </div>
         <div className="tasks-head-controls">
@@ -428,18 +455,26 @@ export function TasksTable({
                   </option>
                 ))}
                 {specOptions.unmapped && (
-                  <option value={NO_SPECIALIZATION}>Not mapped</option>
+                  <option value={NO_SPECIALIZATION}>Unmapped</option>
                 )}
               </select>
             </label>
           )}
+          <label className="epics-sort">
+            <input
+              type="checkbox"
+              checked={hideDone}
+              onChange={(event) => setHideDone(event.target.checked)}
+            />
+            <span>Hide done tasks</span>
+          </label>
           <label className="epics-sort">
             <span>Sort</span>
             <select
               value={sort}
               onChange={(event) => setSort(event.target.value as SortKey)}
             >
-              <option value="unmatched">Unmatched first</option>
+              <option value="unmatched">Unmapped first</option>
               <option value="order">Jira order</option>
               <option value="shortfall">Biggest shortfall</option>
             </select>
@@ -464,6 +499,7 @@ export function TasksTable({
           {groups.map((group) => {
             const open = expanded.has(group.epicKey);
             const off = untracked.has(group.epicKey);
+            const nice = !off && niceToHave.has(group.epicKey);
             let undecided = 0;
             let added = 0;
             let unestimated = 0;
@@ -484,7 +520,10 @@ export function TasksTable({
             return (
               <tbody
                 key={group.epicKey}
-                className={"task-group" + (off ? " untracked" : "")}
+                className={
+                  "task-group" +
+                  (off ? " untracked" : nice ? " nice-to-have" : "")
+                }
               >
                 <tr className="task-group-row">
                   <th scope="rowgroup" colSpan={showTeams ? 5 : 4}>
@@ -508,6 +547,15 @@ export function TasksTable({
                       >
                         {group.epicKey}
                       </a>
+                      {showTeams &&
+                        (epicTeams.get(group.epicKey) ?? []).length > 0 && (
+                          <span
+                            className="epic-team"
+                            title="The team its Jira tasks belong to"
+                          >
+                            {epicTeams.get(group.epicKey)!.join(" · ")}
+                          </span>
+                        )}
                       <span className="muted">
                         {count} task{count === 1 ? "" : "s"}
                       </span>
@@ -522,6 +570,11 @@ export function TasksTable({
                         </span>
                       ) : (
                         <>
+                          {nice && (
+                            <span className="nice-to-have-label">
+                              Nice to have
+                            </span>
+                          )}
                           {undecided > 0 && (
                             <span className="unmapped-count">
                               {undecided} unmapped
@@ -539,23 +592,26 @@ export function TasksTable({
                           )}
                         </>
                       )}
-                      {onSetEpicTracked && (
+                      {onSetEpicTracking && (
                         <select
                           id={epicTrackingId(group.epicKey)}
                           className="epic-tracking"
                           aria-label={`Tracking for epic ${group.epicKey} ${group.epicSummary}`}
-                          value={off ? "untracked" : "tracked"}
+                          value={
+                            off ? "untracked" : nice ? "niceToHave" : "tracked"
+                          }
                           onChange={(e) => {
-                            onSetEpicTracked(
+                            onSetEpicTracking(
                               group.epicKey,
-                              e.target.value === "tracked",
+                              e.target.value as EpicTracking,
                             );
                             setRefocus(group.epicKey);
                           }}
                         >
-                          <option value="tracked">Tracked</option>
+                          <option value="tracked">Track it</option>
+                          <option value="niceToHave">Nice to have</option>
                           <option value="untracked">
-                            Not tracked (another team)
+                            Don&apos;t track it (another team)
                           </option>
                         </select>
                       )}
@@ -616,64 +672,19 @@ export function TasksTable({
                         <td>
                           {off ? (
                             <span className="muted">Not tracked (epic)</span>
-                          ) : (
-                            <>
-                              <SearchSelect
-                                aria-label={`Plan task for ${issue.key} ${issue.summary}`}
-                                options={planTaskOptions}
-                                value={
-                                  state === "undecided"
-                                    ? ""
-                                    : state === "added"
-                                      ? ADDED_SCOPE
-                                      : state === "excluded"
-                                        ? NOT_IN_PLAN
-                                        : ((taskMap ?? {})[issue.key] as string)
-                                }
-                                onChange={(value) => {
-                                  if (value === ADDED_SCOPE) {
-                                    if (state === "added") return;
-                                    const spec = guessSpecialization(
-                                      issue.summary,
-                                      specializations,
-                                    );
-                                    if (spec)
-                                      onSetAddedScope?.(issue.key, spec);
-                                    return;
-                                  }
-                                  if (state === "added") {
-                                    onSetAddedScope?.(issue.key, null);
-                                  }
-                                  onMapTask(
-                                    issue.key,
-                                    value === "" || value === NOT_IN_PLAN
-                                      ? null
-                                      : value,
-                                  );
-                                }}
-                              />
-                              {state === "added" && (
-                                <select
-                                  className="added-scope-spec"
-                                  aria-label={`Specialization for ${issue.key} ${issue.summary}`}
-                                  value={(addedScope ?? {})[issue.key]}
-                                  onChange={(e) =>
-                                    onSetAddedScope?.(issue.key, e.target.value)
-                                  }
-                                >
-                                  {[
-                                    ...new Set([
-                                      (addedScope ?? {})[issue.key],
-                                      ...specializations,
-                                    ]),
-                                  ].map((spec) => (
-                                    <option key={spec} value={spec}>
-                                      {spec}
-                                    </option>
-                                  ))}
-                                </select>
+                          ) : state === "mapped" ? (
+                            <PlanTaskName
+                              task={planTaskNames.get(
+                                (taskMap ?? {})[issue.key] as string,
                               )}
-                            </>
+                            />
+                          ) : (
+                            <NewTaskSpecialization
+                              issue={issue}
+                              value={(addedScope ?? {})[issue.key]}
+                              specializations={specializations}
+                              onChange={onSetAddedScope}
+                            />
                           )}
                         </td>
                         <td className="num">
@@ -716,9 +727,14 @@ export function TasksTable({
 
       {groups.length === 0 && (
         <p className="muted">
-          {activeSpec
-            ? "No Jira tasks of this specialization."
-            : "No Jira tasks were found under the initiative."}
+          {(hideDone ? "No open Jira tasks" : "No Jira tasks") +
+            (activeSpec
+              ? " of this specialization."
+              : shownTeams && shownTeams.length > 0
+                ? " of the selected teams."
+                : hideDone
+                  ? "."
+                  : " were found under the initiative.")}
         </p>
       )}
       {planOnly.length > 0 && (
@@ -727,6 +743,64 @@ export function TasksTable({
         </p>
       )}
     </section>
+  );
+}
+
+/** The plan task a Jira task matched by name, with its epic. */
+function PlanTaskName({ task }: { task?: { name: string; epic: string } }) {
+  if (!task) return <span className="muted">—</span>;
+  return (
+    <span className="plan-task-name">
+      {task.name}
+      <span className="plan-task-epic">{task.epic}</span>
+    </span>
+  );
+}
+
+/**
+ * A Jira task that is not in the plan: added scope once it has a
+ * specialization, unmapped until then. Picking one is the only decision left.
+ */
+function NewTaskSpecialization({
+  issue,
+  value,
+  specializations,
+  onChange,
+}: {
+  issue: JiraIssue;
+  value?: string;
+  specializations: readonly string[];
+  onChange?: (jiraIssueKey: string, specialization: string) => void;
+}) {
+  const options = value
+    ? [...new Set([value, ...specializations])]
+    : [...specializations];
+  return (
+    <span className="new-task-cell">
+      <span className={value ? "added-scope-label" : "unmapped-label"}>
+        {value ? "Added scope" : "Unmapped"}
+      </span>
+      <select
+        className={"added-scope-spec" + (value ? "" : " needs-spec")}
+        aria-label={`Specialization for ${issue.key} ${issue.summary}`}
+        value={value ?? ""}
+        disabled={!onChange}
+        onChange={(e) => {
+          if (e.target.value) onChange?.(issue.key, e.target.value);
+        }}
+      >
+        {!value && (
+          <option value="" disabled>
+            Pick specialization…
+          </option>
+        )}
+        {options.map((spec) => (
+          <option key={spec} value={spec}>
+            {spec}
+          </option>
+        ))}
+      </select>
+    </span>
   );
 }
 

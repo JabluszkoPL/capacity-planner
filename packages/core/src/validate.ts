@@ -96,6 +96,13 @@ export function isValidAppState(value: unknown): value is AppState {
         return false;
       }
       if (
+        tracker.niceToHaveEpics !== undefined &&
+        (!Array.isArray(tracker.niceToHaveEpics) ||
+          tracker.niceToHaveEpics.some((k) => typeof k !== "string"))
+      ) {
+        return false;
+      }
+      if (
         tracker.viewTeams !== undefined &&
         (!Array.isArray(tracker.viewTeams) ||
           tracker.viewTeams.some((k) => typeof k !== "string"))

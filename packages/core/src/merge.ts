@@ -1,4 +1,4 @@
-import type { AppState, ID, Project, Team } from "./types";
+import type { AppState, ID, Project, Team, Tracker } from "./types";
 import { newId } from "./ids";
 
 /** What a merge did, so the UI can report it without re-deriving anything. */
@@ -12,6 +12,10 @@ export interface MergeReport {
   addedTeams: number;
   /** Incoming teams dropped in favour of the team already here. */
   reusedTeams: number;
+  /** Incoming trackers appended because this state had never seen their id. */
+  addedTrackers: number;
+  /** Incoming trackers dropped in favour of the tracker already here. */
+  reusedTrackers: number;
 }
 
 /**
@@ -35,14 +39,20 @@ export interface MergeReport {
  *    being compared; silently merging two drafts with the same id would destroy
  *    the comparison. On an id collision the incoming project takes a fresh id,
  *    so re-importing the same file twice yields two side-by-side copies rather
- *    than an overwrite. Nothing in {@link AppState} refers to a project by id,
- *    so re-iding one is self-contained.
+ *    than an overwrite. The only thing that refers to a project by id is a
+ *    tracker's baseline, and incoming trackers are re-pointed along with it.
  *
  *  - **Colliding project names get a suffix**, because two rows reading
  *    "Q3 Draft" in the dashboard are useless for comparison.
  *
- *  - **`trackers` stay exactly as they are.** They are local Jira wiring, not
- *    plan data, and an old-Planner export has none.
+ *  - **Trackers are matched by id and the local one wins**, like teams. A
+ *    tracker's `samples` are the only record of how its buffer was spent, so a
+ *    tracker that came across with the file must not be lost — but the same
+ *    tracker arriving twice must not be doubled either. An appended tracker
+ *    follows its baseline project: if that project was imported (and maybe
+ *    re-ided) it points at the imported copy; if it names a project that is
+ *    in neither state, the baseline is cleared rather than left dangling.
+ *    Existing trackers are never touched. An old-Planner export has none.
  *
  * A caveat worth knowing: when an incoming team is dropped as a duplicate, an
  * imported project may reference a member id the local team no longer has. The
@@ -76,6 +86,8 @@ export function mergeImportedState(
 
   const renamedProjects: string[] = [];
   const addedProjects: Project[] = [];
+  /** Incoming project id -> the id it has after the merge. */
+  const projectIdMap = new Map<ID, ID>();
   for (const project of incoming.projects) {
     let next = project;
 
@@ -83,6 +95,7 @@ export function mergeImportedState(
       next = { ...next, id: makeId() };
     }
     usedProjectIds.add(next.id);
+    if (!projectIdMap.has(project.id)) projectIdMap.set(project.id, next.id);
 
     if (usedNames.has(next.name)) {
       const name = distinctName(next.name, usedNames);
@@ -94,17 +107,55 @@ export function mergeImportedState(
     addedProjects.push(next);
   }
 
+  const currentTrackers = current.trackers ?? [];
+  const localTrackerIds = new Set(currentTrackers.map((t) => t.id));
+  const addedTrackers: Tracker[] = [];
+  let reusedTrackers = 0;
+  for (const tracker of incoming.trackers ?? []) {
+    if (localTrackerIds.has(tracker.id)) {
+      reusedTrackers++;
+      continue;
+    }
+    localTrackerIds.add(tracker.id);
+    addedTrackers.push(repointTracker(tracker, projectIdMap, usedProjectIds));
+  }
+
+  const merged: AppState = {
+    ...current,
+    projects: [...current.projects, ...addedProjects],
+    teams: [...current.teams, ...addedTeams],
+  };
+  if (addedTrackers.length > 0) {
+    merged.trackers = [...currentTrackers, ...addedTrackers];
+  }
+
   return {
-    state: {
-      ...current,
-      projects: [...current.projects, ...addedProjects],
-      teams: [...current.teams, ...addedTeams],
-    },
+    state: merged,
     addedProjects: addedProjects.length,
     renamedProjects,
     addedTeams: addedTeams.length,
     reusedTeams,
+    addedTrackers: addedTrackers.length,
+    reusedTrackers,
   };
+}
+
+/** Point an appended tracker at its baseline as it exists after the merge. */
+function repointTracker(
+  tracker: Tracker,
+  projectIdMap: Map<ID, ID>,
+  knownProjectIds: Set<ID>,
+): Tracker {
+  if (tracker.projectId == null) return tracker;
+  const mapped = projectIdMap.get(tracker.projectId);
+  if (mapped !== undefined) {
+    return mapped === tracker.projectId
+      ? tracker
+      : { ...tracker, projectId: mapped };
+  }
+  if (knownProjectIds.has(tracker.projectId)) return tracker;
+  const { projectId: _gone, ...rest } = tracker;
+  return rest;
 }
 
 /** "Q3 Draft" -> "Q3 Draft (imported)" -> "Q3 Draft (imported 2)" -> ... */

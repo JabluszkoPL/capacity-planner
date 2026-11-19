@@ -12,6 +12,7 @@ import {
   writeSyncUrlSetting,
 } from "../../lib/syncSettings";
 import { resolveSync } from "../../runtime";
+import { BackupSection } from "./BackupSection";
 
 interface AboutPanelProps {
   open: boolean;
@@ -244,8 +245,8 @@ function SyncSection() {
 }
 
 /**
- * Version, updates and where the data is shared — the app's "About" box,
- * opened from the version in the header.
+ * Version, updates, where the data is shared, and backup/transfer — the
+ * app's "About" box, opened from the version in the header.
  */
 export function AboutPanel({ open, onClose }: AboutPanelProps) {
   return (
@@ -271,6 +272,7 @@ export function AboutPanel({ open, onClose }: AboutPanelProps) {
       </p>
       <UpdatesSection />
       <SyncSection />
+      <BackupSection />
       <div className="modal-actions">
         <Button onClick={onClose}>Close</Button>
       </div>

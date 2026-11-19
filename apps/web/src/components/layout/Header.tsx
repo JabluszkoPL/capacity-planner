@@ -32,8 +32,8 @@ function VersionButton({ onOpen }: { onOpen: () => void }) {
       type="button"
       className={"nav-btn version-btn" + (pending ? " update-pending" : "")}
       onClick={onOpen}
-      aria-label={`${label}. About Planner, updates and sharing`}
-      title="About Planner, updates and sharing"
+      aria-label={`${label}. About Planner, updates, sharing and backup`}
+      title="About Planner, updates, sharing and backup"
     >
       {pending && <span aria-hidden="true">⬆︎</span>}
       {label}

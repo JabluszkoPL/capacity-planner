@@ -52,18 +52,17 @@ export function downloadStateJson(state: AppState, filename: string): void {
   );
 }
 
-/** Read + parse a file chosen from an `<input type="file">`. */
-export function readStateFile(file: File): Promise<AppState> {
+/** Read a file chosen from an `<input type="file">` as text. */
+export function readTextFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        resolve(parseImportedState(String(reader.result ?? "")));
-      } catch (err) {
-        reject(err);
-      }
-    };
+    reader.onload = () => resolve(String(reader.result ?? ""));
     reader.onerror = () => reject(new Error("Couldn't read that file."));
     reader.readAsText(file);
   });
+}
+
+/** Read + parse a file chosen from an `<input type="file">`. */
+export async function readStateFile(file: File): Promise<AppState> {
+  return parseImportedState(await readTextFile(file));
 }

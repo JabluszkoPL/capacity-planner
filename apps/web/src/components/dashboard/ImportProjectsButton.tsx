@@ -34,7 +34,11 @@ export function ImportProjectsButton() {
 
       // A full backup from the old Planner can carry teams no project uses,
       // so a file with new teams but no projects is still worth importing.
-      if (report.addedProjects === 0 && report.addedTeams === 0) {
+      if (
+        report.addedProjects === 0 &&
+        report.addedTeams === 0 &&
+        report.addedTrackers === 0
+      ) {
         toast("That file had nothing new to import.");
         return;
       }
@@ -54,6 +58,13 @@ export function ImportProjectsButton() {
           report.addedTeams === 1
             ? "1 new team"
             : `${report.addedTeams} new teams`,
+        );
+      }
+      if (report.addedTrackers > 0) {
+        parts.push(
+          report.addedTrackers === 1
+            ? "1 tracker"
+            : `${report.addedTrackers} trackers`,
         );
       }
       parts[0] = `Imported ${parts[0]}`;

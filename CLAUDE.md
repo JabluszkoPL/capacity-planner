@@ -110,7 +110,10 @@ See [docs/JIRA_TRACKING.md](docs/JIRA_TRACKING.md).
 device (`apps/web/src/lib/jiraSettings.ts`). Everything in AppState is diffed
 into ops, pushed to the sync server, replicated to every device and written into
 the JSON export — all of which are the wrong places for an API token. Keep it
-that way when adding fields.
+that way when adding fields. The one place a token may leave the device is the
+full backup in the About panel (`apps/web/src/lib/backup.ts`): only when the
+user ticks "Include the Jira API token", in a `device` key that `parseBackup`
+splits off before anything reaches the store. `allowWrites` is never carried.
 
 ## Conventions
 

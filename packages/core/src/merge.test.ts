@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { AppState, Project, Team } from "./types";
+import type { AppState, Project, Team, Tracker } from "./types";
 import { mergeImportedState } from "./merge";
 
 function project(id: string, name: string): Project {
@@ -24,6 +24,17 @@ function team(id: string, name: string, memberId: string): Team {
 
 function state(projects: Project[], teams: Team[]): AppState {
   return { projects, teams };
+}
+
+function tracker(id: string, projectId?: string): Tracker {
+  return {
+    id,
+    name: `Tracker ${id}`,
+    initiativeUrl: "https://acme.atlassian.net/browse/ACME-1",
+    initiativeKey: "ACME-1",
+    baseUrl: "https://acme.atlassian.net",
+    ...(projectId ? { projectId } : {}),
+  } as Tracker;
 }
 
 /** Deterministic id supply, so assertions can name the ids. */
@@ -160,5 +171,73 @@ describe("mergeImportedState", () => {
     const before = JSON.stringify([current, incoming]);
     mergeImportedState(current, incoming, ids());
     expect(JSON.stringify([current, incoming])).toBe(before);
+  });
+
+  describe("trackers", () => {
+    it("brings an incoming tracker across with its baseline project", () => {
+      const incoming: AppState = {
+        ...state([project("p1", "Plan")], []),
+        trackers: [tracker("tr1", "p1")],
+      };
+      const report = mergeImportedState(state([], []), incoming, ids());
+      expect(report.state.trackers).toEqual([tracker("tr1", "p1")]);
+      expect(report.addedTrackers).toBe(1);
+    });
+
+    it("re-points a tracker at its project when the project was re-ided", () => {
+      const current = state([project("p1", "Plan")], []);
+      const incoming: AppState = {
+        ...state([project("p1", "Plan")], []),
+        trackers: [tracker("tr1", "p1")],
+      };
+      const { state: merged } = mergeImportedState(current, incoming, ids());
+      expect(merged.projects.map((p) => p.id)).toEqual(["p1", "new1"]);
+      expect(merged.trackers?.[0].projectId).toBe("new1");
+    });
+
+    it("keeps the local tracker and drops the incoming copy on an id match", () => {
+      const local = { ...tracker("tr1"), name: "Local name" };
+      const current: AppState = { ...state([], []), trackers: [local] };
+      const incoming: AppState = {
+        ...state([], []),
+        trackers: [tracker("tr1")],
+      };
+      const report = mergeImportedState(current, incoming, ids());
+      expect(report.state.trackers).toEqual([local]);
+      expect(report.addedTrackers).toBe(0);
+      expect(report.reusedTrackers).toBe(1);
+    });
+
+    it("keeps a baseline that already exists here", () => {
+      const current = state([project("p9", "Here")], []);
+      const incoming: AppState = {
+        ...state([], []),
+        trackers: [tracker("tr1", "p9")],
+      };
+      const { state: merged } = mergeImportedState(current, incoming, ids());
+      expect(merged.trackers?.[0].projectId).toBe("p9");
+    });
+
+    it("clears a baseline that exists in neither state", () => {
+      const incoming: AppState = {
+        ...state([], []),
+        trackers: [tracker("tr1", "gone")],
+      };
+      const { state: merged } = mergeImportedState(
+        state([], []),
+        incoming,
+        ids(),
+      );
+      expect(merged.trackers?.[0]).not.toHaveProperty("projectId");
+    });
+
+    it("leaves `trackers` absent when there were none on either side", () => {
+      const { state: merged } = mergeImportedState(
+        state([], []),
+        state([project("p1", "Plan")], []),
+        ids(),
+      );
+      expect(merged).not.toHaveProperty("trackers");
+    });
   });
 });

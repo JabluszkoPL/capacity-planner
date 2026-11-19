@@ -1,0 +1,8 @@
+{
+  "//": "Every package typechecks standalone via its own tsconfig (see `pnpm typecheck`). This file exists so an editor opening the repo root gets sane defaults.",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "files": []
+}

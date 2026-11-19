@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-electron/
+release/
+apps/desktop/renderer/
+*.tsbuildinfo
+coverage/
+
+# Local databases (your own planning data never belongs in the repo)
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.db
+
+# Environment and secrets: only the documented example is committed
+.env
+.env.*
+!.env.example
+
+# Editor, OS and tool noise
+.DS_Store
+.idea/
+.vscode/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.claude/settings.local.json

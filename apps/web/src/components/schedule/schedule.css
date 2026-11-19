@@ -1,0 +1,537 @@
+/* Schedule visualization (T10) — ported from the POC, referencing T01 tokens. */
+
+.info-box {
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--info-text);
+  margin-bottom: 14px;
+}
+
+.callout {
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.callout.warn {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+}
+.callout ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.run-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: 14px;
+}
+.completion-note {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.completion-note strong {
+  color: var(--text);
+}
+.rounding-note {
+  margin-top: -4px;
+}
+.rounding-note strong {
+  color: var(--ok-text, var(--text));
+}
+
+/* --- export actions --- */
+.export-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.plan-search-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+.plan-search {
+  flex: 1 1 240px;
+  max-width: 360px;
+}
+.plan-search-empty {
+  margin-bottom: 14px;
+}
+.export-hint {
+  font-size: 12px;
+}
+
+/* --- segmented toggle --- */
+.seg-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.seg-btn {
+  padding: 6px 14px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.seg-btn:last-child {
+  border-right: none;
+}
+.seg-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* --- planning mode + lookahead --- */
+.plan-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4, 16px);
+  margin-bottom: 14px;
+}
+.plan-mode-row .seg-toggle {
+  margin-bottom: 0;
+}
+.lookahead-control {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+.lookahead-control input[type="range"] {
+  width: 200px;
+  accent-color: var(--accent);
+}
+.lookahead-hint {
+  font-size: 12px;
+}
+.buffer-row {
+  margin-bottom: 14px;
+}
+
+/* --- overview timeline (compact, always-fits summary) --- */
+.overview-timeline {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 10px 12px 12px;
+  margin-bottom: 14px;
+}
+.overview-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.overview-grid {
+  position: relative;
+}
+.overview-header {
+  position: relative;
+  height: 14px;
+  /* Match the lanes' track offset so month labels align with the bars. */
+  margin-left: 72px;
+}
+
+/* --- overview hover (cursor line + floating date) --- */
+.overview-hover {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.overview-hoverline {
+  position: absolute;
+  top: 14px;
+  bottom: 0;
+  width: 1px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+.overview-hoverdate {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+.overview-datelabel {
+  position: absolute;
+  top: 0;
+  transform: translateX(-1px);
+  font-size: 8px;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* The actual finish date, pinned to the right edge and right-aligned so its
+   text stays inside the track. Emphasised to read as the plan's end. */
+.overview-datelabel.end {
+  transform: translateX(-100%);
+  font-weight: 600;
+  color: var(--text);
+}
+.overview-row {
+  display: flex;
+  align-items: center;
+  height: 20px;
+  margin-top: 4px;
+}
+.overview-label {
+  width: 72px;
+  flex: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 8px;
+}
+.overview-track {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  background: var(--nonwork);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.overview-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 2px;
+  border-radius: 3px;
+  opacity: 0.9;
+}
+.overview-todayline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--danger);
+  z-index: 1;
+}
+
+/* --- gantt --- */
+.gantt-wrap {
+  overflow: auto;
+  max-height: 70vh;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  padding-bottom: 6px;
+}
+.gantt-inner {
+  position: relative;
+}
+.gantt-header {
+  position: sticky;
+  top: 0;
+  height: 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--gridline);
+  z-index: 5;
+}
+.gantt-header.with-days {
+  height: 40px;
+}
+.gantt-daylabel {
+  position: absolute;
+  top: 22px;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.gantt-daylabel.weekend {
+  opacity: 0.55;
+}
+.gantt-datelabel {
+  position: absolute;
+  top: 0;
+  font-size: 10px;
+  color: var(--muted);
+  padding-left: 3px;
+  padding-top: 4px;
+  pointer-events: none;
+}
+.gantt-gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid var(--gridline);
+  pointer-events: none;
+}
+.gantt-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--row-border);
+}
+.gantt-label {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  width: 130px;
+  flex: none;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  z-index: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gantt-label.wide {
+  width: 220px;
+  white-space: normal;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+}
+.gantt-label .lbl-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 198px;
+}
+.gantt-label .lbl-sub {
+  font-size: 10px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 198px;
+}
+.gantt-label .lbl-warn {
+  color: var(--warn-text);
+}
+.gantt-track {
+  position: relative;
+  height: 40px;
+}
+.gantt-bgcell {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.gantt-bgcell.nonwork {
+  background: var(--nonwork);
+}
+.gantt-bgcell.weekend {
+  background: var(--weekend-bar);
+}
+.gantt-bar {
+  position: absolute;
+  top: 5px;
+  height: 30px;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 11px;
+  padding: 0 7px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  box-shadow: var(--shadow-bar);
+}
+.gantt-todayline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--danger);
+  z-index: 1;
+}
+
+/* --- hover highlight --- */
+.gantt-hovercol {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--accent);
+  opacity: 0.1;
+  z-index: 1;
+  pointer-events: none;
+}
+.gantt-hoverdate {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
+}
+
+/* --- utilization --- */
+.util-grid {
+  display: grid;
+  grid-template-columns: 130px 1fr 60px;
+  gap: 6px 10px;
+  align-items: center;
+  font-size: 12px;
+  margin-top: 14px;
+}
+.util-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.util-bar-bg {
+  background: var(--nonwork);
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+}
+.util-bar-fg {
+  height: 100%;
+  background: var(--accent);
+}
+
+/* --- planned days by team / specialization --- */
+.team-breakdown {
+  margin-top: 20px;
+}
+.team-breakdown-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+.tb-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.tb-group {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.tb-group.tb-external {
+  border-style: dashed;
+}
+.tb-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.tb-group-name {
+  font-weight: 600;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tb-group-total {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.tb-specs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tb-spec {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.tb-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+.tb-spec-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tb-spec-days {
+  margin-left: auto;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* --- assignments table --- */
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 16px;
+}
+.assignments-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.assignments-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.assignments-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--row-border);
+  font-size: 13px;
+}
+.spec-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+}

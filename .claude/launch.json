@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@planner/web",
+        "dev"
+      ],
+      "port": 5190
+    },
+    {
+      "name": "sync-server",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@planner/server",
+        "dev"
+      ],
+      "port": 5191
+    }
+  ]
+}

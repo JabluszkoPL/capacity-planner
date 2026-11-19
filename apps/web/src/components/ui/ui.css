@@ -1,0 +1,290 @@
+/**
+ * Shared UI kit styles (T02). Ported from the POC's visual language;
+ * colors/spacing/radius all reference T01's design tokens.
+ */
+
+/* --- Button --- */
+.btn {
+  padding: 7px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--panel);
+  font-weight: 500;
+}
+.btn:hover:not(:disabled) {
+  background: var(--hover);
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--accent-dark);
+}
+.btn.danger {
+  color: var(--danger);
+}
+.btn.danger:hover:not(:disabled) {
+  background: var(--danger-bg);
+}
+.btn.small {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- IconButton --- */
+.icon-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  padding: 3px 7px;
+  border-radius: 5px;
+}
+.icon-btn:hover:not(:disabled) {
+  background: var(--hover-soft);
+}
+.icon-btn.danger:hover:not(:disabled) {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* --- EmptyState --- */
+.empty-state {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+  text-align: center;
+}
+.empty-state.compact {
+  padding: var(--space-4);
+}
+.empty-title {
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+/* --- Card --- */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+/* --- Chip (Included/Skipped toggle) --- */
+.toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  background: var(--hover-soft);
+  color: var(--muted);
+}
+.toggle-chip .toggle-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+}
+.toggle-chip.on {
+  background: var(--chip-on-bg);
+  border-color: var(--chip-on-border);
+  color: var(--chip-on-text);
+}
+.toggle-chip.off {
+  background: var(--hover-soft);
+  color: var(--muted);
+}
+
+/* --- Modal --- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 22, 30, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+.modal {
+  background: #fff;
+  border-radius: 10px;
+  padding: var(--space-5);
+  width: 560px;
+  max-width: 92vw;
+  max-height: 86vh;
+  overflow: auto;
+  box-shadow: var(--shadow-modal);
+}
+.modal h3 {
+  margin-bottom: var(--space-2);
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.confirm-message {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.modal-hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin: var(--space-2) 0 var(--space-1);
+}
+.modal-hint-list {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 var(--space-3);
+  padding-left: 18px;
+}
+.modal-field-label {
+  font-size: 12px;
+  color: var(--muted);
+  display: block;
+  margin: var(--space-2) 0 var(--space-1);
+}
+.modal textarea {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  min-height: 150px;
+}
+
+/* --- Toast --- */
+.toast-host {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  z-index: 60;
+  pointer-events: none;
+}
+.toast {
+  background: var(--text);
+  color: #fff;
+  padding: 9px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  box-shadow: var(--shadow-toast);
+  pointer-events: auto;
+}
+
+/* --- Error boundary fallback --- */
+.error-panel {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  padding: var(--space-4);
+  margin: var(--space-4) 0;
+}
+.error-panel h2 {
+  font-size: 16px;
+  margin: 0 0 var(--space-2);
+}
+.error-panel p {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+}
+.error-detail {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--panel);
+  border-radius: 6px;
+  padding: var(--space-2);
+  margin: 0 0 var(--space-2);
+}
+
+/* --- ComboInput (suggestion list; portalled to <body>, fixed-positioned) --- */
+.combo-list {
+  position: fixed;
+  z-index: 70;
+  margin: 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+  overflow-y: auto;
+  box-sizing: border-box;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-toast);
+  font-size: 13px;
+}
+.combo-option {
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.combo-option.active {
+  background: var(--accent-soft);
+}
+.combo-option.current {
+  font-weight: 600;
+}
+.combo-group {
+  padding: 6px 10px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.combo-option.grouped {
+  padding-left: 18px;
+}
+.combo-empty {
+  padding: 5px 10px;
+  color: var(--muted);
+}
+
+/* --- SearchSelect (a select you can type into to filter) --- */
+.search-select {
+  position: relative;
+  display: inline-block;
+  min-width: 14em;
+}
+.search-select input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 22px;
+  text-overflow: ellipsis;
+}
+.search-select-caret {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--muted);
+  font-size: 11px;
+}

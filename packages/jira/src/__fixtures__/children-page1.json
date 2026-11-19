@@ -1,0 +1,61 @@
+{
+  "nextPageToken": "CAEaBmFjbWUtMg==",
+  "issues": [
+    {
+      "id": "10100",
+      "key": "ACME-100",
+      "fields": {
+        "summary": "Tokenise stored cards",
+        "issuetype": { "name": "Story", "hierarchyLevel": 0 },
+        "status": {
+          "name": "Done",
+          "statusCategory": { "id": 3, "key": "done", "name": "Done" }
+        },
+        "assignee": {
+          "accountId": "5f00aa11bb22cc33dd44ee56",
+          "displayName": "Ines Moreau"
+        },
+        "parent": { "id": "10010", "key": "ACME-10" },
+        "timeoriginalestimate": 28800,
+        "timeestimate": 14400,
+        "timespent": 28800,
+        "duedate": "2026-07-17",
+        "resolutiondate": "2026-07-16T15:41:09.000+0200",
+        "updated": "2026-07-16T15:41:09.000+0200",
+        "customfield_10015": "2026-07-13",
+        "customfield_10020": [
+          { "id": 42, "name": "Checkout Sprint 4", "state": "closed" }
+        ],
+        "customfield_10041": 3
+      }
+    },
+    {
+      "id": "10101",
+      "key": "ACME-101",
+      "fields": {
+        "summary": "Refund flow against the new provider",
+        "issuetype": { "name": "Story", "hierarchyLevel": 0 },
+        "status": {
+          "name": "In Progress",
+          "statusCategory": { "id": 4, "key": "indeterminate", "name": "In Progress" }
+        },
+        "assignee": {
+          "accountId": "5f00aa11bb22cc33dd44ee57",
+          "displayName": "Tomas Reyes"
+        },
+        "parent": { "id": "10010", "key": "ACME-10" },
+        "timeoriginalestimate": 57600,
+        "timeestimate": 28800,
+        "timespent": 28800,
+        "duedate": null,
+        "resolutiondate": null,
+        "updated": "2026-09-14T10:02:55.000+0200",
+        "customfield_10020": [
+          { "id": 42, "name": "Checkout Sprint 4", "state": "closed" },
+          { "id": 43, "name": "Checkout Sprint 5", "state": "active" }
+        ],
+        "customfield_10041": 5
+      }
+    }
+  ]
+}

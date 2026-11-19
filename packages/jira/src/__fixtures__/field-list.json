@@ -1,0 +1,32 @@
+[
+  { "id": "summary", "key": "summary", "name": "Summary", "custom": false },
+  { "id": "duedate", "key": "duedate", "name": "Due date", "custom": false },
+  {
+    "id": "customfield_10015",
+    "key": "customfield_10015",
+    "name": "Start date",
+    "custom": true,
+    "schema": { "type": "date", "customId": 10015 }
+  },
+  {
+    "id": "customfield_10020",
+    "key": "customfield_10020",
+    "name": "Sprint",
+    "custom": true,
+    "schema": { "type": "array", "items": "json", "customId": 10020 }
+  },
+  {
+    "id": "customfield_10041",
+    "key": "customfield_10041",
+    "name": "Story Points",
+    "custom": true,
+    "schema": { "type": "number", "customId": 10041 }
+  },
+  {
+    "id": "customfield_10014",
+    "key": "customfield_10014",
+    "name": "Epic Link",
+    "custom": true,
+    "schema": { "type": "any", "customId": 10014 }
+  }
+]

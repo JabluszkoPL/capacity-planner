@@ -1,0 +1,142 @@
+{
+  "projects": [
+    {
+      "id": "idmu5krlo7852l9h",
+      "name": "Sample Project",
+      "startDate": "2026-09-17",
+      "plan": null,
+      "planViewMode": "person",
+      "helpers": [],
+      "epics": [
+        {
+          "id": "idmu5krlo79v3jf3",
+          "name": "Onboarding Flow",
+          "tasks": [
+            {
+              "id": "idmu5krlo710ug992",
+              "name": "Design onboarding screens",
+              "estimateDays": 3,
+              "specialization": "Design",
+              "excluded": false
+            },
+            {
+              "id": "idmu5krlo711v04kg",
+              "name": "Build onboarding UI",
+              "estimateDays": 5,
+              "specialization": "Frontend",
+              "excluded": false
+            },
+            {
+              "id": "idmu5krlo712138zk",
+              "name": "Onboarding API",
+              "estimateDays": 4,
+              "specialization": "Backend",
+              "excluded": false
+            },
+            {
+              "id": "idmu5krlo713zlhj7",
+              "name": "QA pass",
+              "estimateDays": 2,
+              "specialization": "QA",
+              "excluded": false
+            }
+          ]
+        },
+        {
+          "id": "idmu5krlo714ut0b3",
+          "name": "Payments",
+          "tasks": [
+            {
+              "id": "idmu5krlo715vw2z5",
+              "name": "Payment provider research",
+              "estimateDays": 1,
+              "specialization": "Backend",
+              "excluded": true
+            },
+            {
+              "id": "idmu5krlo716jvdcf",
+              "name": "Checkout UI",
+              "estimateDays": 4,
+              "specialization": "Frontend",
+              "excluded": false
+            },
+            {
+              "id": "idmu5krlo7175y5xi",
+              "name": "Payment service integration",
+              "estimateDays": 6,
+              "specialization": "Backend",
+              "excluded": false
+            },
+            {
+              "id": "idmu5krlo718kv29o",
+              "name": "Security review",
+              "estimateDays": 2,
+              "specialization": "QA",
+              "excluded": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "teams": [
+    {
+      "id": "idmu5krlo7194dwzy",
+      "name": "Core Team",
+      "members": [
+        {
+          "id": "idmu5krlo71021ao",
+          "name": "Alice Kim",
+          "specialization": "Frontend"
+        },
+        {
+          "id": "idmu5krlo72b3klq",
+          "name": "Ben Osei",
+          "specialization": "Backend"
+        },
+        {
+          "id": "idmu5krlo73i42li",
+          "name": "Chen Wu",
+          "specialization": "Backend"
+        },
+        {
+          "id": "idmu5krlo74z6q3n",
+          "name": "Dara Singh",
+          "specialization": "QA"
+        },
+        {
+          "id": "idmu5krlo75qvbfw",
+          "name": "Eva Torres",
+          "specialization": "Design"
+        }
+      ],
+      "offDays": {
+        "idmu5krlo71021ao": [
+          "2026-09-26",
+          "2026-09-27",
+          "2026-09-28"
+        ],
+        "idmu5krlo74z6q3n": [
+          "2026-09-20"
+        ]
+      }
+    },
+    {
+      "id": "idmu5krlo720g9odw",
+      "name": "Platform Team",
+      "members": [
+        {
+          "id": "idmu5krlo7605697",
+          "name": "Farid Haddad",
+          "specialization": "Backend"
+        },
+        {
+          "id": "idmu5krlo77thxcx",
+          "name": "Grace Lin",
+          "specialization": "Frontend"
+        }
+      ],
+      "offDays": {}
+    }
+  ]
+}

@@ -1,0 +1,227 @@
+/* Team roster (T08) — ported from the POC, referencing T01 tokens. */
+
+.page-title {
+  font-size: 22px;
+  margin-bottom: var(--space-4);
+}
+.team-heading {
+  margin-bottom: var(--space-3);
+  font-size: 15px;
+}
+
+.member-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: var(--space-4);
+}
+.member-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  background: #fff;
+}
+.member-chip .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+.member-chip input {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 2px 4px;
+}
+.member-chip input:hover,
+.member-chip input:focus {
+  border-color: var(--border);
+  background: var(--panel-alt);
+}
+.member-chip input.m-name {
+  font-weight: 600;
+  width: 110px;
+}
+.member-chip input.m-spec {
+  width: 100px;
+  color: var(--muted);
+}
+.m-speed-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.member-chip input.m-speed {
+  width: 52px;
+}
+
+.add-member-form {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.add-member-form .field label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.nm-name-input {
+  width: 160px;
+}
+.nm-spec-input {
+  width: 140px;
+}
+.field-error {
+  color: var(--danger);
+  font-size: 12px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+/* Multi-team page controls */
+.team-page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.team-page-head .page-title {
+  margin-bottom: 0;
+}
+.team-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.team-name-input {
+  font-size: 16px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  padding: 4px 6px;
+  flex: 1;
+  min-width: 160px;
+}
+.team-name-input:hover,
+.team-name-input:focus {
+  border-color: var(--border);
+}
+.team-meta {
+  font-size: 13px;
+}
+
+/* Teams added from Jira */
+.team-page-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.jira-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  white-space: nowrap;
+}
+.modal.jira-teams {
+  width: 760px;
+}
+.jira-teams-org {
+  margin: var(--space-3) 0;
+}
+.jira-teams-org input {
+  width: 100%;
+}
+.jira-teams-org-hint {
+  font-size: 12px;
+  margin-top: 4px;
+}
+.jira-team-desc {
+  font-size: 12px;
+  margin: 2px 0 0 24px;
+}
+.jira-teams-filter {
+  width: 100%;
+  margin-bottom: var(--space-3);
+}
+.jira-teams-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.jira-team-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+}
+.jira-team-row.is-on {
+  border-color: var(--accent);
+  background: var(--panel-alt);
+}
+.jira-team-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.jira-team-name {
+  font-weight: 600;
+  cursor: pointer;
+}
+.jira-team-body {
+  margin-top: var(--space-3);
+}
+.jira-team-rename {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.jira-people {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.jira-people th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--row-border);
+}
+.jira-people td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--row-border);
+  vertical-align: middle;
+}
+.jira-people td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.jira-people input[type="text"] {
+  width: 100%;
+  min-width: 120px;
+}
+.jira-twice {
+  color: var(--warn-text);
+}
+.jira-team-fallback {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 12px;
+  margin-bottom: var(--space-3);
+}

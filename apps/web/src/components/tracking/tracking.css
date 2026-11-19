@@ -1,0 +1,1122 @@
+/*
+ * Jira tracking tab.
+ *
+ * Status colour is always paired with a glyph and a word (see StatusPanel), so
+ * nothing here is the sole carrier of meaning — the panel has to read correctly
+ * in greyscale.
+ */
+
+/* --- connection line + add form --- */
+
+.jira-conn-line {
+  margin: 0 0 var(--space-4);
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent-dark);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.link-btn:hover {
+  color: var(--accent);
+}
+
+.add-tracker {
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+.add-tracker-heading {
+  margin: 0 0 var(--space-3);
+  font-size: 14px;
+}
+.add-tracker-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.add-tracker-row .field.grow {
+  flex: 1 1 320px;
+}
+.add-tracker-row input {
+  width: 100%;
+}
+.field-error {
+  margin: var(--space-2) 0 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.tracking-toolbar {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+/* --- tracker cards --- */
+
+.tracker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+.tracker-card {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.tracker-title {
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tracker-key {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+.tracker-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.tracker-title:hover .tracker-name {
+  color: var(--accent-dark);
+}
+.tracker-meta {
+  margin: 0;
+}
+.stale {
+  color: var(--warn-text);
+  font-weight: 600;
+}
+.tracker-card-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-1);
+}
+.spacer {
+  flex: 1;
+}
+
+/* --- detail header --- */
+
+.tracker-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+.tracker-name-input {
+  font-size: 22px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  background: transparent;
+  color: var(--text);
+  min-width: 260px;
+}
+.tracker-name-input:hover {
+  border-color: var(--border);
+}
+.jira-link {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tracker-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+.baseline-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.initiative-summary {
+  margin-bottom: var(--space-4);
+}
+.initiative-summary .section-title {
+  margin-bottom: var(--space-1);
+}
+
+.warn-box {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+  font-size: 13px;
+}
+
+/* --- status --- */
+
+.status-panel {
+  margin-bottom: var(--space-6);
+}
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 16px;
+  margin: 0 0 var(--space-3);
+}
+.status-line.small {
+  font-size: 13px;
+  margin-bottom: 0;
+}
+.status-glyph {
+  font-size: 12px;
+}
+.status-line.ok {
+  color: var(--ok);
+}
+.status-line.info {
+  color: var(--accent-dark);
+}
+.status-line.warn {
+  color: var(--warn-text);
+}
+.status-line.bad {
+  color: var(--danger);
+}
+.status-line.muted {
+  color: var(--muted);
+}
+
+.buffer-meter {
+  display: flex;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--hover-soft);
+  margin-bottom: var(--space-4);
+  max-width: 520px;
+}
+.buffer-seg.used {
+  background: var(--warn-border);
+}
+.buffer-seg.free {
+  background: var(--chip-on-border);
+}
+.buffer-seg.over {
+  background: var(--danger);
+}
+
+.fact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+.fact dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.fact dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* --- tables --- */
+
+.table-scroll {
+  overflow-x: auto;
+}
+.epics-section,
+.tasks-section,
+.history-panel,
+.sprint-panel,
+.remaining-work {
+  margin-bottom: var(--space-6);
+}
+.epics-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.epics-sort {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.epics-table,
+.history-table,
+.sprint-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.epics-table th,
+.history-table th,
+.sprint-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-2);
+  white-space: nowrap;
+}
+.epics-table td,
+.history-table td,
+.sprint-table td {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--row-border);
+  vertical-align: middle;
+}
+.epics-table .num,
+.history-table .num,
+.sprint-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mapping state. The tint is a hint; the select itself says what it is. */
+.epic-row.undecided td {
+  background: var(--warn-bg);
+}
+.task-row.undecided td {
+  background: var(--warn-bg);
+}
+.epic-row.excluded td {
+  color: var(--muted);
+}
+.task-row.excluded td {
+  color: var(--muted);
+}
+
+.jira-status {
+  font-size: 12px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.jira-status.done {
+  background: var(--chip-on-bg);
+  border-color: var(--chip-on-border);
+  color: var(--chip-on-text);
+}
+.jira-status.indeterminate {
+  background: var(--accent-soft);
+  border-color: var(--info-border);
+  color: var(--info-text);
+}
+
+.plan-only-epics {
+  margin-top: var(--space-2);
+}
+.plan-only-tasks {
+  margin-top: var(--space-2);
+}
+
+/* --- task comparison: one collapsible group per Jira epic --- */
+
+.tasks-head-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-3);
+}
+.task-group-row th,
+.task-group-row td {
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--text);
+}
+.task-group-row th {
+  text-align: left;
+  white-space: normal;
+}
+.task-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+}
+.task-group-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.task-group-toggle:hover {
+  color: var(--accent-dark);
+}
+.task-group-toggle .chevron {
+  display: inline-block;
+  width: 1em;
+  color: var(--muted);
+}
+.task-group-key,
+.task-group-head .muted {
+  font-weight: 400;
+}
+.unmapped-count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+}
+/* Mapped onto a plan task with no estimate: it counts for nothing until fixed.
+ * Red, because unlike an unmapped task it silently reads as 0 planned days.
+ * The words say it too; colour never carries it alone. */
+.task-row.no-estimate td {
+  background: var(--danger-bg);
+}
+.no-estimate-label {
+  color: var(--danger);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Done without an estimate: nothing left to fix, so no alarm — still bold so
+ * it reads as the same kind of cell, but greyed out. */
+.no-estimate-label.done {
+  color: var(--muted);
+}
+.no-estimate-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.no-estimate-hint {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.no-estimate-copy {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+/* Another team's epic: nothing under it counts. Muted, with the words on the
+ * row itself, so a sorted list reads as your work and then theirs. */
+.task-group.untracked .task-group-row th,
+.task-group.untracked .task-group-row td {
+  color: var(--muted);
+}
+.untracked-label {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.epic-tracking {
+  margin-left: auto;
+  font-size: 12px;
+}
+/* Added scope: counted, but not part of the plan. The badge and the picker
+ * say so in words; the tint only groups the rows visually. */
+.task-row.added td {
+  background: var(--accent-soft);
+}
+.added-scope-spec {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 12px;
+}
+.added-scope-count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+.no-estimate-count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+/* Indent the key so tasks read as belonging to the epic row above. */
+.task-row .task-key {
+  padding-left: calc(var(--space-2) + 1em + var(--space-2));
+}
+
+/* --- history --- */
+
+.variance-strip {
+  display: block;
+  margin-bottom: var(--space-3);
+}
+.variance-axis {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.variance-bar.ok {
+  fill: var(--ok);
+}
+.variance-bar.warn {
+  fill: var(--warn-border);
+}
+.variance-bar.bad {
+  fill: var(--danger);
+}
+
+/* --- sprint planner --- */
+
+.sprint-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.sprint-window {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  color: var(--muted);
+}
+.sprint-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.sprint-candidates {
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.candidate-epic {
+  margin-bottom: var(--space-3);
+}
+.candidate-epic h4 {
+  margin: 0 0 var(--space-1);
+  font-size: 13px;
+  color: var(--muted);
+}
+.candidate {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px 0;
+  font-size: 13px;
+}
+.candidate-key {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sprint-table input[type="number"] {
+  width: 70px;
+}
+.sprint-table input[type="date"] {
+  width: 140px;
+}
+.row-flag {
+  font-size: 12px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+.row-flag.overflow {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+}
+.row-flag.unassigned {
+  background: var(--hover-soft);
+  color: var(--muted);
+}
+.capacity-warning {
+  color: var(--danger);
+  font-size: 13px;
+  margin: var(--space-2) 0 0;
+}
+
+/* --- settings modal --- */
+
+.jira-settings > .muted:first-child {
+  margin-bottom: var(--space-4);
+}
+.jira-settings .field {
+  margin-bottom: var(--space-3);
+}
+.jira-settings .field label {
+  display: block;
+  margin-bottom: 2px;
+}
+.jira-settings .field input {
+  width: 100%;
+}
+.jira-settings .muted {
+  margin: var(--space-1) 0 0;
+}
+.jira-writes {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: 13px;
+  margin: var(--space-3) 0;
+}
+.modal-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-4);
+}
+
+/* --- sprint timeline --- */
+
+.sprint-gantt {
+  margin-top: var(--space-5);
+}
+.sprint-gantt .section-title {
+  font-size: 14px;
+}
+
+/*
+ * The baseline plan's bars, drawn behind the draft. Faded and unlabelled: they
+ * are context for how far the plan has drifted, not something to read off.
+ */
+.ghost-bar-wrap .gantt-bar {
+  opacity: 0.28;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+/* --- write-back preview --- */
+
+.writeback-summary {
+  margin: 0 0 var(--space-3);
+}
+.writeback-scroll {
+  max-height: 320px;
+  overflow: auto;
+}
+.writeback-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.writeback-table th[scope="col"] {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-2);
+  white-space: nowrap;
+}
+.writeback-table th[scope="row"] {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--row-border);
+  white-space: nowrap;
+}
+.writeback-table td {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--row-border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.writeback-table td:nth-child(2) {
+  white-space: normal;
+}
+/* The old date is context, the new one is the point. */
+.writeback-from {
+  color: var(--muted);
+}
+
+.writeback-review {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: 13px;
+  margin: var(--space-3) 0;
+}
+
+.writeback-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+.writeback-result {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--row-border);
+}
+.writeback-key {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+/* Colour repeats the glyph and the word; it never carries meaning alone. */
+.writeback-result.ok .writeback-glyph {
+  color: var(--ok);
+}
+.writeback-result.failed .writeback-glyph {
+  color: var(--danger);
+}
+.writeback-result.failed {
+  color: var(--danger);
+}
+
+/* --- new plan from a Jira initiative --- */
+
+.modal.jira-import {
+  width: 880px;
+}
+.jira-import-link {
+  width: 100%;
+}
+.jira-import-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-3) 0 var(--space-4);
+}
+.jira-import-fields .field.wide {
+  grid-column: 1 / -1;
+}
+.jira-import-fields .field label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.jira-import-fields input,
+.jira-import-fields select {
+  width: 100%;
+}
+@media (max-width: 640px) {
+  .jira-import-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.jira-import-tags {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  margin: 0 0 var(--space-4);
+}
+.jira-import-tags legend {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 0 4px;
+}
+.jira-import-tags p {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+}
+.jira-import-tag-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.jira-import-tag-row input,
+.jira-import-tag-row select {
+  width: 100%;
+}
+.jira-import-unknown-tags {
+  margin-top: var(--space-3);
+}
+.jira-import-unknown-tags ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.jira-import-compare th[scope="row"] {
+  text-align: left;
+  font-weight: 600;
+}
+.status-cell.ok {
+  color: var(--ok);
+}
+.status-cell.info {
+  color: var(--accent-dark);
+}
+.status-cell.warn {
+  color: var(--warn-text);
+}
+.status-cell.bad {
+  color: var(--danger);
+}
+.jira-import-notes {
+  margin: var(--space-3) 0;
+}
+.jira-import-notes p {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+}
+.jira-import-issues summary {
+  cursor: pointer;
+  font-size: 13px;
+  margin-bottom: var(--space-2);
+}
+.jira-import-epic h4 {
+  font-size: 13px;
+  margin: var(--space-3) 0 var(--space-1);
+}
+.jira-import-epic tr.excluded td {
+  color: var(--muted);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.jira-import-epic table {
+  table-layout: fixed;
+  width: 100%;
+}
+.jira-import-epic th:nth-child(1) {
+  width: 11ch;
+}
+.jira-import-epic th:nth-child(3) {
+  width: 12ch;
+}
+.jira-import-epic th:nth-child(4) {
+  width: 36%;
+}
+
+.status-explain {
+  margin: 0 0 var(--space-3);
+  font-size: 13px;
+  color: var(--text);
+  max-width: 72ch;
+}
+.status-footnote {
+  font-size: 12px;
+  margin: var(--space-2) 0 0;
+}
+.status-enddate {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.spec-status {
+  margin-top: var(--space-4);
+}
+.spec-status-title {
+  font-size: 14px;
+  margin: 0 0 var(--space-1);
+}
+.spec-status th[scope="row"] {
+  text-align: left;
+  font-weight: 600;
+}
+.spec-detail {
+  display: block;
+  font-size: 11px;
+  font-weight: normal;
+}
+
+/* --- deadlines --- */
+.deadlines-panel {
+  margin-bottom: var(--space-6);
+}
+.deadlines-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+@media (max-width: 720px) {
+  .deadlines-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.deadlines-grid .field label,
+.deadlines-phase legend {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.deadlines-phase {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.deadlines-grid .deadlines-spec {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0 var(--space-3) var(--space-1) 0;
+  font-size: 13px;
+  color: var(--text);
+}
+.field-hint {
+  font-size: 12px;
+  margin: var(--space-1) 0 0;
+}
+.deadlines-suggest {
+  margin-bottom: var(--space-3);
+}
+.deadlines-suggest p {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+}
+.deadlines-intro {
+  margin: 0 0 var(--space-3);
+  font-size: 13px;
+}
+.deadlines-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.deadlines-choice {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.deadlines-choice legend {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.deadlines-option {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-size: 13px;
+}
+.deadlines-choice input[type="date"] {
+  max-width: 180px;
+}
+.deadlines-phase {
+  flex-direction: row;
+  flex-wrap: wrap;
+  column-gap: var(--space-3);
+}
+.deadlines-phase .field-hint {
+  flex-basis: 100%;
+}
+/* The review queue under the deadline reading: its own line, never coloured
+ * by the cell's late/on-time tone. */
+.spec-detail.queue-summary {
+  margin-top: 4px;
+  color: var(--text);
+  font-weight: 600;
+}
+.spec-detail.warn-text {
+  color: var(--warn-text);
+}
+.phase-schedule {
+  margin-top: var(--space-3);
+}
+.phase-schedule summary {
+  cursor: pointer;
+  font-size: 13px;
+  margin-bottom: var(--space-2);
+}
+
+/* --- Jira estimates that differ from the baseline --- */
+
+.estimate-updates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+/* Work in review or ready: written, but not earned until Done. */
+.awaiting-close {
+  margin-top: var(--space-3);
+}
+.awaiting-close p {
+  margin: 4px 0;
+}
+
+/* Which teams the reading covers. */
+.team-selector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.team-selector legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+.team-selector label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.team-scope-note {
+  margin: var(--space-2) 0;
+}
+.team-scope-note .warn-text {
+  color: var(--warn-text);
+}
+.task-team.no-team {
+  border-color: var(--warn-text);
+}
+
+.forecast-table th[scope="row"] {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.forecast-table td,
+.forecast-table th[scope="row"] {
+  vertical-align: top;
+}
+.forecast-gantt {
+  margin-top: var(--space-4);
+}
+.forecast-tag {
+  display: inline-block;
+  margin-left: var(--space-1, 4px);
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.forecast-tag.suggested {
+  border-style: dashed;
+}
+.forecast-tag.extra {
+  color: var(--warn-text);
+}
+.forecast-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.forecast-toolbar .seg-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.forecast-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  border-radius: 3px;
+  vertical-align: middle;
+  background: var(--muted);
+}
+/* The planner's pick, not a decision anyone made yet: striped. The bar sets
+   its colour inline with the `background` shorthand, which would otherwise
+   reset the stripes. */
+.gantt-bar.suggested,
+.forecast-swatch.suggested {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.25) 0 4px,
+    transparent 4px 8px
+  ) !important;
+}
+.forecast-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  font-size: 13px;
+  margin-bottom: var(--space-3, 12px);
+}
+.forecast-compare {
+  margin-bottom: var(--space-4, 16px);
+}
+.forecast-compare caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: var(--space-2, 8px);
+}
+.forecast-compare td,
+.forecast-compare th[scope="row"] {
+  vertical-align: top;
+}
+.forecast-reasons {
+  margin: 0;
+  padding-left: 1.1em;
+  color: var(--muted);
+}
+.forecast-table .forecast-group th {
+  padding-top: var(--space-3, 12px);
+  font-weight: 600;
+  color: var(--text, inherit);
+  border-bottom: 1px solid var(--border);
+}
+/* Where the next specialization's people start in the timeline. */
+.forecast-gantt .gantt-row.group-start {
+  border-top: 2px solid var(--border);
+}
+.forecast-table td.num,
+.forecast-table td:last-child {
+  white-space: nowrap;
+}

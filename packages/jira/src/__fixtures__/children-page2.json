@@ -1,0 +1,54 @@
+{
+  "isLast": true,
+  "issues": [
+    {
+      "id": "10102",
+      "key": "ACME-102",
+      "fields": {
+        "summary": "3-D Secure challenge loops on retry",
+        "issuetype": { "name": "Bug", "hierarchyLevel": 0 },
+        "status": {
+          "name": "To Do",
+          "statusCategory": { "id": 2, "key": "new", "name": "To Do" }
+        },
+        "assignee": null,
+        "parent": { "id": "10010", "key": "ACME-10" },
+        "timeoriginalestimate": 14400,
+        "timeestimate": 14400,
+        "timespent": 0,
+        "updated": "2026-09-12T13:20:00.000+0200"
+      }
+    },
+    {
+      "id": "10103",
+      "key": "ACME-103",
+      "fields": {
+        "summary": "Import legacy address rows",
+        "issuetype": { "name": "Task", "hierarchyLevel": 0 },
+        "status": {
+          "name": "To Do",
+          "statusCategory": { "id": 2, "key": "new", "name": "To Do" }
+        },
+        "timeoriginalestimate": 86400,
+        "timeestimate": null,
+        "timespent": null,
+        "updated": "2026-09-11T09:00:00.000+0200",
+        "customfield_10014": "ACME-11"
+      }
+    },
+    {
+      "id": "10104",
+      "key": "ACME-104",
+      "fields": {
+        "summary": "Belongs to another initiative entirely",
+        "issuetype": { "name": "Task", "hierarchyLevel": 0 },
+        "status": {
+          "name": "To Do",
+          "statusCategory": { "id": 2, "key": "new", "name": "To Do" }
+        },
+        "parent": { "id": "10777", "key": "ACME-777" },
+        "updated": "2026-09-11T09:30:00.000+0200"
+      }
+    }
+  ]
+}

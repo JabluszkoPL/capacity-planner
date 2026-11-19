@@ -1,0 +1,60 @@
+appId: dev.planner.app
+productName: Planner
+copyright: Planner contributors
+
+directories:
+  output: release
+  buildResources: build
+
+# dist/  — the bundled main + preload
+# renderer/ — the web app's production build, copied in by the dist:mac script
+files:
+  - dist/**/*
+  - renderer/**/*
+
+# The built-in sync server runs as a plain Node child process (see
+# electron/shareServer.ts), which cannot read inside app.asar. It also serves
+# the renderer to browsers, so both sit beside the archive. The window still
+# loads them through the asar path; Electron redirects transparently.
+asarUnpack:
+  - dist/sync-server.cjs
+  - renderer/**/*
+
+# Ad-hoc signs the merged bundle; see the note under `mac.identity`.
+afterPack: afterPack.mjs
+
+mac:
+  category: public.app-category.productivity
+
+  # One universal binary rather than separate arm64/x64 builds: a copy handed to
+  # someone else has to run on whatever Mac they happen to have, and picking the
+  # wrong download is a support conversation nobody wants.
+  target:
+    - target: dmg
+      arch: [universal]
+    - target: zip
+      arch: [universal]
+
+  # No real certificate. afterPack.mjs applies an ad-hoc signature instead —
+  # electron-builder cannot do that itself, since `identity` only accepts the
+  # name of a certificate in the keychain.
+  #
+  # Proper distribution needs a *Developer ID Application* certificate plus
+  # notarization. An "Apple Development" certificate is not a substitute: it
+  # ties the app to the devices on its provisioning profile, so it would run on
+  # this Mac and nowhere else. An "Apple Distribution" certificate is for App
+  # Store submission only.
+  #
+  # With a Developer ID: put its name here, turn hardenedRuntime back on, add a
+  # notarize block, and the recipient gets a clean double-click launch.
+  identity: null
+  hardenedRuntime: false
+  gatekeeperAssess: false
+
+dmg:
+  title: Planner
+
+# Where the release workflow publishes. The app's own update check reads the
+# repository from the root package.json, not from here; this only stops
+# electron-builder from trying to publish anything itself.
+publish: null

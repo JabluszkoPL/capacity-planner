@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Planner — Jira Tracking spec</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1d2129; --muted: #626c7a; --line: #e3e6ea;
+    --panel: #f6f7f9; --code: #f1f3f5; --accent: #2f6fed; --accent-fg: #ffffff;
+    --ok: #1f8a4c; --warn: #b7791f; --bad: #c53030; --info: #2b6cb0;
+    --phase-a: #2f6fed; --phase-b: #7c3aed; --phase-c: #0d9488; --phase-d: #6b7280;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121417; --fg: #e6e8eb; --muted: #9aa3ad; --line: #2a2f36;
+      --panel: #1a1e23; --code: #1f242a; --accent: #6b9bff; --accent-fg: #0b0f14;
+      --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --info: #7cb3ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 40px; max-width: 1240px; margin: 0 auto; padding: 32px 24px 96px; }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } nav.toc { position: static; max-height: none; } }
+  nav.toc { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow: auto; font-size: 13.5px; border-right: 1px solid var(--line); padding-right: 16px; }
+  nav.toc a { display: block; color: var(--muted); text-decoration: none; padding: 3px 0; }
+  nav.toc a:hover { color: var(--fg); }
+  nav.toc .sub a { padding-left: 14px; font-size: 12.5px; }
+  main { min-width: 0; }
+  h1 { font-size: 30px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 22px; margin: 44px 0 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  h3 { font-size: 17px; margin: 28px 0 8px; }
+  h4 { font-size: 15px; margin: 18px 0 6px; }
+  p, li { max-width: 78ch; }
+  .lead { color: var(--muted); font-size: 16px; margin: 0 0 16px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .meta b { color: var(--fg); font-weight: 600; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  code { background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code); padding: 12px 14px; border-radius: 8px; overflow-x: auto; line-height: 1.45; border: 1px solid var(--line); }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0 18px; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; background: var(--panel); }
+  td code { white-space: nowrap; }
+  .callout { border-left: 4px solid var(--accent); background: var(--panel); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .callout.warn { border-color: var(--warn); }
+  .callout.bad { border-color: var(--bad); }
+  .callout.ok { border-color: var(--ok); }
+  .pill { display: inline-block; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; padding: 2px 8px; border-radius: 999px; color: #fff; vertical-align: middle; }
+  .pill.a { background: var(--phase-a); } .pill.b { background: var(--phase-b); } .pill.c { background: var(--phase-c); } .pill.d { background: var(--phase-d); }
+  .task { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin: 18px 0; background: var(--bg); }
+  .task h3 { margin: 0 0 6px; font-size: 17px; }
+  .task .hdr { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+  .task .hdr code { font-size: 12px; }
+  .task h4 { margin: 14px 0 4px; font-size: 13.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .task ul, .task ol { margin: 4px 0 0; padding-left: 22px; }
+  .task li { margin: 3px 0; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--panel); }
+  .card h4 { margin: 0 0 6px; }
+  .small { font-size: 13px; color: var(--muted); }
+  kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--panel); }
+  .status { font-weight: 600; }
+  .status.ok { color: var(--ok); } .status.warn { color: var(--warn); } .status.bad { color: var(--bad); } .status.info { color: var(--info); }
+  .wire { font-size: 12.5px; line-height: 1.35; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Table of contents">
+  <a href="#summary">1. Summary</a>
+  <a href="#concepts">2. Concepts</a>
+  <a href="#flows">3. User flows</a>
+  <a href="#ui">4. Tracking tab UI</a>
+  <a href="#model">5. Data model</a>
+  <a href="#jira">6. Jira access</a>
+  <div class="sub">
+    <a href="#jira-link">Link parsing</a>
+    <a href="#jira-auth">Credentials</a>
+    <a href="#jira-transport">CORS &amp; transport</a>
+    <a href="#jira-queries">Endpoints &amp; JQL</a>
+  </div>
+  <a href="#math">7. On-track &amp; buffer math</a>
+  <a href="#sprint">8. Sprint planning section</a>
+  <a href="#arch">9. Where the code goes</a>
+  <a href="#tasks">10. Implementation tasks</a>
+  <div class="sub">
+    <a href="#phase-a">Phase A — Foundation</a>
+    <a href="#phase-b">Phase B — Plan comparison</a>
+    <a href="#phase-c">Phase C — Sprint planning</a>
+    <a href="#phase-d">Phase D — Polish</a>
+  </div>
+  <a href="#order">11. Agent order</a>
+  <a href="#open">12. Assumptions &amp; open questions</a>
+</nav>
+
+<main>
+<h1>Jira Tracking for Planner</h1>
+<p class="lead">A new <b>Tracking</b> tab that links a Jira initiative to a Planner plan, pulls the initiative's epics and time tracking, tells you whether delivery is on track and how much of the plan's buffer has been spent, and lets you lay out the next sprint against today's reality instead of the original dates.</p>
+<div class="meta">
+  <span>Status: <b>Draft spec, ready to split into agent tasks</b></span>
+  <span>Date: <b>2026-09-15</b></span>
+  <span>Target repo: <b>this repository</b> (the earlier browser-only Planner is superseded)</span>
+  <span>Jira: <b>Jira Cloud, <code>acme.atlassian.net</code></b></span>
+</div>
+
+<div class="callout">
+  <b>How to use this document.</b> Sections 1–9 are the design. Section 10 is a list of self-contained tasks (<code>JT01</code>…<code>JT16</code>); each one can be pasted into an agent together with this file and the repo's <code>CLAUDE.md</code>. Section 11 says which tasks can run in parallel.
+</div>
+
+<h2 id="summary">1. Summary</h2>
+<h3>Goals</h3>
+<ul>
+  <li><b>Remember a Jira initiative per tracker.</b> Paste an initiative link once; Planner keeps it (synced across devices like everything else).</li>
+  <li><b>Refresh on demand.</b> One click downloads the initiative's epics, their child issues and their time tracking (original / spent / remaining). "Refresh all" on the list page.</li>
+  <li><b>Compare against a chosen plan.</b> Pick one Planner project (a plan option) as the baseline. Compare actual progress with the plan <em>without</em> its buffer, and show how much of the buffer is already consumed.</li>
+  <li><b>Check every few days.</b> Each refresh stores a sample, so the buffer trend is visible over time and you can see when you start eating into it.</li>
+  <li><b>Plan the next sprint.</b> Tick open Jira issues from the epics, assign people, set estimates and start dates, see computed due dates and a mini timeline, and optionally write Start/Due dates back to Jira.</li>
+</ul>
+<h3>Non-goals (v1)</h3>
+<ul>
+  <li>Two-way sync of scope. Planner's epics/tasks are not created or edited from Jira, and Jira issues are not created from Planner.</li>
+  <li>Task-level matching between plan tasks and Jira issues. Comparison happens at <b>epic</b> level (see §7); tasks finishing in a different order than planned is expected and fine.</li>
+  <li>Assignee write-back, worklog write-back, sprint creation in Jira.</li>
+  <li>Storing Jira credentials in the synced database. They stay on the device.</li>
+</ul>
+
+<h2 id="concepts">2. Concepts</h2>
+<table>
+  <tr><th style="width:170px">Term</th><th>Meaning</th></tr>
+  <tr><td><b>Tracker</b></td><td>The new entity. One Jira initiative + one optional baseline Planner project + the last Jira snapshot + history samples + a sprint draft.</td></tr>
+  <tr><td><b>Initiative</b></td><td>The Jira issue (type <em>Initiative</em>) that groups epics. In many Jira setups, epics hang under it either by <code>parent</code> or by the "Initiative" issue link (<em>initiates / is initiated by</em>); both are supported.</td></tr>
+  <tr><td><b>Snapshot</b></td><td>What one refresh returned: initiative fields, epics, their children, time tracking, statuses. Stored as one JSON payload on the tracker row (like <code>plans.payload</code>): derived data, regenerable.</td></tr>
+  <tr><td><b>Baseline plan</b></td><td>The Planner project selected on the tracker. Its stored <code>plan</code> is the buffered plan; the spec re-runs the scheduler with <code>buffer: 0</code> to get the <b>unbuffered plan</b> used for comparison.</td></tr>
+  <tr><td><b>Buffer</b></td><td>Two views of the same thing. <em>Effort buffer</em>: Σ estimates × <code>project.buffer</code>%. <em>Schedule buffer</em>: working days between the unbuffered plan's finish and the buffered plan's finish. The status panel reports both; "buffer used" is measured in schedule days.</td></tr>
+  <tr><td><b>Earned days</b></td><td>Plan days worth of work that Jira says is done, summed over mapped epics: planned days of the epic × the epic's completion ratio.</td></tr>
+  <tr><td><b>Earned schedule (ES)</b></td><td>The date on the unbuffered plan's cumulative curve at which the plan expected to have earned what has actually been earned today. Today − ES (in working days) is the schedule variance.</td></tr>
+  <tr><td><b>Epic map</b></td><td>Jira epic key → Planner epic id (or <code>null</code> = "extra scope, not in plan"). Auto-matched by name, editable.</td></tr>
+  <tr><td><b>Sprint draft</b></td><td>A hand-picked list of open Jira issues with person, estimate, start, and computed due date, scheduled from a chosen sprint start, not from the plan.</td></tr>
+</table>
+
+<h2 id="flows">3. User flows</h2>
+<h3>Flow 1 — Set up a tracker</h3>
+<ol>
+  <li>Open <b>Tracking</b> in the header. If Jira is not configured yet, a "Connect Jira" panel asks for email + API token (base URL is prefilled from the first link pasted). "Test connection" calls <code>/rest/api/3/myself</code>.</li>
+  <li>Paste an initiative link (or a bare key such as <code>ACME-12345</code>). Planner parses base URL + key, creates the tracker named after the key, and navigates to it.</li>
+  <li>Press <b>Refresh</b>. The epics table fills: key, name, status, children count, original / spent / remaining (in days at 8h/day, configurable), start/due if set. Initiative totals sit above it.</li>
+  <li>Choose a <b>baseline plan</b> from the project dropdown. Epics auto-map by name; fix mismatches in the mapping panel.</li>
+</ol>
+<h3>Flow 2 — The every-few-days check</h3>
+<ol>
+  <li>Open the tracker (or press <b>Refresh all</b> on the list). Stale snapshots (older than 3 days) show a badge.</li>
+  <li>Read the status line: <span class="status ok">Ahead by 2.0 days</span>, <span class="status info">On plan</span>, <span class="status warn">Using buffer: 5.0 of 20 days (25%)</span>, or <span class="status bad">Buffer exhausted, 3.0 days late</span>.</li>
+  <li>Scan the per-epic table for the epics driving the variance (planned days vs earned days vs Jira remaining).</li>
+  <li>The history table/sparkline shows the last samples, so the trend (buffer being eaten faster or slower) is visible.</li>
+</ol>
+<h3>Flow 3 — Plan the next sprint</h3>
+<ol>
+  <li>In the <b>Sprint</b> section set the sprint window (defaults: next Monday, +2 weeks).</li>
+  <li>Tick open issues from the epics list (grouped by epic, done issues hidden). Each becomes a draft row with: assignee (Planner member), estimate days (prefilled from Jira remaining, else from the mapped plan epic's average task size), start date (defaults to sprint start).</li>
+  <li>Due date is computed with the scheduler's <code>simulateSpan</code>: weekends and the person's off-days skipped, person speed applied. "Auto-stack per person" chains a person's items back-to-back.</li>
+  <li>Rows that end after the sprint end are flagged; people whose draft days exceed their sprint capacity are flagged.</li>
+  <li>The mini Gantt (reusing the existing timeline components) shows the draft; the baseline plan's bars for the same issues' epics are drawn faintly behind for comparison.</li>
+  <li>Optional: <b>Apply dates to Jira</b> opens a preview (key, summary, old → new Start date / Due date), requires explicit confirmation, and reports per-issue results.</li>
+</ol>
+
+<h2 id="ui">4. Tracking tab UI</h2>
+<p>Route <code>/tracking</code> (list) and <code>/tracking/:id</code> (detail). A third <code>NavLink</code> "Tracking" in <code>apps/web/src/components/layout/Header.tsx</code>. Same page chrome as the other routes (<code>&lt;main className="page"&gt;</code>, <code>section-title</code>, <code>info-box</code>, the <code>ui/</code> kit).</p>
+<pre class="wire">┌ Tracking ─────────────────────────────────────────────────────────────────────┐
+│ [Paste a Jira initiative link or key…            ] [Add tracker]  [Refresh all]│
+│ Jira: connected as you@… · acme.atlassian.net   [Settings]    │
+│                                                                                │
+│ ┌ ACME-12345 · Stars Season 4 ─────────────────────────────────────────────┐   │
+│ │ Baseline: "Season 4 – option B"      Snapshot: 2 days ago                 │   │
+│ │ ● Using buffer: 5.0 of 20 days (25%)   Jira remaining 61d · plan left 58d │   │
+│ └───────────────────────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────────────────────────┘
+
+┌ Tracker: ACME-12345 · Stars Season 4 ────────────────────────────────────────────┐
+│ ← Tracking     [Refresh]  snapshot 2026-09-13 14:02   Baseline plan: [option B ▾] │
+│                                                                                    │
+│ ▌Status                                                                            │
+│  ● Using buffer: 5.0 of 20 days (25%)         projected finish 2026-12-05          │
+│  [■■■■■□□□□□□□□□□□□□□□] buffer                 plan (no buffer) 2026-11-28         │
+│  planned so far 32.0d · earned 27.0d · variance −5.0d       buffered plan 2026-12-26│
+│  Jira: set 118d · spent 41d · remaining 61d   (8h/day)                             │
+│  History: 09-01 +1.0 · 09-05 −0.5 · 09-09 −3.0 · 09-13 −5.0                          │
+│                                                                                    │
+│ ▌Epics (Jira ↔ plan)                                                               │
+│  Key       Jira epic          Status      Plan epic        Planned  Earned  Jira rem│
+│  ACME-201  Meta loop          In progress Meta loop        24.0     15.1    9.8     │
+│  ACME-202  Shop rework        To do       Shop             18.0      0.0   18.0     │
+│  ACME-203  Live-ops tooling   In progress (extra scope ▾)   —        —      6.0     │
+│                                                                                    │
+│ ▌Sprint  window [2026-09-22] → [2026-10-03]   [Auto-stack per person] [Apply dates…]│
+│  ☑ ACME-2011 Daily quest board   Ania (Client) ▾  est 3.0  start 09-22  due 09-24    │
+│  ☑ ACME-2014 Quest rewards API   Marek (Server)▾  est 4.0  start 09-22  due 09-25    │
+│  ☐ ACME-2015 …                                                                     │
+│  [mini Gantt by person: sprint bars, plan bars faint behind]                       │
+└────────────────────────────────────────────────────────────────────────────────────┘</pre>
+
+<h2 id="model">5. Data model</h2>
+<p>All shapes live in <code>packages/core/src/types.ts</code>, the single contract. New fields follow the repo rule <em>absent field = backward-compatible default</em>.</p>
+<pre><code>// packages/core/src/types.ts (additions)
+
+export interface AppState {
+  projects: Project[];
+  teams: Team[];
+  /** Jira trackers. Absent on states saved before tracking existed = []. */
+  trackers?: Tracker[];
+}
+
+export interface Tracker {
+  id: ID;
+  name: string;
+  /** The link as pasted, kept for display / "open in Jira". */
+  initiativeUrl: string;
+  /** e.g. "ACME-12345", parsed from the link. */
+  initiativeKey: string;
+  /** e.g. "https://acme.atlassian.net", parsed from the link. */
+  baseUrl: string;
+  /** Baseline Planner project to compare against. Absent = none selected. */
+  projectId?: ID;
+  /** Hours that make one Planner day when converting Jira seconds. Absent = 8. */
+  hoursPerDay?: number;
+  /** Jira epic key -> Planner epic id, or null = explicitly "not in plan". */
+  epicMap?: { [jiraEpicKey: string]: ID | null };
+  /** Last refresh. Absent = never refreshed. Derived from Jira; regenerable. */
+  snapshot?: JiraSnapshot;
+  /** One sample per refresh day (same-day refresh replaces). Oldest first. */
+  samples?: TrackerSample[];
+  sprintDraft?: SprintDraft;
+}
+
+export interface JiraSnapshot {
+  fetchedAt: string;           // ISO datetime
+  initiative: JiraIssue;
+  epics: JiraEpic[];
+  /** Custom field ids resolved on this instance, so the UI can label them. */
+  fieldIds: { startDate?: string; sprint?: string; storyPoints?: string };
+}
+
+export interface JiraIssue {
+  key: string;
+  summary: string;
+  issueType: string;           // "Epic", "Story", "Task", "Bug", "Initiative"…
+  status: string;              // display name
+  statusCategory: "new" | "indeterminate" | "done";
+  assignee?: { accountId: string; displayName: string };
+  parentKey?: string;
+  originalEstimateSec?: number;
+  remainingEstimateSec?: number;
+  timeSpentSec?: number;
+  startDate?: string;          // ISO date (Jira "Start date" custom field)
+  dueDate?: string;            // ISO date
+  resolutionDate?: string;     // ISO datetime
+  sprint?: string;             // active/last sprint name, if any
+  updated: string;             // ISO datetime
+}
+
+export interface JiraEpic extends JiraIssue {
+  children: JiraIssue[];
+  /** Sums over children (seconds). Computed at snapshot time, never trusted from Jira's aggregate fields. */
+  totals: { originalSec: number; spentSec: number; remainingSec: number; done: number; all: number };
+}
+
+export interface TrackerSample {
+  date: string;                // ISO date of the refresh
+  plannedDays: number;         // unbuffered plan's cumulative planned days as of `date`
+  earnedDays: number;
+  varianceDays: number;        // positive = ahead
+  bufferUsedDays: number;      // max(0, -varianceDays), capped at bufferDays
+  bufferDays: number;          // schedule buffer available (working days)
+  jiraSpentDays: number;
+  jiraRemainingDays: number;
+}
+
+export interface SprintDraft {
+  start: string;               // ISO date
+  end: string;                 // ISO date, inclusive
+  items: SprintDraftItem[];
+}
+
+export interface SprintDraftItem {
+  issueKey: string;
+  memberId?: ID;               // team member or helper; absent = unassigned
+  estimateDays: number;
+  start: string;               // ISO date, user-set (defaults to sprint start)
+  /** Filled after a successful Jira write-back. */
+  applied?: { at: string; startDate: string; dueDate: string };
+}
+</code></pre>
+<div class="callout warn">
+  <b>Persistence checklist for every new field</b> (from <code>CLAUDE.md</code>): add it to <code>packages/db/src/rows.ts</code> (descriptor + payload projection) or it silently does not persist; add a migration, never edit V1; make <code>canonicalState()</code> treat <code>trackers: []</code> and absent <code>trackers</code> as equal; extend the conformance suite, not one store's tests.
+</div>
+<h3>Not in the model</h3>
+<ul>
+  <li><b>Credentials</b> (email, API token) — device-local only, see §6.2.</li>
+  <li><b>Plan tasks ↔ Jira issues</b> — no per-task link in v1.</li>
+</ul>
+
+<h2 id="jira">6. Jira access</h2>
+<h3 id="jira-link">6.1 Link parsing</h3>
+<p><code>parseIssueLink(input, fallbackBaseUrl?)</code> in <code>packages/jira</code> accepts all of these and returns <code>{ baseUrl, key }</code> or a typed error:</p>
+<pre><code>https://acme.atlassian.net/browse/ACME-12345
+https://acme.atlassian.net/browse/ACME-12345?atlOrigin=…
+https://acme.atlassian.net/jira/software/c/projects/ACME/issues/ACME-12345
+https://acme.atlassian.net/jira/software/c/projects/ACME/boards/551?selectedIssue=ACME-12345
+https://acme.atlassian.net/jira/plans/123/scenarios/123/timeline?selectedIssue=ACME-12345
+ACME-12345                       (bare key → needs fallbackBaseUrl from settings)</code></pre>
+<p>Key regex: <code>/\b([A-Z][A-Z0-9_]+-\d+)\b/</code> on path first, then on <code>selectedIssue</code>. Base URL = <code>origin</code>. Hosts must end in <code>.atlassian.net</code> unless the settings allow a custom host.</p>
+
+<h3 id="jira-auth">6.2 Credentials</h3>
+<ul>
+  <li>Jira Cloud Basic auth: <code>Authorization: Basic base64(email:apiToken)</code>. Token from <a href="https://id.atlassian.com/manage-profile/security/api-tokens">id.atlassian.com → Security → API tokens</a>.</li>
+  <li>Stored by <code>apps/web/src/lib/jiraSettings.ts</code> under <code>localStorage["planner_jira_v1"]</code> as <code>{ baseUrl, email, apiToken, hoursPerDay, allowWrites }</code>. Read/write wrapped in try/catch. Never part of <code>AppState</code>, never diffed, never synced, never in the JSON export.</li>
+  <li>The Mac app uses the same renderer storage in v1. Moving the token behind Electron's <code>safeStorage</code> is a listed follow-up (JT16).</li>
+  <li>The Settings panel shows the email and a masked token, has <b>Test connection</b> (<code>GET /rest/api/3/myself</code>), <b>Clear</b>, and the hours-per-day and "allow writing dates to Jira" toggles.</li>
+</ul>
+
+<h3 id="jira-transport">6.3 CORS and the transport seam</h3>
+<p>Jira Cloud's REST API does not answer browser cross-origin requests, so a plain browser tab cannot call it directly. The web bundle therefore talks to a small <code>JiraTransport</code> interface and the runtime picks an implementation, exactly as <code>apps/web/src/runtime.ts</code> already picks a <code>LocalStore</code>:</p>
+<pre><code>// packages/jira/src/transport.ts
+export interface JiraRequest {
+  baseUrl: string;                 // https://acme.atlassian.net
+  path: string;                    // /rest/api/3/search/jql
+  method: "GET" | "POST" | "PUT";
+  auth: string;                    // "Basic …" — built by the caller, never stored by a transport
+  body?: unknown;
+}
+export interface JiraResponse { status: number; body: unknown; }
+export interface JiraTransport {
+  readonly canWrite: boolean;
+  request(req: JiraRequest): Promise&lt;JiraResponse&gt;;
+}</code></pre>
+<table>
+  <tr><th>Host</th><th>Implementation</th><th>Notes</th></tr>
+  <tr><td>Mac app</td><td><code>ipcJiraTransport</code> → <code>window.planner.jira.request</code> → Electron main does <code>fetch</code></td><td>No CORS in Node. Main validates the host (<code>*.atlassian.net</code> or the configured host) so the renderer cannot use it as an open proxy. New channel <code>planner:jira:request</code> in <code>apps/desktop/electron/ipc.ts</code>.</td></tr>
+  <tr><td>Browser with a sync server</td><td><code>proxyJiraTransport</code> → <code>{syncUrl}/api/jira/&lt;path&gt;</code></td><td>Server forwards to the host in header <code>X-Planner-Jira-Base</code> (allow-listed), passes <code>Authorization</code> through, never logs it, never stores it. GET/POST-search only unless <code>PLANNER_JIRA_WRITES=1</code>.</td></tr>
+  <tr><td>Vite dev server</td><td><code>proxyJiraTransport</code> against <code>/jira-dev</code></td><td><code>server.proxy</code> entry targeting <code>VITE_JIRA_DEV_TARGET</code>. Optional convenience.</td></tr>
+  <tr><td>Browser, no server</td><td><code>unavailableJiraTransport</code></td><td>Trackers and their last synced snapshot remain viewable; Refresh is disabled with the reason shown.</td></tr>
+</table>
+
+<h3 id="jira-queries">6.4 Endpoints, JQL and fields</h3>
+<table>
+  <tr><th>Step</th><th>Call</th><th>Purpose</th></tr>
+  <tr><td>0</td><td><code>GET /rest/api/3/myself</code></td><td>Test connection; display name in settings.</td></tr>
+  <tr><td>1</td><td><code>GET /rest/api/3/field</code></td><td>Resolve custom field ids by name: "Start date" (typically <code>customfield_10015</code>), "Sprint" (<code>customfield_10020</code>), "Story Points" (<code>customfield_10037</code> here). Cached in settings for 24h.</td></tr>
+  <tr><td>2</td><td><code>GET /rest/api/3/issue/{KEY}?fields=…</code></td><td>The initiative itself (summary, status, due date, start date).</td></tr>
+  <tr><td>3</td><td><code>POST /rest/api/3/search/jql</code></td><td>Epics of the initiative. Try in order until one returns results: <code>parent = KEY</code>, <code>"Parent Link" = KEY</code>, <code>issue in linkedIssues("KEY", "initiates")</code>. Filter client-side to <code>issuetype in (Epic)</code> unless nothing is an Epic (then keep all).</td></tr>
+  <tr><td>4</td><td><code>POST /rest/api/3/search/jql</code></td><td>Children of all epics in one query per 50 epics: <code>parent in (E1, E2, …) OR "Epic Link" in (E1, E2, …)</code>. Paginate with <code>nextPageToken</code>, <code>maxResults: 100</code>.</td></tr>
+</table>
+<p>Fields requested on every issue: <code>summary, issuetype, status, assignee, parent, timeoriginalestimate, timeestimate, timespent, duedate, resolutiondate, updated</code> plus the resolved Start date, Sprint and Story Points ids. Aggregate time fields are <em>not</em> trusted; sums are computed from children so an epic's own estimate never double-counts.</p>
+<div class="callout">
+  The legacy <code>GET /rest/api/3/search</code> with <code>startAt</code> pagination has been deprecated by Atlassian in favour of <code>/rest/api/3/search/jql</code> with token pagination. The pure request builders in <code>packages/jira</code> hide this so a change of endpoint is one file.
+</div>
+<p>Rate limits: Jira returns <code>429</code> with <code>Retry-After</code>. The transport layer retries once after the given delay; the refresh flow surfaces a toast otherwise. A refresh of an initiative with ~15 epics and ~400 children is ~6 requests.</p>
+
+<h2 id="math">7. On-track and buffer math</h2>
+<p>All of this is pure, in <code>packages/core/src/tracking.ts</code>, unit-tested with fixtures. Inputs: the baseline <code>Project</code>, all <code>Team[]</code>, the tracker's <code>JiraSnapshot</code> and <code>epicMap</code>, and <code>today</code> (ISO). No DOM, no Date.now inside.</p>
+
+<h3>7.1 The two plans</h3>
+<pre><code>const buffered   = project.plan ?? runPlan(project, teams, FIXED_TS, opts);
+const unbuffered = runPlan({ ...project, buffer: 0 }, teams, FIXED_TS, opts);
+// opts = { mode: project.planMode ?? "balanced", lookahead: project.planLookahead ?? 5 }</code></pre>
+<ul>
+  <li><b>Unbuffered finish</b> <code>U</code> = max <code>end</code> over <code>unbuffered.assignments</code>. <b>Buffered finish</b> <code>B</code> = same over <code>buffered</code>.</li>
+  <li><b>Schedule buffer</b> <code>bufferDays</code> = working days in <code>(U, B]</code> (weekdays only; team off-days ignored at this aggregate level — the two plans already respect them). If the stored plan is stale (project edited after <code>plan.generatedAt</code>) the panel says so and offers "Run plan".</li>
+  <li><b>Effort buffer</b> = Σ non-excluded <code>estimateDays</code> × <code>buffer/100</code>. Shown for information; <code>roundingBufferDays</code> is shown alongside as extra slack.</li>
+</ul>
+
+<h3>7.2 Planned cumulative curve</h3>
+<pre><code>plannedDone(d) = Σ a.estimateDays  for a in unbuffered.assignments where a.end ≤ d
+plannedTotal   = plannedDone(+∞)</code></pre>
+<p>Because the unbuffered plan has <code>buffer = 0</code>, <code>a.estimateDays</code> is the raw estimate; the curve is in plan days, not calendar days, so people's speeds do not distort it.</p>
+
+<h3>7.3 Epic completion from Jira</h3>
+<pre><code>completion(e) =
+  e.statusCategory === "done"                 ? 1
+: e.totals.spentSec + e.totals.remainingSec > 0 ? spentSec / (spentSec + remainingSec)
+: e.totals.all > 0                            ? e.totals.done / e.totals.all
+: 0
+// clamp to [0, 1]; a done child contributes remaining = 0 regardless of its field value</code></pre>
+<p>Time tracking is the primary signal ("tasks that are timed"); the count fallback keeps un-timed epics from reading as 0% forever.</p>
+
+<h3>7.4 Earned days, earned schedule, variance</h3>
+<pre><code>plannedDaysOf(plannerEpicId) = Σ estimateDays of that epic's non-excluded tasks   // raw, unbuffered
+earned(today) = Σ over jira epics e with epicMap[e.key] = P (P ≠ null):
+                  plannedDaysOf(P) × completion(e)
+                // several Jira epics may map to one plan epic; their completions are
+                // weighted by their Jira original estimates (or equally when none)
+
+ES  = earliest date d such that plannedDone(d) ≥ earned(today)      // "the plan was here when it had earned this much"
+      (projectStart − 1 working day when earned = 0)
+variance   = workdays(ES → today), negative when ES is before today  // + ahead, − behind
+bufferUsed = clamp(−variance, 0, bufferDays)
+overrun    = max(0, −variance − bufferDays)
+projectedFinish = U shifted by −variance working days</code></pre>
+<table>
+  <tr><th>Status</th><th>Condition</th><th>Label</th></tr>
+  <tr><td><span class="status ok">ahead</span></td><td><code>variance &gt; 0.5</code></td><td>"Ahead by 2.0 days"</td></tr>
+  <tr><td><span class="status info">on-plan</span></td><td><code>|variance| ≤ 0.5</code></td><td>"On plan"</td></tr>
+  <tr><td><span class="status warn">using-buffer</span></td><td><code>0 &lt; bufferUsed &lt; bufferDays</code></td><td>"Using buffer: 5.0 of 20 days (25%)"</td></tr>
+  <tr><td><span class="status bad">over-buffer</span></td><td><code>overrun &gt; 0</code></td><td>"Buffer exhausted · 3.0 days late"</td></tr>
+  <tr><td><span class="status">no-baseline</span></td><td>no project / no plan / no mapped epics</td><td>Explains what is missing</td></tr>
+</table>
+
+<h3>7.5 Worked example</h3>
+<div class="card">
+  Plan without buffer: 100 plan days, finishes 2026-11-28. Buffer 20% → buffered plan finishes 2026-12-26, i.e. <b>20 working days</b> of schedule buffer.<br/>
+  Today is 2026-09-13, working day 30. <code>plannedDone(today) = 32.0</code>. Jira says the mapped epics have earned <code>27.0</code> plan days.<br/>
+  The unbuffered curve first reaches 27.0 on working day 25 → <code>ES</code> = day 25 → <code>variance = −5.0</code>.<br/>
+  <code>bufferUsed = 5.0 / 20 = 25%</code>, status <span class="status warn">using-buffer</span>, projected finish 2026-11-28 + 5 working days = <b>2026-12-05</b>.<br/>
+  Secondary check: Jira remaining 61 days vs plan remaining (100 − 27 = 73 plan days at raw estimates). Shown side by side; a big gap either way is a hint that estimates and Jira have drifted.
+</div>
+
+<h3>7.6 Samples</h3>
+<p>Each successful refresh appends a <code>TrackerSample</code> (one per calendar day; a same-day refresh replaces). The panel shows the last 10 as a table and a tiny inline bar chart of <code>varianceDays</code>. Samples are part of the tracker row so they sync.</p>
+
+<h2 id="sprint">8. Sprint planning section</h2>
+<ul>
+  <li><b>Candidates</b>: children from the snapshot with <code>statusCategory ≠ done</code>, grouped by epic, searchable; a "hide issues already in a Jira sprint" filter (uses the Sprint field).</li>
+  <li><b>Draft row defaults</b>: estimate = Jira remaining (in days) if &gt; 0, else original estimate, else the mapped plan epic's mean non-excluded task estimate, else 1. Start = sprint start. Assignee = the Jira assignee if a Planner member has the same display name (case-insensitive), else empty.</li>
+  <li><b>Due date</b>: <code>simulateSpan(fromISO(start), Math.max(1, Math.ceil(estimateDays / speed)), offDays)</code> with <code>speed</code> = member speed × the baseline project's team velocity for that member's team (or 1), and <code>offDays</code> = the member's team off-days (helpers: their own). Same function the scheduler uses, so numbers agree with the plan.</li>
+  <li><b>Auto-stack per person</b>: in list order, each of a person's items starts the working day after the previous one's due date. Manual edits to start are kept until the next auto-stack.</li>
+  <li><b>Flags</b>: due &gt; sprint end → "won't finish in sprint" (orange); Σ days per person &gt; working days in window − that person's off-days → "over capacity" (red count badge on the person); no assignee → grey.</li>
+  <li><b>Mini Gantt</b>: <code>personRows()</code> from <code>planLayout.ts</code> over synthetic <code>Assignment</code>s built from the draft, rendered with the existing <code>GanttByPerson</code> + <code>DateGrid</code>, range = sprint window ± 2 days. The baseline plan's assignments whose epic maps to the same Jira epics are passed as faint background bars (new optional prop).</li>
+  <li><b>Write-back</b> (opt-in): <code>PUT /rest/api/3/issue/{key}</code> with <code>{ fields: { [startDateFieldId]: start, duedate: due } }</code>. Preview modal → explicit confirm → per-issue result list → <code>applied</code> recorded on the item. Available only when the transport <code>canWrite</code> and settings <code>allowWrites</code> are both true.</li>
+</ul>
+
+<h2 id="arch">9. Where the code goes</h2>
+<pre>        ┌───────────┐   ┌───────────────┐
+        │   core    │   │   contracts   │      types.ts (+Tracker…), tracking.ts (math)  /  "tracker" entity kind
+        └─────┬─────┘   └───────┬───────┘
+              │   ┌─────────────┼───────────┐
+              ▼   ▼             ▼           │
+        ┌───────────┐       ┌──────┐        │
+        │   jira    │ NEW   │  db  │        │      jira: link parsing, JQL, mappers, fetch orchestration (transport injected)
+        └─────┬─────┘       └──┬───┘        │      db:   migration V2 `trackers`, rows.ts descriptor, assemble/diff
+              │                ▼            │
+              │       ┌─────────────────┐   │
+              │       │ client-runtime  │   │      actions + reducer cases for trackers
+              │       └────────┬────────┘   │
+              ▼                ▼            ▼
+   apps/web (Tracking UI,   apps/desktop           apps/server
+   transports, settings)    (IPC jira channel)     (/api/jira proxy)</pre>
+<ul>
+  <li><b><code>packages/jira</code></b> is new and depends only on <code>@planner/core</code> (for the snapshot types). Pure: no <code>fetch</code>, no DOM; the transport is injected. Tests use a fake transport with recorded fixtures.</li>
+  <li><b><code>packages/core/src/tracking.ts</code></b> holds the math from §7. It re-uses <code>runPlan</code>, <code>simulateSpan</code>, the date helpers.</li>
+  <li><b><code>apps/web/src/components/tracking/</code></b> holds the UI; <code>apps/web/src/lib/jiraSettings.ts</code> and <code>apps/web/src/lib/jiraTransport.ts</code> hold device-specific plumbing.</li>
+  <li>Sync: a <code>tracker</code> row is one entity (<code>ENTITY_KINDS</code>). A server built before this change rejects the new kind as <code>bad_message</code>, so the server is redeployed first.</li>
+</ul>
+
+<h2 id="tasks">10. Implementation tasks</h2>
+<p>Each task is self-contained. "Touches" lists the files an agent should expect to change; "Acceptance" is what a reviewer checks. All tasks must keep <code>pnpm typecheck</code>, <code>pnpm lint</code> and <code>pnpm test</code> green and follow <code>docs/ACCESSIBILITY.md</code> for anything interactive.</p>
+
+<h3 id="phase-a"><span class="pill a">Phase A</span> Foundation</h3>
+
+<div class="task" id="JT01">
+  <h3>JT01 — Tracker types and state validation</h3>
+  <div class="hdr"><span class="pill a">A</span> <span>Depends on: —</span> <span>Package: <code>core</code>, <code>contracts</code></span></div>
+  <h4>Goal</h4>
+  <p>Add the tracker model (§5) to the shared contract and let it flow through validation, serialization and the sync vocabulary.</p>
+  <h4>Touches</h4>
+  <ul>
+    <li><code>packages/core/src/types.ts</code> — add <code>Tracker</code>, <code>JiraSnapshot</code>, <code>JiraIssue</code>, <code>JiraEpic</code>, <code>TrackerSample</code>, <code>SprintDraft</code>, <code>SprintDraftItem</code>; add optional <code>trackers</code> to <code>AppState</code> with doc comments in the existing style.</li>
+    <li><code>packages/core/src/validate.ts</code> — <code>isValidAppState</code> accepts absent or array <code>trackers</code>; each tracker needs string <code>id</code>, <code>name</code>, <code>initiativeKey</code>, <code>baseUrl</code>; snapshot/sample/draft shapes are checked structurally but leniently (unknown extra keys ignored). <code>migrateState</code> leaves <code>trackers</code> absent when missing.</li>
+    <li><code>packages/core/src/serialize.ts</code> — export/import includes <code>trackers</code>. Add a <code>stripSecrets</code> note in the docblock: nothing secret lives in state.</li>
+    <li><code>packages/contracts/src/entities.ts</code> — append <code>"tracker"</code> to <code>ENTITY_KINDS</code>. Read <code>protocol.ts</code> and decide whether <code>PROTOCOL_VERSION</code> must bump; document the decision in a comment either way.</li>
+    <li><code>packages/core/src/seed.ts</code> — seed stays tracker-free (explicit comment).</li>
+  </ul>
+  <h4>Acceptance</h4>
+  <ul>
+    <li>A state with no <code>trackers</code> key validates; one with <code>trackers: []</code> validates; a tracker missing <code>initiativeKey</code> is rejected.</li>
+    <li><code>parseImportedState(serializeState(s))</code> round-trips a tracker with snapshot, samples and draft.</li>
+    <li><code>isEntityKind("tracker")</code> is true; the existing contracts tests still pass.</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>validate.test.ts</code>, <code>serialize.test.ts</code>, <code>contracts/src/protocol.test.ts</code> (a tracker op decodes).</p>
+</div>
+
+<div class="task" id="JT02">
+  <h3>JT02 — Persist trackers: migration V2, row descriptor, assembly, diff</h3>
+  <div class="hdr"><span class="pill a">A</span> <span>Depends on: JT01</span> <span>Package: <code>db</code>, <code>client-runtime</code> (conformance)</span></div>
+  <h4>Goal</h4>
+  <p>Make trackers a synced, persisted entity with the same last-write-wins behaviour as everything else.</p>
+  <h4>Touches</h4>
+  <ul>
+    <li><code>packages/db/src/schema.ts</code> — append migration <code>{ version: 2, name: "trackers" }</code>:
+      <pre><code>CREATE TABLE trackers (
+  id             TEXT PRIMARY KEY,
+  name           TEXT NOT NULL DEFAULT '',
+  initiative_url TEXT NOT NULL DEFAULT '',
+  initiative_key TEXT NOT NULL DEFAULT '',
+  base_url       TEXT NOT NULL DEFAULT '',
+  project_id     TEXT,
+  hours_per_day  REAL,
+  epic_map       TEXT NOT NULL DEFAULT '{}',
+  snapshot       TEXT,               -- JSON JiraSnapshot or NULL
+  samples        TEXT NOT NULL DEFAULT '[]',
+  sprint_draft   TEXT,               -- JSON SprintDraft or NULL
+  position       INTEGER NOT NULL DEFAULT 0,
+  hlc            TEXT NOT NULL,
+  deleted        INTEGER NOT NULL DEFAULT 0,
+  dirty          INTEGER NOT NULL DEFAULT 0
+);</code></pre></li>
+    <li><code>packages/db/src/rows.ts</code> — <code>TRACKER</code> descriptor (camelCase payload ↔ columns, JSON columns via the existing <code>json</code>/<code>parseJson</code> helpers, <code>compact()</code> so absent optionals stay absent); register in <code>DESCRIPTORS</code>.</li>
+    <li><code>packages/db/src/assemble.ts</code> and <code>diff.ts</code> — flatten/assemble <code>state.trackers</code> in <code>position</code> order; <code>canonicalState</code> normalises absent <code>trackers</code> to <code>[]</code> and drops empty <code>epicMap</code>/<code>samples</code> the way it already treats <code>helpers</code>.</li>
+    <li><code>packages/db/src/apply.ts</code> — nothing entity-specific should be needed; confirm <code>readAppState</code> returns trackers.</li>
+    <li><code>packages/client-runtime/src/conformance.ts</code> — add cases: create tracker → read back; two devices edit the same tracker (snapshot vs epicMap) → LWW by HLC, whole row wins; delete tombstone.</li>
+  </ul>
+  <h4>Acceptance</h4>
+  <ul>
+    <li>Opening a V1 database migrates to <code>user_version = 2</code> without touching existing rows; a fresh database creates both.</li>
+    <li>A tracker with a 300 KB snapshot round-trips through <code>diffStates → applyLocal → read</code> byte-identical after <code>canonicalState</code>.</li>
+    <li>Both <code>createMemoryLocalStore</code> and <code>createSqliteLocalStore</code> pass the extended conformance suite.</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>db.test.ts</code> (migration from V1 fixture), <code>rows</code> round-trip, conformance run by both store test files.</p>
+</div>
+
+<div class="task" id="JT03">
+  <h3>JT03 — Tracker actions and reducer</h3>
+  <div class="hdr"><span class="pill a">A</span> <span>Depends on: JT01</span> <span>Package: <code>client-runtime</code></span></div>
+  <h4>Goal</h4>
+  <p>Typed actions for every tracker mutation, following the existing pattern (ids pre-generated in the creator, immutable updates, no direct state mutation).</p>
+  <h4>Touches</h4>
+  <ul>
+    <li><code>packages/client-runtime/src/actions.ts</code> — add to the <code>Action</code> union:
+      <pre><code>| { type: "createTracker"; id: ID; name: string; initiativeUrl: string; initiativeKey: string; baseUrl: string }
+| { type: "deleteTracker"; id: ID }
+| { type: "renameTracker"; id: ID; name: string }
+| { type: "setTrackerProject"; id: ID; projectId: ID | null }
+| { type: "setTrackerHoursPerDay"; id: ID; hoursPerDay: number | null }
+| { type: "setTrackerEpicMap"; id: ID; epicMap: { [jiraEpicKey: string]: ID | null } }
+| { type: "setTrackerSnapshot"; id: ID; snapshot: JiraSnapshot; sample: TrackerSample | null }
+| { type: "setTrackerSprintDraft"; id: ID; draft: SprintDraft | null }
+| { type: "markSprintItemsApplied"; id: ID; applied: { issueKey: string; at: string; startDate: string; dueDate: string }[] }</code></pre></li>
+    <li><code>packages/client-runtime/src/store.tsx</code> — reducer cases (<code>updateTracker</code> helper mirroring <code>updateProject</code>), action creators on <code>actions</code>, <code>setTrackerSnapshot</code> appends/replaces the sample by <code>date</code> and caps <code>samples</code> at 200; <code>deleteProject</code> clears <code>projectId</code> on trackers that pointed at it (not the tracker itself).</li>
+  </ul>
+  <h4>Acceptance</h4>
+  <ul>
+    <li>Reducer is pure: same input → same output; no <code>Date.now()</code> inside (timestamps arrive in the action).</li>
+    <li>Deleting the baseline project leaves the tracker with <code>projectId</code> absent.</li>
+    <li>Two <code>setTrackerSnapshot</code> on the same date leave one sample.</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>store.test.tsx</code>: one test per action; persistence test that a dispatched tracker action produces exactly one <code>tracker</code> op.</p>
+</div>
+
+<div class="task" id="JT04">
+  <h3>JT04 — <code>packages/jira</code>: pure Jira layer</h3>
+  <div class="hdr"><span class="pill a">A</span> <span>Depends on: JT01</span> <span>Package: new <code>packages/jira</code></span></div>
+  <h4>Goal</h4>
+  <p>Everything Jira-specific that does not need a network: link parsing, JQL builders, field discovery, response mapping, snapshot building, unit conversion, and the refresh orchestration with an injected transport.</p>
+  <h4>Touches</h4>
+  <ul>
+    <li>New workspace package <code>@planner/jira</code> (copy <code>packages/core</code>'s <code>package.json</code>/<code>tsconfig</code> shape; dependency: <code>@planner/core</code> only). Register in <code>pnpm-workspace.yaml</code>/root <code>tsconfig.json</code> references and the root <code>test</code>/<code>typecheck</code> scripts if they enumerate packages.</li>
+    <li><code>src/link.ts</code> — <code>parseIssueLink(input, fallbackBaseUrl?)</code> per §6.1; typed result <code>{ ok: true, baseUrl, key } | { ok: false, reason: "no-key" | "no-host" | "untrusted-host" }</code>.</li>
+    <li><code>src/transport.ts</code> — the <code>JiraTransport</code>, <code>JiraRequest</code>, <code>JiraResponse</code> types (§6.3) and <code>basicAuth(email, token)</code> using <code>btoa</code>-free base64 (implement a tiny encoder so it runs in Node and browser without <code>Buffer</code>).</li>
+    <li><code>src/fields.ts</code> — <code>resolveFieldIds(fieldList)</code>: name-based discovery ("Start date", "Sprint", "Story Points"/"Story point estimate"), with the known fallbacks <code>customfield_10015</code>, <code>customfield_10020</code>, <code>customfield_10037</code>.</li>
+    <li><code>src/jql.ts</code> — <code>initiativeEpicsJqlCandidates(key)</code> (the three variants in §6.4), <code>epicChildrenJql(keys)</code>, <code>issueFieldList(fieldIds)</code>.</li>
+    <li><code>src/map.ts</code> — <code>mapIssue(raw, fieldIds): JiraIssue</code>, <code>buildSnapshot(initiative, epics, children, fieldIds, fetchedAt): JiraSnapshot</code> computing <code>totals</code> per epic (done children's remaining counted as 0), <code>secondsToDays(sec, hoursPerDay)</code>, <code>daysToJiraDuration(days, hoursPerDay)</code> → <code>"2d 4h"</code>.</li>
+    <li><code>src/refresh.ts</code> — <code>fetchInitiativeSnapshot(transport, { baseUrl, auth, key, fieldIds?, now })</code> orchestrating §6.4 with token pagination, epic chunks of 50, one retry on 429 honouring <code>Retry-After</code>, and typed errors (<code>auth</code>, <code>not-found</code>, <code>network</code>, <code>rate-limited</code>).</li>
+    <li><code>src/index.ts</code> — exports.</li>
+  </ul>
+  <h4>Acceptance</h4>
+  <ul>
+    <li>Every URL form in §6.1 parses to the right <code>{ baseUrl, key }</code>; a bare key without fallback returns <code>no-host</code>; <code>https://evil.example/browse/X-1</code> returns <code>untrusted-host</code>.</li>
+    <li>With a fake transport replaying fixtures (initiative, epics via <code>parent =</code>, two pages of children), the snapshot has correct epic totals and <code>statusCategory</code> values; when the <code>parent =</code> query returns 0 epics the next candidate is tried.</li>
+    <li>A test asserts the package imports neither <code>react</code>, the DOM, nor <code>node:</code> modules (mirror the scheduler's purity test).</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>link.test.ts</code>, <code>map.test.ts</code>, <code>refresh.test.ts</code> with JSON fixtures under <code>src/__fixtures__/</code> (anonymised: fake keys/names, realistic field ids).</p>
+</div>
+
+<div class="task" id="JT05">
+  <h3>JT05 — Transports and device-local Jira settings</h3>
+  <div class="hdr"><span class="pill a">A</span> <span>Depends on: JT04</span> <span>Package: <code>apps/web</code>, <code>apps/desktop</code>, <code>apps/server</code></span></div>
+  <h4>Goal</h4>
+  <p>Give the web bundle a working <code>JiraTransport</code> in each host (§6.3) and a safe place for credentials (§6.2).</p>
+  <h4>Touches</h4>
+  <ul>
+    <li><code>apps/web/src/lib/jiraSettings.ts</code> — <code>readJiraSettings()</code>, <code>writeJiraSettings()</code>, <code>clearJiraSettings()</code> over <code>localStorage["planner_jira_v1"]</code>; try/catch everywhere; a <code>useJiraSettings()</code> hook with a tiny event emitter so panels update.</li>
+    <li><code>apps/web/src/lib/jiraTransport.ts</code> — <code>createJiraTransport(): JiraTransport</code> choosing IPC → server proxy → dev proxy → unavailable, following the pattern in <code>runtime.ts</code>. The unavailable transport's <code>request</code> rejects with a typed <code>"unavailable"</code> error carrying a human reason.</li>
+    <li><code>apps/web/src/lib/hostBridge.ts</code> — extend <code>PlannerHost</code> with <code>jira?: { request(req: JiraRequest): Promise&lt;JiraResponse&gt;; canWrite: boolean }</code>.</li>
+    <li><code>apps/desktop/electron/ipc.ts</code> — <code>jiraRequest: "planner:jira:request"</code>. <code>preload.ts</code> — expose <code>jira.request</code>. <code>main.ts</code> — handler: validate <code>baseUrl</code> host (<code>*.atlassian.net</code> or <code>PLANNER_JIRA_HOST</code>), allow only <code>/rest/api/3/</code> and <code>/rest/agile/1.0/</code> paths, do <code>fetch</code>, return <code>{ status, body }</code>; never log the auth header; <code>canWrite</code> = true.</li>
+    <li><code>apps/server/src/server.ts</code> — route prefix <code>/api/jira/</code>: forward method, path (after the prefix), query, body and <code>Authorization</code> to <code>X-Planner-Jira-Base</code> (same host validation), stream the response back; refuse non-GET/POST-search unless <code>PLANNER_JIRA_WRITES=1</code> (config in <code>config.ts</code>); add <code>Access-Control-Allow-*</code> for the web origin if the server already handles CORS elsewhere, otherwise mirror how <code>/api/state</code> is reached.</li>
+    <li><code>apps/web/vite.config.ts</code> — optional <code>server.proxy["/jira-dev"]</code> → <code>process.env.VITE_JIRA_DEV_TARGET</code> with <code>changeOrigin</code>, rewrite prefix.</li>
+  </ul>
+  <h4>Acceptance</h4>
+  <ul>
+    <li>In the Mac app, <code>window.planner.jira.request</code> to a non-Atlassian host is rejected before any network call.</li>
+    <li>The server proxy returns 403 for a disallowed host and 405 for a PUT when writes are off; a transport test with a stubbed <code>fetch</code> shows the <code>Authorization</code> header is forwarded and never appears in server logs.</li>
+    <li>Settings survive reload; <code>clearJiraSettings()</code> leaves no key behind; the JSON export from the dashboard contains no token (grep the export in a test).</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>jiraSettings.test.ts</code> (jsdom), <code>server.transport.test.ts</code> additions for the proxy, a unit test for the main-process host validator (extract it to a pure function in <code>apps/desktop/electron/jiraGuard.ts</code>).</p>
+</div>
+
+<div class="task" id="JT06">
+  <h3>JT06 — Tracking tab: routes, list, create, settings panel</h3>
+  <div class="hdr"><span class="pill a">A</span> <span>Depends on: JT03, JT04, JT05</span> <span>Package: <code>apps/web</code></span></div>
+  <h4>Goal</h4>
+  <p>The new tab with the tracker list, "add by link", and the Jira connection panel. No refresh yet (JT07) — cards show "never refreshed".</p>
+  <h4>Touches</h4>
+  <ul>
+    <li><code>apps/web/src/App.tsx</code> — routes <code>/tracking</code> → <code>TrackingPage</code>, <code>/tracking/:id</code> → <code>TrackerDetail</code>.</li>
+    <li><code>apps/web/src/components/layout/Header.tsx</code> — third <code>NavLink</code> "Tracking".</li>
+    <li><code>apps/web/src/routes/TrackingPage.tsx</code> — link input + <b>Add tracker</b> (uses <code>parseIssueLink</code> with the settings base URL as fallback; inline error text for the three failure reasons), <b>Refresh all</b> (disabled until JT07), <code>TrackerCard</code> list, connection summary line with <b>Settings</b>.</li>
+    <li><code>apps/web/src/routes/TrackerDetail.tsx</code> — scaffold: back link, editable name (same pattern as <code>ProjectDetail</code>'s name field), "Open in Jira" link, baseline project <code>&lt;select&gt;</code> (all projects, "none"), delete with <code>ConfirmDialog</code>. Sections stubbed with headings for JT07/JT10/JT11.</li>
+    <li><code>apps/web/src/components/tracking/TrackerCard.tsx</code>, <code>JiraSettingsPanel.tsx</code> (a <code>Modal</code>: base URL, email, token as <code>type="password"</code>, hours/day, allow-writes toggle, Test connection → toast with display name, Clear), <code>tracking.css</code>.</li>
+  </ul>
+  <h4>Acceptance</h4>
+  <ul>
+    <li>Pasting each link form from §6.1 creates a tracker and navigates to it; a bare key with no base URL configured shows "Set the Jira URL in Settings first".</li>
+    <li>Keyboard: <kbd>Enter</kbd> in the link field adds; the settings modal follows <code>docs/ACCESSIBILITY.md</code> (focus trap, <kbd>Esc</kbd>, return focus).</li>
+    <li>Header shows Projects · Teams · Tracking with the active state on <code>/tracking/*</code>.</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>TrackingPage.test.tsx</code>, <code>TrackerDetail.test.tsx</code>, <code>JiraSettingsPanel.test.tsx</code> (jsdom; transport mocked).</p>
+</div>
+
+<div class="task" id="JT07">
+  <h3>JT07 — Refresh flow and the epics table</h3>
+  <div class="hdr"><span class="pill a">A</span> <span>Depends on: JT06</span> <span>Package: <code>apps/web</code></span></div>
+  <h4>Goal</h4>
+  <p>Refresh one tracker or all trackers, store the snapshot, and show what Jira has: epics, counts, and time totals.</p>
+  <h4>Touches</h4>
+  <ul>
+    <li><code>apps/web/src/lib/refreshTracker.ts</code> — <code>refreshTracker(tracker, settings, transport, state, today)</code>: builds auth, calls <code>fetchInitiativeSnapshot</code>, computes the sample when a baseline exists (uses JT08's <code>trackerStatus</code>; until JT08 lands pass <code>sample: null</code>), dispatches <code>setTrackerSnapshot</code>. Returns a typed result for toasts.</li>
+    <li><code>TrackerDetail.tsx</code> — <b>Refresh</b> button with busy state, "snapshot &lt;relative time&gt;" label, stale badge (&gt; 3 days), error toasts mapped from the typed errors ("Jira rejected the token", "Initiative not found", "Rate limited, retry in 30s", "Refresh needs the Mac app or a sync server").</li>
+    <li><code>TrackingPage.tsx</code> — <b>Refresh all</b> runs sequentially with a progress toast; continues past a failing tracker and summarises.</li>
+    <li><code>components/tracking/InitiativeSummary.tsx</code> — key, summary, status, due date, totals: set / spent / remaining in days (<code>secondsToDays</code> with the tracker's hours/day), children done/all.</li>
+    <li><code>components/tracking/EpicsTable.tsx</code> — one row per Jira epic: key (link), summary, status chip, children done/all, set / spent / remaining days, start, due. Sorted by Jira rank order as returned; footer totals. Plan-related columns are added in JT10.</li>
+  </ul>
+  <h4>Acceptance</h4>
+  <ul>
+    <li>With a mocked transport returning the JT04 fixtures, pressing Refresh fills the table and the summary and persists (the tracker in state has a snapshot).</li>
+    <li>A 401 shows the token toast and leaves the previous snapshot intact.</li>
+    <li>Reloading the page shows the same snapshot without a network call.</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>refreshTracker.test.ts</code>, <code>EpicsTable.test.tsx</code>.</p>
+</div>
+
+<h3 id="phase-b"><span class="pill b">Phase B</span> Plan comparison</h3>
+
+<div class="task" id="JT08">
+  <h3>JT08 — <code>core/tracking.ts</code>: baseline, earned schedule, buffer</h3>
+  <div class="hdr"><span class="pill b">B</span> <span>Depends on: JT01</span> <span>Package: <code>core</code></span></div>
+  <h4>Goal</h4>
+  <p>Implement §7 as pure functions with exhaustive tests. This is the highest-risk logic after the scheduler; treat the tests as the specification.</p>
+  <h4>Touches</h4>
+  <ul>
+    <li><code>packages/core/src/tracking.ts</code>:
+      <pre><code>export interface BaselinePlans { buffered: Plan; unbuffered: Plan; stale: boolean; unbufferedEnd: string | null; bufferedEnd: string | null; bufferDays: number; effortBufferDays: number; }
+export function baselinePlans(project: Project, teams: Team[]): BaselinePlans;
+export function plannedDoneBy(unbuffered: Plan, dateISO: string): number;
+export function epicCompletion(epic: JiraEpic): number;
+export function plannedDaysByEpic(project: Project): Map&lt;ID, number&gt;;
+export function earnedDays(project: Project, snapshot: JiraSnapshot, epicMap: Tracker["epicMap"]): { total: number; perJiraEpic: Map&lt;string, { plannerEpicId: ID | null; plannedDays: number; completion: number; earned: number }&gt; };
+export function earnedScheduleDate(unbuffered: Plan, earned: number, projectStart: string): string;
+export function workdaysBetween(fromISO: string, toISO: string): number;   // signed, weekdays only
+export interface TrackerStatus { kind: "no-baseline" | "ahead" | "on-plan" | "using-buffer" | "over-buffer"; reason?: string; today: string; plannedDays: number; earnedDays: number; varianceDays: number; bufferDays: number; bufferUsedDays: number; overrunDays: number; effortBufferDays: number; roundingBufferDays: number; unbufferedEnd: string | null; bufferedEnd: string | null; projectedFinish: string | null; jiraSetDays: number; jiraSpentDays: number; jiraRemainingDays: number; planRemainingDays: number; }
+export function trackerStatus(tracker: Tracker, project: Project | undefined, teams: Team[], today: string): TrackerStatus;
+export function sampleFromStatus(s: TrackerStatus): TrackerSample;
+export function autoEpicMap(project: Project, snapshot: JiraSnapshot, existing?: Tracker["epicMap"]): NonNullable&lt;Tracker["epicMap"]&gt;;   // exact normalised name, then containment, else unmapped; never overrides an existing entry</code></pre></li>
+    <li>Export from <code>packages/core/src/index.ts</code>. <code>stale</code> = project's epics/tasks/buffer/teams changed after <code>plan.generatedAt</code> is not derivable, so define <code>stale</code> as "<code>project.plan</code> is null" plus a cheap check: the stored plan's assignment task ids ≠ current non-excluded task ids.</li>
+  </ul>
+  <h4>Acceptance (each is a test)</h4>
+  <ul>
+    <li>Buffer 0 → <code>bufferDays = 0</code>; then any negative variance is immediately <code>over-buffer</code>.</li>
+    <li>Buffer 20% on the worked example in §7.5 yields variance −5, bufferUsed 5, 25%, projected finish U + 5 working days.</li>
+    <li>Earned = plannedTotal → <code>ahead</code> when today &lt; U; <code>on-plan</code> when today = U.</li>
+    <li><code>epicCompletion</code>: done epic → 1 regardless of time fields; spent 30h/remaining 10h → 0.75; no time tracking, 2 of 4 children done → 0.5; empty epic → 0.</li>
+    <li>Two Jira epics mapped to one plan epic: completion weighted by their original estimates (equal weights when both 0).</li>
+    <li>Unmapped Jira epic contributes nothing; a plan epic with no Jira epic contributes 0 earned and appears in <code>perJiraEpic</code> only through the reason text.</li>
+    <li><code>workdaysBetween("2026-09-11", "2026-09-14") === 1</code> (Fri → Mon), and it is antisymmetric.</li>
+    <li>Determinism: calling <code>trackerStatus</code> twice with the same inputs gives deep-equal output; the file imports no React/DOM (purity test like the scheduler's).</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>tracking.test.ts</code> with a small deterministic project fixture (3 epics, 2 members, buffer 20) and hand-computed expectations.</p>
+</div>
+
+<div class="task" id="JT09">
+  <h3>JT09 — Epic mapping panel</h3>
+  <div class="hdr"><span class="pill b">B</span> <span>Depends on: JT07, JT08</span> <span>Package: <code>apps/web</code></span></div>
+  <h4>Goal</h4>
+  <p>Let the user see and fix the Jira epic → plan epic mapping that drives the numbers.</p>
+  <h4>Touches</h4>
+  <ul>
+    <li><code>components/tracking/EpicMappingPanel.tsx</code> — inside the epics table (JT07) a "Plan epic" column with a <code>&lt;select&gt;</code> per Jira epic: every plan epic + "Not in plan" (<code>null</code>) + "Unmapped" (absent). Row tint: green mapped, grey not-in-plan, amber unmapped. Below the table: plan epics that have no Jira epic ("planned but not found in Jira").</li>
+    <li>On baseline project change or first snapshot: run <code>autoEpicMap</code> and dispatch <code>setTrackerEpicMap</code>; a <b>Re-match by name</b> button re-runs it for unmapped rows only.</li>
+  </ul>
+  <h4>Acceptance</h4>
+  <ul>
+    <li>Selecting a baseline auto-maps "Meta loop" ↔ "Meta loop" and leaves "Live-ops tooling" unmapped with an amber hint.</li>
+    <li>Manual choices survive Refresh and Re-match.</li>
+    <li>Selects are labelled for screen readers with the Jira epic key and summary.</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>EpicMappingPanel.test.tsx</code>.</p>
+</div>
+
+<div class="task" id="JT10">
+  <h3>JT10 — Status panel, per-epic comparison, history</h3>
+  <div class="hdr"><span class="pill b">B</span> <span>Depends on: JT08, JT09</span> <span>Package: <code>apps/web</code></span></div>
+  <h4>Goal</h4>
+  <p>Answer "are we on track, and how much buffer is gone?" at a glance, and show the trend.</p>
+  <h4>Touches</h4>
+  <ul>
+    <li><code>components/tracking/StatusPanel.tsx</code> — computes <code>trackerStatus(tracker, project, teams, todayISO())</code> in a <code>useMemo</code>; renders the status line with the §7.4 labels and colours (use CSS tokens from <code>styles/tokens.css</code>), a <code>BufferMeter</code> (segmented bar: used / remaining / overrun), a facts grid (planned so far, earned, variance, plan finish, buffered finish, projected finish, effort buffer, rounding buffer, Jira set/spent/remaining, plan remaining), and the "plan is stale / no plan yet" callout with a link to the project.</li>
+    <li><code>EpicsTable.tsx</code> — add columns Planned days, Earned days, Completion %, Jira remaining days, and the mapped epic's unbuffered planned end date; sort toggle by variance.</li>
+    <li><code>components/tracking/HistoryPanel.tsx</code> — last 10 samples as a table (date, variance, buffer used %, Jira remaining) and an inline SVG bar strip of <code>varianceDays</code> (positive up/green, negative down/amber→red past the buffer). No chart library.</li>
+    <li><code>refreshTracker.ts</code> — now passes <code>sampleFromStatus(...)</code> when a baseline exists.</li>
+    <li><code>TrackerCard.tsx</code> — status line and snapshot age on the list page.</li>
+  </ul>
+  <h4>Acceptance</h4>
+  <ul>
+    <li>With the JT08 fixture and a mocked snapshot the panel shows "Using buffer: 5.0 of 20 days (25%)" and projected finish 2026-12-05.</li>
+    <li>No baseline → panel says "Choose a plan to compare against" and the epics table hides the plan columns.</li>
+    <li>Colours are not the only signal: each status also has text and an icon glyph.</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>StatusPanel.test.tsx</code>, <code>HistoryPanel.test.tsx</code>.</p>
+</div>
+
+<h3 id="phase-c"><span class="pill c">Phase C</span> Sprint planning</h3>
+
+<div class="task" id="JT11">
+  <h3>JT11 — Sprint draft: selection, assignment, dates</h3>
+  <div class="hdr"><span class="pill c">C</span> <span>Depends on: JT07, JT08</span> <span>Package: <code>core</code>, <code>apps/web</code></span></div>
+  <h4>Goal</h4>
+  <p>Pick open issues, assign people, and get due dates computed the same way the scheduler would (§8), scheduled from the sprint start.</p>
+  <h4>Touches</h4>
+  <ul>
+    <li><code>packages/core/src/sprintDraft.ts</code> (pure) — <code>draftItemSpan(item, member | helper | undefined, offDays, speed): { start, end }</code> via <code>simulateSpan</code>; <code>autoStack(draft, resolver)</code>; <code>draftFlags(draft, spans, window, offDays)</code> → per item <code>overflowsSprint</code>, per member <code>capacityDays</code>/<code>plannedDays</code>; <code>defaultEstimateDays(issue, plannerEpic | undefined, hoursPerDay)</code>; <code>draftAssignments(draft, spans, snapshot)</code> → synthetic <code>Assignment[]</code> for the Gantt.</li>
+    <li><code>components/tracking/SprintPlanner.tsx</code> — window inputs (defaults: next Monday, +11 days so the window is two working weeks), candidate list grouped by epic with checkboxes and a text filter, "hide issues already in a Jira sprint" toggle, draft table (issue, assignee select over <code>allMembers(teams)</code> + baseline helpers, estimate number input, start date input, computed due, flags), <b>Auto-stack per person</b>, <b>Clear draft</b>. Every edit dispatches <code>setTrackerSprintDraft</code>.</li>
+  </ul>
+  <h4>Acceptance</h4>
+  <ul>
+    <li>A 3-day item starting Friday for a member with Monday off ends on Wednesday.</li>
+    <li>Auto-stack places a person's second item on the working day after the first ends and respects a manually moved first item.</li>
+    <li>An item ending after the window is flagged; a person with 12 planned days in a 10-day window shows "over capacity by 2".</li>
+    <li>All controls reachable by keyboard; the checkbox list is a proper <code>role="group"</code> with epic headings.</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>sprintDraft.test.ts</code> (core), <code>SprintPlanner.test.tsx</code>.</p>
+</div>
+
+<div class="task" id="JT12">
+  <h3>JT12 — Sprint mini Gantt with plan overlay</h3>
+  <div class="hdr"><span class="pill c">C</span> <span>Depends on: JT11</span> <span>Package: <code>apps/web</code></span></div>
+  <h4>Goal</h4>
+  <p>Show the draft as a timeline by person, with the baseline plan's bars for the same epics faintly behind, so drift from the original plan is visible without pretending the plan dates still apply.</p>
+  <h4>Touches</h4>
+  <ul>
+    <li><code>components/schedule/GanttByPerson.tsx</code> — optional prop <code>ghostRows?: TimelineRow[]</code> rendered underneath with reduced opacity and no labels; optional <code>range</code> override (reuse <code>computeGanttRange</code> when absent). Keep existing callers unchanged.</li>
+    <li><code>components/tracking/SprintGantt.tsx</code> — builds <code>personRows(draftAssignments(...), mergedOffDays(teams))</code> for the foreground and <code>personRows(planAssignmentsForEpics(...))</code> for ghosts, range = sprint window ± 2 days.</li>
+    <li><code>schedule.css</code> — ghost bar style using existing colour tokens.</li>
+  </ul>
+  <h4>Acceptance</h4>
+  <ul>
+    <li>Existing Gantt tests unchanged and passing; snapshot of <code>SprintGantt</code> with 2 people and one ghost row.</li>
+    <li>The image and Excel exports of projects are unaffected (they do not receive ghosts).</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>GanttByPerson.test.tsx</code> addition, <code>SprintGantt.test.tsx</code>.</p>
+</div>
+
+<div class="task" id="JT13">
+  <h3>JT13 — Write Start/Due dates back to Jira</h3>
+  <div class="hdr"><span class="pill c">C</span> <span>Depends on: JT05, JT11</span> <span>Package: <code>jira</code>, <code>apps/web</code></span></div>
+  <h4>Goal</h4>
+  <p>Push the draft's dates to Jira, explicitly and reviewably. Dates only; no assignee, no estimates.</p>
+  <h4>Touches</h4>
+  <ul>
+    <li><code>packages/jira/src/writeback.ts</code> — <code>buildDatePayload(item, span, fieldIds)</code> → <code>{ fields: { [startDateId]: "2026-09-22", duedate: "2026-09-24" } }</code>; <code>applyDates(transport, auth, baseUrl, requests)</code> sequential with per-issue result <code>{ key, ok, error? }</code>; refuses to run when <code>!transport.canWrite</code>.</li>
+    <li><code>components/tracking/WritebackModal.tsx</code> — preview table (key, summary, current start → new start, current due → new due, changed rows only), count summary, <b>Apply to Jira</b> primary button disabled until the user ticks "I reviewed these changes", then results list; dispatches <code>markSprintItemsApplied</code> for successes.</li>
+    <li><code>SprintPlanner.tsx</code> — <b>Apply dates to Jira…</b> button visible only when settings <code>allowWrites</code> and <code>transport.canWrite</code>; tooltip otherwise explains how to enable.</li>
+  </ul>
+  <h4>Acceptance</h4>
+  <ul>
+    <li>Items whose dates equal Jira's current values are excluded from the request.</li>
+    <li>A 403 on one issue does not stop the others; the result list shows it.</li>
+    <li>The server proxy with writes disabled makes the button invisible in the browser build.</li>
+  </ul>
+  <h4>Tests</h4>
+  <p><code>writeback.test.ts</code> (fake transport), <code>WritebackModal.test.tsx</code>.</p>
+</div>
+
+<h3 id="phase-d"><span class="pill d">Phase D</span> Polish</h3>
+
+<div class="task" id="JT14">
+  <h3>JT14 — Export tracker status and sprint draft to Excel</h3>
+  <div class="hdr"><span class="pill d">D</span> <span>Depends on: JT10, JT11</span> <span>Package: <code>core</code>, <code>apps/web</code></span></div>
+  <h4>Goal</h4>
+  <p>Reuse the hand-rolled <code>Workbook</code> writer: sheets <em>Status</em> (facts grid), <em>Epics</em> (the comparison table), <em>History</em>, <em>Sprint</em> (draft with dates). Button next to Refresh. Optional Google Sheets push through the existing <code>pushWorkbookToGoogleSheets</code>.</p>
+  <h4>Acceptance</h4>
+  <ul><li><code>buildTrackerWorkbook</code> is pure and tested; the file opens in Excel/Numbers; filename <code>tracking-&lt;key&gt;-&lt;date&gt;.xlsx</code>.</li></ul>
+</div>
+
+<div class="task" id="JT15">
+  <h3>JT15 — Documentation</h3>
+  <div class="hdr"><span class="pill d">D</span> <span>Depends on: JT07</span></div>
+  <ul>
+    <li><code>docs/JIRA_TRACKING.md</code> — user setup: API token, which link to paste, what the status means, how buffer is measured (short version of §7), how to enable write-back on the server (<code>PLANNER_JIRA_WRITES=1</code>), and the security notes (token stays on device).</li>
+    <li><code>docs/ARCHITECTURE.md</code> — add <code>packages/jira</code> and the transport seam to the diagram and the package list.</li>
+    <li><code>CLAUDE.md</code> — one paragraph under Architecture about the tracker entity and the rule that credentials never enter <code>AppState</code>.</li>
+    <li>Link this HTML spec from <code>docs/JIRA_TRACKING.md</code> as the design record.</li>
+  </ul>
+</div>
+
+<div class="task" id="JT16">
+  <h3>JT16 — Hardening follow-ups</h3>
+  <div class="hdr"><span class="pill d">D</span> <span>Depends on: JT05, JT07</span></div>
+  <ul>
+    <li>Electron: move the API token behind <code>safeStorage</code> via a <code>planner:jira:secret</code> IPC pair; renderer keeps only base URL/email.</li>
+    <li>Auto-refresh on tracker open when the snapshot is older than N days (setting, default off).</li>
+    <li>Snapshot size guard: drop child <code>summary</code> text beyond 200 chars and cap children per epic at 1,000 with a visible note.</li>
+    <li>Accessibility pass over the whole tab against <code>docs/ACCESSIBILITY.md</code>; add the tab to any existing keyboard smoke test.</li>
+  </ul>
+</div>
+
+<h2 id="order">11. Agent order and parallelism</h2>
+<table>
+  <tr><th>Wave</th><th>Tasks</th><th>Notes</th></tr>
+  <tr><td>1</td><td><b>JT01</b></td><td>Everyone else imports these types. Do it alone, first.</td></tr>
+  <tr><td>2</td><td><b>JT02</b>, <b>JT03</b>, <b>JT04</b>, <b>JT08</b></td><td>Independent of each other once JT01 is in. Four agents in parallel. JT08 is the one to give the most careful reviewer.</td></tr>
+  <tr><td>3</td><td><b>JT05</b>, <b>JT06</b></td><td>JT05 needs JT04's transport types; JT06 needs JT03 + JT04 + JT05's settings hook (can start with a stub and rebase).</td></tr>
+  <tr><td>4</td><td><b>JT07</b>, <b>JT11</b></td><td>JT07 needs the UI shell; JT11's core half (<code>sprintDraft.ts</code>) can start in wave 2.</td></tr>
+  <tr><td>5</td><td><b>JT09</b>, <b>JT10</b>, <b>JT12</b>, <b>JT13</b></td><td>JT09 before JT10 if the same agent; otherwise parallel with a merge.</td></tr>
+  <tr><td>6</td><td><b>JT14</b>, <b>JT15</b>, <b>JT16</b></td><td>Polish. JT15 last so it documents what shipped.</td></tr>
+</table>
+<div class="callout ok">
+  <b>Definition of done for the feature:</b> paste a real initiative link in the Mac app, refresh, pick a plan, read a status with buffer percentage, see it change after a second refresh two days later, build a sprint draft and see due dates, and (with writes enabled) push the dates to a test issue.
+</div>
+
+<h2 id="open">12. Assumptions and open questions</h2>
+<table>
+  <tr><th style="width:36%">Assumption made in this spec</th><th>If wrong</th></tr>
+  <tr><td>Epics hang under an initiative by <code>parent</code>, with "Parent Link" and the <em>initiates</em> issue link as fallbacks.</td><td>Add another JQL candidate in <code>packages/jira/src/jql.ts</code>; nothing else changes.</td></tr>
+  <tr><td>One Planner day = 8 Jira hours. Configurable per tracker.</td><td>Change the default in one place (<code>secondsToDays</code>).</td></tr>
+  <tr><td>Epic-level comparison is enough; per-task links are not needed.</td><td>A later <code>taskMap</code> could refine <code>earnedDays</code>; the status math would not change shape.</td></tr>
+  <tr><td>"On track without the buffer" means: compare against the plan re-run with <code>buffer: 0</code>, and count buffer consumption in working days between that finish and the buffered finish.</td><td>An alternative is effort-based (plan days of buffer consumed). Both numbers are computed; the label uses schedule days. Swap the label's source if you prefer effort.</td></tr>
+  <tr><td>Time tracking is the primary completion signal, done-count the fallback.</td><td>Flip the order in <code>epicCompletion</code>.</td></tr>
+  <tr><td>Credentials live in <code>localStorage</code> per device in v1.</td><td>JT16 moves them to <code>safeStorage</code> in the Mac app.</td></tr>
+  <tr><td>Write-back covers Start date and Due date only.</td><td>Assignee needs a member ↔ Jira accountId mapping on <code>TeamMember</code> (a persisted field, so a rows.ts change). Out of scope until asked.</td></tr>
+  <tr><td>The sync server may be older than the client for a while.</td><td>Deploy the server first; otherwise tracker ops are rejected as <code>bad_message</code> until it is.</td></tr>
+</table>
+<h3>Questions to settle before Phase C</h3>
+<ul>
+  <li>Should a sprint draft be per tracker (as specified) or shared across trackers of the same team? Per tracker is simpler and matches "one initiative, one delivery".</li>
+  <li>Should "Refresh all" also run on app start when the app is opened after more than 3 days? Default here is no; see JT16.</li>
+  <li>Do we want the plan's helpers selectable as sprint assignees? Spec says yes (they have speed and availability); remove from <code>SprintPlanner</code> if not.</li>
+</ul>
+
+<p class="small" style="margin-top:48px">Source facts used: Planner types and scheduler in <code>packages/core</code>; persistence rules in <code>packages/db</code> and <code>docs/ARCHITECTURE.md</code>; Jira field ids and hierarchy fallbacks from earlier internal Jira tooling (Initiative link type <em>initiates / is initiated by</em>).</p>
+</main>
+</div>
+</body>
+</html>

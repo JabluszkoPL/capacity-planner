@@ -1,0 +1,60 @@
+{
+  "isLast": true,
+  "issues": [
+    {
+      "id": "10010",
+      "key": "ACME-10",
+      "fields": {
+        "summary": "Payment provider swap",
+        "issuetype": { "name": "Epic", "hierarchyLevel": 1 },
+        "status": {
+          "name": "In Progress",
+          "statusCategory": { "id": 4, "key": "indeterminate", "name": "In Progress" }
+        },
+        "assignee": {
+          "accountId": "5f00aa11bb22cc33dd44ee56",
+          "displayName": "Ines Moreau"
+        },
+        "timeoriginalestimate": 288000,
+        "timeestimate": 288000,
+        "timespent": 0,
+        "duedate": "2026-10-30",
+        "resolutiondate": null,
+        "updated": "2026-09-14T08:55:00.000+0200",
+        "customfield_10015": "2026-07-06"
+      }
+    },
+    {
+      "id": "10011",
+      "key": "ACME-11",
+      "fields": {
+        "summary": "Address book rewrite",
+        "issuetype": { "name": "Epic", "hierarchyLevel": 1 },
+        "status": {
+          "name": "To Do",
+          "statusCategory": { "id": 2, "key": "new", "name": "To Do" }
+        },
+        "assignee": null,
+        "timeoriginalestimate": null,
+        "timeestimate": null,
+        "timespent": null,
+        "duedate": null,
+        "resolutiondate": null,
+        "updated": "2026-09-10T16:04:12.000+0200"
+      }
+    },
+    {
+      "id": "10099",
+      "key": "ACME-99",
+      "fields": {
+        "summary": "Write the rollout note",
+        "issuetype": { "name": "Task", "hierarchyLevel": 0 },
+        "status": {
+          "name": "Done",
+          "statusCategory": { "id": 3, "key": "done", "name": "Done" }
+        },
+        "updated": "2026-09-01T11:00:00.000+0200"
+      }
+    }
+  ]
+}

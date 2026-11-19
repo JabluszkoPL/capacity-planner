@@ -1,0 +1,154 @@
+/* Project helpers panel (T13) — references T01 tokens. */
+
+.helpers-panel {
+  margin-top: var(--space-5);
+}
+.helpers-intro {
+  margin-bottom: var(--space-3);
+}
+
+.helper-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  margin-bottom: var(--space-4);
+}
+.helper-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1.2fr 70px 140px 140px 88px 32px;
+  gap: var(--space-2);
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--row-border);
+  min-width: 700px;
+}
+.helper-row:last-child {
+  border-bottom: none;
+}
+.helper-head {
+  background: var(--panel-alt);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+.helper-name-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.helper-name-cell .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+.helper-name-cell input {
+  flex: 1;
+  min-width: 0;
+}
+.helper-speed {
+  width: 64px;
+}
+
+/* Days-off cell: a compact button that opens the day-picker modal. */
+.helper-offdays-btn {
+  padding: 5px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel-alt);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.helper-offdays-btn:hover {
+  border-color: var(--accent);
+}
+
+.helper-offdays-hint {
+  margin-bottom: var(--space-3);
+}
+.helper-offdays-add {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+.helper-offdays-list {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.helper-offdays-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 4px 6px 4px 10px;
+  border: 1px solid var(--row-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+.helper-offdays-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.add-helper-form {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.add-helper-form .field label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.add-helper-form .helper-speed {
+  width: 70px;
+}
+
+/* --- team start dates (T14) --- */
+.member-start-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.member-start-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--row-border);
+}
+.member-start-row:last-child {
+  border-bottom: none;
+}
+.member-start-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+}
+.member-start-name .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+.member-start-default {
+  color: var(--muted);
+  font-size: 12px;
+  width: 24px;
+  text-align: center;
+}

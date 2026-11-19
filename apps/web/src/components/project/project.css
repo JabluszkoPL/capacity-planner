@@ -1,0 +1,439 @@
+/* Project detail — epic/task editor (T06). Ported from the POC, T01 tokens. */
+
+.detail-topbar {
+  margin-bottom: var(--space-3);
+}
+.back-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+}
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.project-headline {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.project-name-input {
+  font-size: 18px;
+  font-weight: 700;
+  border-color: transparent;
+  flex: 1;
+  min-width: 200px;
+}
+.project-name-input:hover,
+.project-name-input:focus {
+  border-color: var(--border);
+}
+.project-summary {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Title color swatches + project comment (shown before the plan). */
+.title-color-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  flex-wrap: wrap;
+}
+.title-color-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+.title-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.title-swatch:hover {
+  transform: scale(1.1);
+}
+.title-swatch.active {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.project-note-field {
+  margin-top: var(--space-3);
+}
+.project-note-input {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+}
+
+.detail-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 var(--space-3);
+}
+.section-title {
+  font-size: 16px;
+}
+.spacer {
+  flex: 1;
+}
+
+/* --- epics/tasks --- */
+.epic-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-3);
+  overflow: hidden;
+}
+.epic-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 12px;
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--border);
+}
+.epic-header input.epic-name {
+  font-weight: 600;
+  border: 1px solid transparent;
+  background: transparent;
+  width: auto;
+  flex: 1;
+  min-width: 120px;
+}
+.epic-header input.epic-name:hover,
+.epic-header input.epic-name:focus {
+  border-color: var(--border);
+  background: #fff;
+}
+.epic-meta {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.epic-order-btns {
+  display: flex;
+  flex-direction: column;
+}
+.epic-order-btns button {
+  line-height: 1;
+  padding: 0 4px;
+  font-size: 9px;
+}
+
+.epic-assign {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-alt);
+}
+.epic-assign-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.epic-assign-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.assign-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+}
+.assign-chip .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+.assign-chip.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+.assign-chip:hover {
+  border-color: var(--accent);
+}
+.epic-assign-hint {
+  font-size: 12px;
+}
+
+.task-table-scroll {
+  overflow-x: auto;
+}
+table.task-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+}
+table.task-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+table.task-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--row-border);
+  vertical-align: middle;
+}
+table.task-table tr.excluded td {
+  opacity: 0.45;
+}
+table.task-table tr.excluded input {
+  text-decoration: line-through;
+}
+/* Text inputs (task name + specialization) fill their cell so long names
+   aren't clipped to the browser's default input width. The number estimate
+   keeps its own narrow width below. */
+table.task-table td input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+.col-order {
+  width: 40px;
+}
+.col-est {
+  width: 90px;
+}
+.col-spec {
+  width: 160px;
+}
+.col-deps {
+  width: 90px;
+}
+.col-status {
+  width: 110px;
+}
+.dep-btn {
+  font-size: 12px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dep-btn:hover {
+  border-color: var(--accent);
+}
+.dep-btn.has-deps {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+.dep-modal-hint {
+  margin-bottom: var(--space-3);
+}
+.dep-search {
+  width: 100%;
+  margin-bottom: var(--space-3);
+}
+.dep-picker {
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.dep-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-3);
+  font-size: 12px;
+}
+.dep-toolbar > .muted {
+  margin-right: auto;
+}
+.dep-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  margin-bottom: 2px;
+  cursor: pointer;
+}
+.dep-group-count {
+  margin-left: auto;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.dep-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0 3px 22px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.dep-option.blocked {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.dep-tag {
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 6px;
+}
+.dep-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+.col-del {
+  width: 30px;
+}
+.est-input {
+  width: 70px;
+}
+.order-cell {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.order-cell button {
+  padding: 2px 5px;
+  font-size: 10px;
+}
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 3px;
+  color: var(--muted);
+  cursor: grab;
+  font-size: 13px;
+  line-height: 1;
+  user-select: none;
+}
+.drag-handle:hover {
+  color: var(--accent);
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+table.task-table tr.dragging td {
+  opacity: 0.4;
+}
+table.task-table tr.drag-over td {
+  border-top: 2px solid var(--accent);
+}
+.epic-empty {
+  padding: 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.epic-add-task-row {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0;
+}
+
+/* Per-project team inclusion panel (multi-team) */
+.teams-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.team-inc-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+}
+.team-inc-row.excluded {
+  opacity: 0.6;
+}
+.team-inc-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  cursor: pointer;
+}
+.team-inc-name {
+  font-size: 15px;
+}
+.team-inc-config {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-left: var(--space-4);
+}
+.team-inc-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+}
+.team-inc-window {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.team-inc-date {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+}
+.team-inc-velocity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.team-inc-velocity input[type="number"] {
+  width: 5rem;
+}
+.velocity-presets {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}

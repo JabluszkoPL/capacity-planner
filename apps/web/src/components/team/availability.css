@@ -1,0 +1,161 @@
+/* Availability grid (T09) — ported from the POC, referencing T01 tokens. */
+
+.offgrid-hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: var(--space-2);
+}
+
+.offgrid-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.offgrid-controls .field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.offgrid-controls .field label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Row heights for the availability grid. The frozen column and the scrolling
+   timeline are separate grids, so the component builds one explicit
+   grid-template-rows string from these vars and applies it to both, keeping
+   them aligned row-for-row. */
+.grid-scroll {
+  --offgrid-head-h: 32px; /* day-label header */
+  --offgrid-team-h: 28px; /* team-name divider */
+  --offgrid-gap-h: 14px; /* blank space between teams */
+  --offgrid-row-h: 42px; /* one member */
+  display: flex;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+/* The frozen member column: a standalone sub-grid pinned to the left edge so
+   it stays visible for the whole horizontal scroll. (A sticky first column
+   *inside* the timeline grid is clamped to its own cell and scrolls away.) */
+.offgrid-frozen {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  flex: 0 0 170px;
+  display: grid;
+  grid-template-columns: 170px;
+  background: #fff;
+  /* Visually separate the frozen column from the scrolling timeline. */
+  box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.12);
+}
+
+.offgrid {
+  display: grid;
+  user-select: none;
+}
+
+.offgrid-corner,
+.offgrid-daylabel {
+  background: var(--panel-alt);
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.offgrid-corner {
+  /* Carried left by the frozen column; repeated above every team. */
+  text-align: left;
+  padding-left: 10px;
+  border-right: 1px solid var(--border);
+}
+.offgrid-daylabel.weekend {
+  background: var(--hover-soft);
+}
+.offgrid-daylabel.today {
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.offgrid-member {
+  background: #fff;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--row-border);
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.spec-tag {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* Team divider — the name sits in the frozen column, a matching band spans the
+   timeline, and a blank gap row above (from the 2nd team on) sets teams apart. */
+.offgrid-teamname {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.offgrid-teamcount {
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}
+.offgrid-team-band {
+  grid-column: 1 / -1;
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--border);
+}
+.offgrid-gap,
+.offgrid-gap-band {
+  background: var(--bg);
+}
+.offgrid-gap-band {
+  grid-column: 1 / -1;
+}
+
+.day-cell {
+  border-bottom: 1px solid var(--row-border);
+  border-right: 1px solid #f6f7f8;
+  min-height: 30px;
+  cursor: pointer;
+}
+.day-cell.weekend {
+  background: var(--weekend-cell);
+  cursor: default;
+}
+.day-cell.off {
+  background: var(--off-day);
+}
+.day-cell.weekend.off {
+  background: var(--off-day-weekend);
+}
+.day-cell.today {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.day-cell:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}

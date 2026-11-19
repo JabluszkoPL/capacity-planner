@@ -1,0 +1,124 @@
+/*
+ * Window chrome for the desktop build.
+ *
+ * `--titlebar-h` is 0 everywhere except the Mac app (see lib/hostBridge), so
+ * the browser build reserves no space and the sticky header still starts at the
+ * very top of the viewport.
+ */
+:root {
+  --titlebar-h: 0px;
+}
+
+:root[data-host="electron"] {
+  /* Tall enough to clear the traffic lights, which the main process positions
+     to sit centred in this band. */
+  --titlebar-h: 34px;
+}
+
+.titlebar {
+  height: var(--titlebar-h);
+  background: var(--panel);
+  position: sticky;
+  top: 0;
+  /* Above the header, which sticks directly beneath it. */
+  z-index: 30;
+  /* The whole strip is a window handle. */
+  -webkit-app-region: drag;
+  app-region: drag;
+  /* No border: sharing the header's background makes the two read as one bar
+     with the window buttons tucked into its top-left. */
+}
+
+/*
+ * Let the header be grabbed too — an app you can only move by a 34px sliver is
+ * still annoying. Interactive children opt back out, or they'd stop responding
+ * to clicks.
+ */
+:root[data-host="electron"] .app-header {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+:root[data-host="electron"] .app-header a,
+:root[data-host="electron"] .app-header button,
+:root[data-host="electron"] .app-header input,
+:root[data-host="electron"] .app-header select {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+/*
+ * The version in the header and the About panel it opens.
+ */
+.header-right {
+  gap: var(--space-1);
+}
+
+.version-btn {
+  font-size: 12px;
+  padding: 5px 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.version-btn.update-pending {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+.about-version {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: var(--space-3);
+}
+
+.about-section {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.about-section h4 {
+  font-size: 13px;
+  margin: 0 0 var(--space-2);
+}
+
+.about-status {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.about-status code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--hover-soft);
+  padding: 1px 5px;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.about-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.about-actions a.btn {
+  text-decoration: none;
+}
+
+.about-progress {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.about-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.about-row input {
+  flex: 1;
+  min-width: 0;
+}

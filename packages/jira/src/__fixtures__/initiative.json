@@ -1,0 +1,26 @@
+{
+  "id": "10001",
+  "key": "ACME-1",
+  "fields": {
+    "summary": "Checkout modernisation",
+    "issuetype": { "name": "Initiative", "hierarchyLevel": 2 },
+    "status": {
+      "name": "In Progress",
+      "statusCategory": { "id": 4, "key": "indeterminate", "name": "In Progress" }
+    },
+    "assignee": {
+      "accountId": "5f00aa11bb22cc33dd44ee55",
+      "displayName": "Dana Keeler"
+    },
+    "parent": null,
+    "timeoriginalestimate": null,
+    "timeestimate": null,
+    "timespent": null,
+    "duedate": "2026-12-18",
+    "resolutiondate": null,
+    "updated": "2026-09-14T09:12:41.000+0200",
+    "customfield_10015": "2026-06-01",
+    "customfield_10020": null,
+    "customfield_10041": null
+  }
+}

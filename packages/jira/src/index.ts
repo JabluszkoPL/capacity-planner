@@ -20,4 +20,5 @@ export * from "./refresh";
 export * from "./writeback";
 export * from "./importProject";
 export * from "./estimateUpdates";
+export * from "./trackerMapping";
 export * from "./teams";

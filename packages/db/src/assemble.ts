@@ -216,6 +216,9 @@ export function assemble(source: Iterable<Entry>): AppState {
     const untrackedEpics = Array.isArray(tr.payload.untrackedEpics)
       ? (tr.payload.untrackedEpics as string[])
       : [];
+    const niceToHaveEpics = Array.isArray(tr.payload.niceToHaveEpics)
+      ? (tr.payload.niceToHaveEpics as string[])
+      : [];
     const viewTeams = Array.isArray(tr.payload.viewTeams)
       ? (tr.payload.viewTeams as string[])
       : [];
@@ -235,6 +238,7 @@ export function assemble(source: Iterable<Entry>): AppState {
       taskMap: Object.keys(taskMap).length > 0 ? taskMap : undefined,
       addedScope: Object.keys(addedScope).length > 0 ? addedScope : undefined,
       untrackedEpics: untrackedEpics.length > 0 ? untrackedEpics : undefined,
+      niceToHaveEpics: niceToHaveEpics.length > 0 ? niceToHaveEpics : undefined,
       viewTeams: viewTeams.length > 0 ? viewTeams : undefined,
       taskTeams: Object.keys(taskTeams).length > 0 ? taskTeams : undefined,
       snapshot: (tr.payload.snapshot ?? undefined) as JiraSnapshot | undefined,

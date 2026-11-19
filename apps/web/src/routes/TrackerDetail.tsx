@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  autoTaskMap,
   awaitingCloseWhatIf,
   jiraTaskTeams,
+  pastInProgressAsDone,
+  selectedTeams,
   trackerTeams,
-  includedMembers,
   trackedMapping,
-  untrackedIssueKeys,
+  trackerSpecializations,
   baselinePlans,
   todayISO,
   trackerStatus,
 } from "@planner/core";
-import { estimateUpdates, secondsToDays } from "@planner/jira";
+import { estimateUpdates, secondsToDays, trackerMapping } from "@planner/jira";
 import { useAppStore } from "@planner/client-runtime";
 import { Button } from "../components/ui/Button";
 import { useConfirm } from "../components/ui/ConfirmDialog";
@@ -32,6 +32,7 @@ import { useTrackerRefresh } from "../components/tracking/useTrackerRefresh";
 import { isJiraConfigured } from "../lib/jiraSettings";
 import { STALE_AFTER_DAYS, snapshotAgeDays } from "../lib/refreshTracker";
 import { DEFAULT_HOURS_PER_DAY } from "../lib/jiraSettings";
+import { readTagAliases } from "../lib/tagAliases";
 import "../components/tracking/tracking.css";
 
 export function TrackerDetail() {
@@ -58,10 +59,22 @@ export function TrackerDetail() {
   const today = todayISO();
   const now = new Date().toISOString();
 
+  // A view of the status, not a setting: tasks past In Progress (review,
+  // QA, ready to deploy) read as done. Refresh samples never use it.
+  const [countPastInProgress, setCountPastInProgress] = useState(false);
+  const pastInProgress = useMemo(
+    () => (tracker ? pastInProgressAsDone(tracker) : null),
+    [tracker],
+  );
+  const readTracker =
+    countPastInProgress && pastInProgress ? pastInProgress.tracker : tracker;
+
   const status = useMemo(
     () =>
-      tracker ? trackerStatus(tracker, project, state.teams, today) : undefined,
-    [tracker, project, state.teams, today],
+      readTracker
+        ? trackerStatus(readTracker, project, state.teams, today)
+        : undefined,
+    [readTracker, project, state.teams, today],
   );
 
   // The project's teams, and which Jira task is whose, for reading one team
@@ -69,6 +82,12 @@ export function TrackerDetail() {
   const projectTeams = useMemo(
     () =>
       tracker && project ? trackerTeams(tracker, project, state.teams) : [],
+    [tracker, project, state.teams],
+  );
+  // The teams the reading is limited to; the task table shows only theirs.
+  const shownTeams = useMemo(
+    () =>
+      tracker && project ? selectedTeams(tracker, project, state.teams) : null,
     [tracker, project, state.teams],
   );
   const taskTeams = useMemo(
@@ -86,10 +105,10 @@ export function TrackerDetail() {
 
   const awaitingClose = useMemo(
     () =>
-      tracker
-        ? awaitingCloseWhatIf(tracker, project, state.teams, today)
+      readTracker
+        ? awaitingCloseWhatIf(readTracker, project, state.teams, today)
         : null,
-    [tracker, project, state.teams, today],
+    [readTracker, project, state.teams, today],
   );
 
   const planCheck = useMemo(() => {
@@ -100,40 +119,32 @@ export function TrackerDetail() {
       : null;
   }, [project, state.teams]);
 
-  const effectiveTaskMap = useMemo(
+  // Name matches plus new work sorted by its tags, exactly as a refresh
+  // does it (see `trackerMapping`). The tag vocabulary is this device's.
+  const mapping = useMemo(
     () =>
       tracker?.snapshot && project
-        ? autoTaskMap(
+        ? trackerMapping({
             project,
-            tracker.snapshot,
-            tracker.taskMap,
-            // Another team's issues are never name-matched onto plan tasks.
-            untrackedIssueKeys(tracker.snapshot, tracker.untrackedEpics),
-          )
-        : (tracker?.taskMap ?? {}),
-    [tracker, project],
+            teams: state.teams,
+            snapshot: tracker.snapshot,
+            tracker,
+            tagAliases: readTagAliases(),
+          })
+        : null,
+    [tracker, project, state.teams],
   );
+  const effectiveTaskMap = useMemo(
+    () => mapping?.taskMap ?? tracker?.taskMap ?? {},
+    [mapping, tracker?.taskMap],
+  );
+  const effectiveAddedScope = mapping?.addedScope ?? tracker?.addedScope;
 
-  // Everyone who could do added scope: the plan's own specializations first,
-  // then those of the people on the project who have no task yet.
-  const specializations = useMemo(() => {
-    if (!project) return [];
-    const out: string[] = [];
-    const add = (spec: string | undefined) => {
-      const s = (spec ?? "").trim();
-      if (s && !out.some((o) => o.toLowerCase() === s.toLowerCase())) {
-        out.push(s);
-      }
-    };
-    for (const epic of project.epics) {
-      for (const task of epic.tasks) add(task.specialization);
-    }
-    for (const m of includedMembers(project, state.teams)) {
-      add(m.specialization);
-    }
-    for (const h of project.helpers ?? []) add(h.specialization);
-    return out;
-  }, [project, state.teams]);
+  // Everyone who could do added scope.
+  const specializations = useMemo(
+    () => (project ? trackerSpecializations(project, state.teams) : []),
+    [project, state.teams],
+  );
 
   // Refresh leaves the baseline alone; differences are offered, not applied.
   const updates = useMemo(
@@ -149,17 +160,17 @@ export function TrackerDetail() {
     [tracker, project, effectiveTaskMap],
   );
 
-  // Persist deterministic guesses so manual corrections sync to other devices
-  // and future refresh samples use the exact mapping visible in this table.
+  // Persist deterministic guesses so they sync to other devices and future
+  // refresh samples use the exact mapping visible in this table.
   useEffect(() => {
-    if (!tracker?.snapshot || !project) return;
-    const next = effectiveTaskMap;
-    const current = tracker.taskMap ?? {};
-    const changed =
-      Object.keys(next).length !== Object.keys(current).length ||
-      Object.keys(next).some((k) => next[k] !== current[k]);
-    if (changed) actions.setTrackerTaskMap(tracker.id, next);
-  }, [tracker, project, effectiveTaskMap, actions]);
+    if (!tracker || !mapping) return;
+    if (!sameMap(mapping.taskMap, tracker.taskMap ?? {})) {
+      actions.setTrackerTaskMap(tracker.id, mapping.taskMap);
+    }
+    if (!sameMap(mapping.addedScope, tracker.addedScope ?? {})) {
+      actions.setTrackerAddedScope(tracker.id, mapping.addedScope);
+    }
+  }, [tracker, mapping, actions]);
 
   if (!tracker) {
     return (
@@ -356,6 +367,14 @@ export function TrackerDetail() {
         <StatusPanel
           status={status}
           awaitingClose={awaitingClose}
+          pastInProgress={
+            (pastInProgress?.tasks ?? 0) > 0
+              ? {
+                  checked: countPastInProgress,
+                  onChange: setCountPastInProgress,
+                }
+              : undefined
+          }
           planStale={
             planCheck && status.kind !== "no-baseline" ? planCheck : undefined
           }
@@ -394,42 +413,29 @@ export function TrackerDetail() {
           taskMap={effectiveTaskMap}
           hoursPerDay={hoursPerDay}
           onReviewEstimates={() => setEstimatesOpen(true)}
-          onMapTask={(key, plannerTaskId) =>
-            actions.setTrackerTaskMap(tracker.id, {
-              ...effectiveTaskMap,
-              [key]: plannerTaskId,
-            })
-          }
-          addedScope={tracker.addedScope}
+          addedScope={effectiveAddedScope}
           untrackedEpics={tracker.untrackedEpics}
-          onSetEpicTracked={(epicKey, tracked) => {
-            const current = tracker.untrackedEpics ?? [];
-            actions.setTrackerUntrackedEpics(
-              tracker.id,
-              tracked
-                ? current.filter((k) => k !== epicKey)
-                : [...current, epicKey],
-            );
-          }}
+          niceToHaveEpics={tracker.niceToHaveEpics}
+          onSetEpicTracking={(epicKey, tracking) =>
+            actions.setTrackerEpicTracking(tracker.id, epicKey, tracking)
+          }
           specializations={specializations}
           teams={projectTeams}
           taskTeams={taskTeams}
+          shownTeams={shownTeams}
           onSetTaskTeam={(key, team) =>
             actions.setTrackerTaskTeam(tracker.id, key, team)
           }
           onSetAddedScope={(key, specialization) => {
-            const next = { ...(tracker.addedScope ?? {}) };
-            if (specialization) {
-              next[key] = specialization;
-              // Not a plan task, so name matching must never claim it.
-              actions.setTrackerTaskMap(tracker.id, {
-                ...effectiveTaskMap,
-                [key]: null,
-              });
-            } else {
-              delete next[key];
-            }
-            actions.setTrackerAddedScope(tracker.id, next);
+            // Not a plan task, so name matching must never claim it.
+            actions.setTrackerTaskMap(tracker.id, {
+              ...effectiveTaskMap,
+              [key]: null,
+            });
+            actions.setTrackerAddedScope(tracker.id, {
+              ...(effectiveAddedScope ?? {}),
+              [key]: specialization,
+            });
           }}
         />
       )}
@@ -512,5 +518,16 @@ export function TrackerDetail() {
         transport={transport}
       />
     </main>
+  );
+}
+
+/** Same keys, same values. */
+function sameMap<T>(a: { [key: string]: T }, b: { [key: string]: T }): boolean {
+  const keys = Object.keys(a);
+  return (
+    keys.length === Object.keys(b).length &&
+    keys.every(
+      (k) => Object.prototype.hasOwnProperty.call(b, k) && a[k] === b[k],
+    )
   );
 }

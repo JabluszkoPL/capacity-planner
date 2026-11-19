@@ -87,25 +87,41 @@ so both team-managed and company-managed projects work.
 
 Finally pick a **baseline plan** — one of your Planner projects. Jira's child
 issues are matched to Planner tasks by name automatically, regardless of which
-epic each side puts them under. Fix any conservative or incorrect guess in the
-**Plan task** column. A Jira task that is not a plan task gets one of two
-choices:
+epic each side puts them under; the **Plan task** column shows the match. There
+is nothing to pick for a matched task.
 
-- **Not tracked (another team)** — work in the initiative that is not yours.
-  It is left out of every number. When a whole Jira epic is another team's,
-  set it on the epic's row instead (**Tracked** → **Not tracked (another
-  team)**): everything under it is left out, including tasks that only appear
-  in a later refresh, and none of them is matched to a plan task by name.
-  Those epics sort to the bottom (except in **Jira order**). Tracking the epic
-  again brings back each task's own setting.
-- **Added scope (our team)** — work your team took on after the plan was made.
-  Pick the specialization that does it (one named in the summary, like
-  "[QA] …", is picked for you). It counts like a plan task sized by its Jira
-  estimate: planned, earned when done, and scheduled after the planned work
-  wherever that specialization has time. The promised dates stay the
-  baseline's, so added scope uses up buffer, or makes you late, instead of
-  quietly moving the end date. An added task with no Jira estimate counts as
-  0 days and is flagged in red until it has one.
+A Jira task that matches no plan task is **added scope**: work your team took
+on after the plan was made. Its specialization is read from its tags — a Jira
+label ("backend", "qa"), else a bracketed tag in its summary ("[QA] …") — using
+the same vocabulary as building a plan from Jira, including this device's tag
+mappings. A task whose tags name no specialization (or name two) shows as
+**Unmapped** with a specialization picker; pick one and it becomes added scope.
+An unmapped task counts for nothing until then. A specialization once set, by
+its tags or by you, is kept on later refreshes; change it with the same picker.
+
+Added scope counts like a plan task sized by its Jira estimate: planned, earned
+when done, and scheduled after the planned work wherever that specialization
+has time. The promised dates stay the baseline's, so added scope uses up
+buffer, or makes you late, instead of quietly moving the end date. An added
+task with no Jira estimate counts as 0 days and is flagged in red until it has
+one.
+
+Each Jira epic's row says how the tracker follows it:
+
+- **Track it** — work the plan must deliver. The default.
+- **Nice to have** — work you would like to get to on top of what you have to
+  do. Its tasks stay in this table, matched and given specializations like any
+  other, with their planned and earned days. But the status, the buffer and
+  the history leave them out, so nice-to-have work never makes the must-do
+  work look late. The **Work left, by person** planner can lay it out too (see
+  below). These epics sort after the must-do work.
+- **Don't track it (another team)** — everything under it is left out,
+  including tasks that only appear in a later refresh, and none of them is
+  matched or turned into added scope. These epics sort to the bottom.
+
+Neither kind is moved in **Jira order**. When several teams share an
+initiative, each task's team comes from Jira (see below), so another team's
+tasks drop out of a team's reading.
 
 **Refresh never changes the baseline's estimates.** The baseline is what
 progress is measured against, so a new or changed estimate in Jira only shows
@@ -183,14 +199,14 @@ an ordinary user can read:
 - **The team list:** the Teams API for your site, then for the whole
   organization, then Atlassian's Teams GraphQL search.
 - **A team's members:** the Teams API, then — for a team synced from a Jira
-  group — that group's members (needs only *Browse users and groups*), then
+  group — that group's members (needs only _Browse users and groups_), then
   the Teams GraphQL members query.
 
 If Atlassian refuses every roster route — its Teams service does this for
 some accounts, even ones that can see the team in Jira — Planner falls back
 to **the people assigned to the team's Jira issues** (issues whose Team is
 that team, updated in the last 180 days), with how many each has. The dialog
-marks this clearly as *not the roster* and says why the roster was refused:
+marks this clearly as _not the roster_ and says why the roster was refused:
 untick anyone who isn't on the team, and add anyone missing by hand
 afterwards. The team itself still comes from the Teams tab.
 
@@ -340,11 +356,18 @@ For a selection, every number is those teams' alone:
 - **Their Jira tasks.** A task's team is, in order:
   1. the one you set in the **Team** column of Task comparison;
   2. its Jira **Team** field, which a refresh fetches;
-  3. the Planner team of its Jira assignee, matched on name;
-  4. the team most of its epic's tasks belong to.
+  3. its epic's Jira **Team** field, since an epic is usually one team's work;
+  4. the Planner team of its Jira assignee, matched on name;
+  5. the team most of its epic's tasks belong to.
 
   A task with no team at all is left out, and the Status panel says how many,
   so you can set one.
+
+  Task comparison names each epic's team beside its key (every team in it,
+  most tasks first, when an epic is mixed). With a selection, it shows only
+  the selected teams' tasks and hides epics left with none. Tasks with no
+  team stay visible, so you can give them one.
+
 - **The plan work those tasks map to.** Plan tasks no Jira task of theirs maps
   to are left out.
 - **Their people.** These are the people of the Planner team with the same name
@@ -365,6 +388,14 @@ status name says review or ready (not "Ready for development"), by status, with
 their plan days. It also shows what closing all of them today would do to the
 projected finish. Each specialization row shows its own share of that queue,
 and how its row would read with it closed.
+
+To read handed-on work as finished, tick **Count tasks past To Do and In
+Progress as done** in the Status panel. Every open task in Jira's In Progress
+category whose status is not work in hand ("In Progress", "In Development",
+"Blocked", "On Hold") or not begun ("Ready for development") then counts as
+done: in review, QA, testing, ready to deploy. Status, buffer and the
+specialization rows all follow it. It is a view, not a setting: it starts
+unticked each time, and refresh history samples never use it.
 
 Every count of days here is in **team working days**, not calendar weekdays.
 Weekends don't count. A day when everyone on the project is off (a Christmas
@@ -405,6 +436,11 @@ each person runs out of work, and when all of it is done.
   status still counts them until they are Done. A task counts as estimated
   when the plan or Jira gives it days; when the plan has none, Jira's estimate
   is used.
+- **Nice-to-have work only on request.** Epics set to **Nice to have** are
+  left out, as the status leaves them out. Tick **Also plan nice-to-have
+  work** to lay them out on top of the must-do work; their tasks are tagged
+  _nice to have_, and **Compared with the status above** counts their days as
+  work the status doesn't have.
 - **Jira tasks that aren't in the plan count too**, on Jira's estimate, so the
   finish covers all the work in the initiative. Their specialization comes from
   a label naming one, else a tag in the summary ("[Backend] Wallet API"), else
@@ -427,7 +463,7 @@ each person runs out of work, and when all of it is done.
 beside the status table's projected finish, and says what accounts for any
 gap: tasks in review or ready to deploy (planned here only when ticked, but
 counted by the status until Done), Jira tasks not in the plan (the status
-leaves them out until they are marked as added scope), Jira estimates for tasks the plan hasn't estimated,
+leaves them out until they have a specialization), Jira estimates for tasks the plan hasn't estimated,
 work in progress Jira says is nearly done (the status counts its whole
 estimate until Done), and the layout itself. Here each task goes to one
 person; the status follows the plan's pace or shares the work evenly. End-phase

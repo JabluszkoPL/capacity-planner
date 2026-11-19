@@ -111,7 +111,6 @@ describe("TasksTable", () => {
         baseUrl={SITE}
         project={unestimated}
         taskMap={{ "ACME-11": "t1", "ACME-12": "t2" }}
-        onMapTask={() => {}}
       />,
     );
 
@@ -155,7 +154,6 @@ describe("TasksTable", () => {
         baseUrl={SITE}
         project={unestimated}
         taskMap={{ "ACME-11": "t1", "ACME-12": "t2" }}
-        onMapTask={() => {}}
       />,
     );
 
@@ -196,7 +194,6 @@ describe("TasksTable", () => {
         baseUrl={SITE}
         project={project}
         taskMap={{ "ACME-11": "t1", "ACME-12": "t2" }}
-        onMapTask={() => {}}
       />,
     );
     expand("Renamed Jira epic");
@@ -226,7 +223,7 @@ describe("TasksTable", () => {
     ]);
   });
 
-  it("groups each category by status, and sinks not-tracked tasks last", () => {
+  it("groups each category by status", () => {
     const withStatus = (
       issue: JiraIssue,
       status: string,
@@ -256,8 +253,7 @@ describe("TasksTable", () => {
         snapshot={mixed}
         baseUrl={SITE}
         project={project}
-        taskMap={{ "ACME-16": null, "ACME-17": null }}
-        onMapTask={() => {}}
+        taskMap={{}}
       />,
     );
     expand("Renamed Jira epic");
@@ -269,17 +265,17 @@ describe("TasksTable", () => {
       .filter((row) => row.classList.contains("task-row"))
       .map((row) => within(row).getByRole("link").textContent);
     expect(keys).toEqual([
+      // To do first.
+      "ACME-17",
       // In progress, one block per status: "In Progress" before "In Review".
       "ACME-14",
       "ACME-13",
       // Done before the statuses that close work without doing it.
       "ACME-12",
+      "ACME-16",
       "ACME-18",
       "ACME-11",
       "ACME-15",
-      // Not tracked last, still in status order among themselves.
-      "ACME-17",
-      "ACME-16",
     ]);
   });
 
@@ -295,7 +291,6 @@ describe("TasksTable", () => {
         baseUrl={SITE}
         project={project}
         taskMap={{ "ACME-11": "t1", "ACME-12": "t2" }}
-        onMapTask={() => {}}
         teams={teams}
         taskTeams={
           new Map([
@@ -325,6 +320,138 @@ describe("TasksTable", () => {
     expect(onSetTaskTeam).toHaveBeenLastCalledWith("ACME-12", null);
   });
 
+  it("names each epic's team, and shows only the selected teams' work", () => {
+    const teams = [
+      { name: "Stars", tasks: 2, plannerTeamId: "t1" },
+      { name: "Bulls", tasks: 1, plannerTeamId: null },
+    ];
+    const props = {
+      snapshot,
+      baseUrl: SITE,
+      project,
+      taskMap: { "ACME-11": "t1", "ACME-12": "t2" },
+      teams,
+      taskTeams: new Map([
+        ["ACME-11", { team: "Stars", source: "jira" as const }],
+        ["ACME-12", { team: "Stars", source: "epic" as const }],
+        ["ACME-21", { team: "Bulls", source: "jira" as const }],
+      ]),
+    };
+    const epicRow = (name: string) =>
+      screen.getByRole("button", { name }).closest("tr") as HTMLElement;
+    const { rerender } = render(<TasksTable {...props} />);
+    expect(
+      within(epicRow("Renamed Jira epic")).getByText("Stars", {
+        selector: ".epic-team",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(epicRow("Payments")).getByText("Bulls", {
+        selector: ".epic-team",
+      }),
+    ).toBeInTheDocument();
+
+    // Bulls alone: Stars' epic is gone, and so are Stars' tasks.
+    rerender(<TasksTable {...props} shownTeams={["Bulls"]} />);
+    expect(
+      screen.queryByRole("button", { name: "Renamed Jira epic" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
+    const keys = screen
+      .queryAllByRole("row")
+      .filter((row) => row.classList.contains("task-row"))
+      .map((row) => within(row).getByRole("link").textContent);
+    expect(keys).toEqual(["ACME-21"]);
+
+    // A task with no team stays, so it can be given one.
+    const noTeam = new Map(props.taskTeams);
+    noTeam.delete("ACME-12");
+    rerender(
+      <TasksTable {...props} taskTeams={noTeam} shownTeams={["Bulls"]} />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Renamed Jira epic" }),
+    ).toBeInTheDocument();
+    expect(
+      within(epicRow("Renamed Jira epic")).getByText("1 task"),
+    ).toBeInTheDocument();
+  });
+
+  it("hides done tasks, and epics with nothing left, when asked", () => {
+    const allDone: JiraSnapshot = {
+      ...snapshot,
+      epics: [
+        ...snapshot.epics,
+        epic("ACME-30", "Shipped", [task("ACME-31", "Launch", true)]),
+      ],
+    };
+    render(
+      <TasksTable
+        snapshot={allDone}
+        baseUrl={SITE}
+        project={project}
+        taskMap={{ "ACME-11": "t1", "ACME-12": "t2" }}
+      />,
+    );
+    const taskKeys = () =>
+      screen
+        .queryAllByRole("row")
+        .filter((row) => row.classList.contains("task-row"))
+        .map((row) => within(row).getByRole("link").textContent);
+    fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
+    expect(taskKeys()).toEqual(["ACME-12", "ACME-11", "ACME-21", "ACME-31"]);
+
+    const box = screen.getByRole("checkbox", { name: "Hide done tasks" });
+    expect(box).not.toBeChecked();
+    fireEvent.click(box);
+    expect(taskKeys()).toEqual(["ACME-12", "ACME-21"]);
+    expect(screen.queryByRole("button", { name: "Shipped" })).toBeNull();
+
+    fireEvent.click(box);
+    expect(screen.getByRole("button", { name: "Shipped" })).toBeInTheDocument();
+  });
+
+  it("keeps an epic that is not tracked in view, whatever the filters", () => {
+    render(
+      <TasksTable
+        snapshot={snapshot}
+        baseUrl={SITE}
+        project={project}
+        taskMap={{ "ACME-11": "t1", "ACME-12": "t2" }}
+        untrackedEpics={["ACME-20"]}
+        teams={[
+          { name: "Stars", tasks: 2, plannerTeamId: "t1" },
+          { name: "Bulls", tasks: 1, plannerTeamId: null },
+        ]}
+        taskTeams={
+          new Map([
+            ["ACME-11", { team: "Stars", source: "jira" as const }],
+            ["ACME-12", { team: "Stars", source: "jira" as const }],
+            ["ACME-21", { team: "Bulls", source: "jira" as const }],
+          ])
+        }
+        shownTeams={["Stars"]}
+      />,
+    );
+    // Bulls' epic stays though only Stars is selected, and so does its task.
+    expect(
+      screen.getByRole("button", { name: "Payments" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Hide done tasks" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Specialization" }), {
+      target: { value: "qa" },
+    });
+    expect(
+      screen.getByRole("button", { name: "Payments" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
+    const keys = screen
+      .queryAllByRole("row")
+      .filter((row) => row.classList.contains("task-row"))
+      .map((row) => within(row).getByRole("link").textContent);
+    expect(keys).toEqual(["ACME-12", "ACME-21"]);
+  });
+
   it("has no Team column with a single team", () => {
     render(
       <TasksTable
@@ -332,7 +459,6 @@ describe("TasksTable", () => {
         baseUrl={SITE}
         project={project}
         taskMap={{}}
-        onMapTask={() => {}}
         teams={[{ name: "Stars", tasks: 2, plannerTeamId: "t1" }]}
       />,
     );
@@ -347,7 +473,6 @@ describe("TasksTable", () => {
         project={project}
         // ACME-11 -> dev, ACME-12 -> qa, ACME-21 unmapped.
         taskMap={{ "ACME-11": "t1", "ACME-12": "t2" }}
-        onMapTask={() => {}}
       />,
     );
     const filter = screen.getByRole("combobox", { name: "Specialization" });
@@ -355,7 +480,7 @@ describe("TasksTable", () => {
       within(filter)
         .getAllByRole("option")
         .map((o) => o.textContent),
-    ).toEqual(["All", "dev", "qa", "Not mapped"]);
+    ).toEqual(["All", "dev", "qa", "Unmapped"]);
     const taskKeys = () =>
       screen
         .queryAllByRole("row")
@@ -396,7 +521,6 @@ describe("TasksTable", () => {
         baseUrl={SITE}
         project={project}
         taskMap={{ "ACME-11": "t1", "ACME-12": "t2" }}
-        onMapTask={() => {}}
       />,
     );
     const epicRow = screen
@@ -445,7 +569,6 @@ describe("TasksTable", () => {
         baseUrl={SITE}
         project={unestimated}
         taskMap={{ "ACME-11": "t1", "ACME-12": "t2" }}
-        onMapTask={() => {}}
         hoursPerDay={8}
         onReviewEstimates={onReview}
       />,
@@ -465,7 +588,6 @@ describe("TasksTable", () => {
         baseUrl={SITE}
         project={project}
         taskMap={{ "ACME-11": "t1", "ACME-12": "t2" }}
-        onMapTask={() => {}}
       />,
     );
     expand("Renamed Jira epic");
@@ -483,66 +605,62 @@ describe("TasksTable", () => {
     expect(openCells[6]).toHaveTextContent("No");
   });
 
-  it("reports manual mapping and exclusion choices", async () => {
-    const user = userEvent.setup();
-    const onMapTask = vi.fn();
+  it("shows the plan task a Jira task matched, with nothing to pick", () => {
     render(
       <TasksTable
         snapshot={snapshot}
         baseUrl={SITE}
         project={project}
-        taskMap={{}}
-        onMapTask={onMapTask}
+        taskMap={{ "ACME-11": "t1" }}
+        specializations={["dev", "qa"]}
+        onSetAddedScope={() => {}}
       />,
     );
     expand("Renamed Jira epic");
 
-    const picker = screen.getByRole("combobox", {
-      name: "Plan task for ACME-11 Build checkout",
-    });
-    expect(picker).toHaveValue("Unmapped");
-    await user.click(picker);
-    await user.click(screen.getByRole("option", { name: "Build checkout" }));
-    expect(onMapTask).toHaveBeenCalledWith("ACME-11", "t1");
-    await user.click(picker);
-    await user.click(
-      screen.getByRole("option", { name: "Not tracked (another team)" }),
+    const row = screen.getByRole("row", { name: /ACME-11/ });
+    expect(row).toHaveClass("mapped");
+    expect(within(row).getAllByRole("cell")[3]).toHaveTextContent(
+      "Build checkoutOriginal plan epic",
     );
-    expect(onMapTask).toHaveBeenCalledWith("ACME-11", null);
+    expect(within(row).queryByRole("combobox")).toBeNull();
   });
 
-  it("marks a Jira task as added scope, guessing its specialization", async () => {
+  it("asks for the specialization of a new task its tags don't name", async () => {
     const user = userEvent.setup();
     const onSetAddedScope = vi.fn();
-    const withQa: JiraSnapshot = {
-      ...snapshot,
-      epics: [
-        epic("ACME-20", "Payments", [
-          task("ACME-22", "[QA] Refund regression"),
-        ]),
-      ],
-    };
     render(
       <TasksTable
-        snapshot={withQa}
+        snapshot={snapshot}
         baseUrl={SITE}
         project={project}
-        taskMap={{}}
-        onMapTask={() => {}}
+        taskMap={{ "ACME-11": "t1", "ACME-12": "t2" }}
         specializations={["dev", "qa"]}
         onSetAddedScope={onSetAddedScope}
       />,
     );
+    const epicRow = screen
+      .getByRole("button", { name: "Payments" })
+      .closest("tr") as HTMLElement;
+    expect(within(epicRow).getByText("1 unmapped")).toBeInTheDocument();
+
     expand("Payments");
-    await user.click(
-      screen.getByRole("combobox", {
-        name: "Plan task for ACME-22 [QA] Refund regression",
-      }),
-    );
-    await user.click(
-      screen.getByRole("option", { name: "Added scope (our team)" }),
-    );
-    expect(onSetAddedScope).toHaveBeenCalledWith("ACME-22", "qa");
+    const row = screen.getByRole("row", { name: /ACME-21/ });
+    expect(row).toHaveClass("undecided");
+    expect(within(row).getByText("Unmapped")).toBeInTheDocument();
+    const picker = within(row).getByRole("combobox", {
+      name: "Specialization for ACME-21 Refunds",
+    });
+    expect(picker).toHaveValue("");
+    // Only specializations: no plan tasks, no "not tracked".
+    expect(
+      within(picker)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual(["Pick specialization…", "dev", "qa"]);
+
+    await user.selectOptions(picker, "qa");
+    expect(onSetAddedScope).toHaveBeenCalledWith("ACME-21", "qa");
   });
 
   it("counts added scope by Jira's estimate, with its specialization", async () => {
@@ -565,7 +683,6 @@ describe("TasksTable", () => {
         baseUrl={SITE}
         project={project}
         taskMap={{ "ACME-21": null }}
-        onMapTask={() => {}}
         hoursPerDay={8}
         addedScope={{ "ACME-21": "dev" }}
         specializations={["dev", "qa"]}
@@ -580,9 +697,10 @@ describe("TasksTable", () => {
     expand("Payments");
     const row = screen.getByRole("row", { name: /ACME-21/ });
     expect(row).toHaveClass("added");
+    expect(within(row).getByText("Added scope")).toBeInTheDocument();
     expect(
-      within(row).getByRole("combobox", { name: /Plan task for ACME-21/ }),
-    ).toHaveValue("Added scope (our team)");
+      within(row).getByLabelText("Specialization for ACME-21 Refunds"),
+    ).toHaveValue("dev");
     const cells = within(row).getAllByRole("cell");
     expect(cells[4]).toHaveTextContent("3"); // planned, from Jira
     expect(cells[5]).toHaveTextContent("3"); // done, so earned
@@ -596,14 +714,13 @@ describe("TasksTable", () => {
 
   it("leaves a whole epic out as another team's, and sorts it last", async () => {
     const user = userEvent.setup();
-    const onSetEpicTracked = vi.fn();
+    const onSetEpicTracking = vi.fn();
     const props = {
       snapshot,
       baseUrl: SITE,
       project,
       taskMap: { "ACME-11": "t1", "ACME-12": "t2" },
-      onMapTask: () => {},
-      onSetEpicTracked,
+      onSetEpicTracking,
     };
     const { rerender } = render(<TasksTable {...props} />);
 
@@ -613,7 +730,7 @@ describe("TasksTable", () => {
     );
     expect(control).toHaveValue("tracked");
     await user.selectOptions(control, "untracked");
-    expect(onSetEpicTracked).toHaveBeenCalledWith("ACME-10", false);
+    expect(onSetEpicTracking).toHaveBeenCalledWith("ACME-10", "untracked");
 
     rerender(<TasksTable {...props} untrackedEpics={["ACME-10"]} />);
     const epicRows = () =>
@@ -643,52 +760,47 @@ describe("TasksTable", () => {
     expect(epicRows()).toEqual(["Renamed Jira epic", "Payments"]);
   });
 
-  it("finds a plan task by typing into the picker", async () => {
+  it("follows an epic as nice to have, between ours and another team's", async () => {
     const user = userEvent.setup();
-    const onMapTask = vi.fn();
-    render(
-      <TasksTable
-        snapshot={snapshot}
-        baseUrl={SITE}
-        project={project}
-        taskMap={{ "ACME-11": "t1" }}
-        onMapTask={onMapTask}
-      />,
+    const onSetEpicTracking = vi.fn();
+    const props = {
+      snapshot,
+      baseUrl: SITE,
+      project,
+      taskMap: { "ACME-11": "t1", "ACME-12": "t2" },
+      onSetEpicTracking,
+    };
+    const { rerender } = render(<TasksTable {...props} />);
+    const control = screen.getByLabelText(
+      "Tracking for epic ACME-10 Renamed Jira epic",
     );
-    expand("Renamed Jira epic");
-
-    const picker = screen.getByRole("combobox", {
-      name: "Plan task for ACME-12 Test checkout",
-    });
-    await user.click(picker);
-    await user.keyboard("test");
     expect(
-      within(screen.getByRole("listbox"))
+      within(control)
         .getAllByRole("option")
-        .map((option) => option.textContent),
-    ).toEqual(["Test checkout"]);
-    await user.keyboard("{Enter}");
-    expect(onMapTask).toHaveBeenCalledWith("ACME-12", "t2");
+        .map((o) => o.textContent),
+    ).toEqual(["Track it", "Nice to have", "Don't track it (another team)"]);
+    await user.selectOptions(control, "niceToHave");
+    expect(onSetEpicTracking).toHaveBeenCalledWith("ACME-10", "niceToHave");
 
-    // An epic name matches all of its tasks; a miss says so.
-    await user.click(picker);
-    await user.keyboard("original plan");
+    rerender(<TasksTable {...props} niceToHaveEpics={["ACME-10"]} />);
+    // After the must-do work, still counted in this table, and labelled.
+    const epicRows = () =>
+      screen
+        .getAllByRole("button", { name: /Renamed Jira epic|Payments/ })
+        .map((b) => b.textContent?.replace(/[▸▾]/g, "").trim());
+    expect(epicRows()).toEqual(["Payments", "Renamed Jira epic"]);
+    const row = screen
+      .getByRole("button", { name: "Renamed Jira epic" })
+      .closest("tr") as HTMLElement;
     expect(
-      within(screen.getByRole("listbox")).getAllByRole("option"),
-    ).toHaveLength(2);
-    await user.clear(picker);
-    await user.keyboard("nothing like it");
+      within(row).getByText("Nice to have", {
+        selector: ".nice-to-have-label",
+      }),
+    ).toBeInTheDocument();
     expect(
-      within(screen.getByRole("listbox")).queryAllByRole("option"),
-    ).toHaveLength(0);
-    expect(screen.getByText(/No matches/)).toBeInTheDocument();
-
-    // Leaving without a pick keeps the current choice (still unmapped here:
-    // the mock doesn't feed the earlier pick back into taskMap).
-    await user.keyboard("{Escape}");
-    await user.tab();
-    expect(picker).toHaveValue("Unmapped");
-    expect(onMapTask).toHaveBeenCalledTimes(1);
+      screen.getByLabelText("Tracking for epic ACME-10 Renamed Jira epic"),
+    ).toHaveValue("niceToHave");
+    expect(within(row).getAllByRole("cell")[0]).toHaveTextContent("8");
   });
 
   it("lists planned tasks that have no Jira match", () => {
@@ -698,7 +810,6 @@ describe("TasksTable", () => {
         baseUrl={SITE}
         project={project}
         taskMap={{ "ACME-11": "t1" }}
-        onMapTask={() => {}}
       />,
     );
     expect(
@@ -715,7 +826,6 @@ describe("TasksTable", () => {
         baseUrl={SITE}
         project={project}
         taskMap={{ "ACME-11": "t1", "ACME-12": "t2" }}
-        onMapTask={() => {}}
       />,
     );
 

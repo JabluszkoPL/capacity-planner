@@ -9,7 +9,11 @@
         "issuetype": { "name": "Epic", "hierarchyLevel": 1 },
         "status": {
           "name": "In Progress",
-          "statusCategory": { "id": 4, "key": "indeterminate", "name": "In Progress" }
+          "statusCategory": {
+            "id": 4,
+            "key": "indeterminate",
+            "name": "In Progress"
+          }
         },
         "assignee": {
           "accountId": "5f00aa11bb22cc33dd44ee56",

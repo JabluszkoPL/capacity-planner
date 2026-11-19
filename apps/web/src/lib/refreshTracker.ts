@@ -15,10 +15,12 @@ import {
   JiraError,
   basicAuth,
   fetchInitiativeSnapshot,
+  trackerMapping,
   type JiraTransport,
+  type TagAlias,
+  type TrackerMapping,
 } from "@planner/jira";
 import {
-  autoTaskMap,
   sampleFromStatus,
   trackerStatus,
   type AppState,
@@ -34,7 +36,9 @@ export type RefreshOutcome =
       ok: true;
       snapshot: JiraSnapshot;
       sample: TrackerSample | null;
-      taskMap: NonNullable<Tracker["taskMap"]> | null;
+      /** Name matches and added scope for the new snapshot; null with no
+       *  baseline to match against. */
+      mapping: TrackerMapping | null;
     }
   | { ok: false; message: string; kind: RefreshFailure };
 
@@ -127,6 +131,9 @@ export interface RefreshDeps {
   today: string;
   /** ISO datetime stamped on the snapshot. */
   now: string;
+  /** This device's tag vocabulary, so new tasks' labels name the same
+   *  specializations they do in an import. */
+  tagAliases?: readonly TagAlias[];
 }
 
 /**
@@ -169,11 +176,19 @@ export async function refreshTracker(
   const project = tracker.projectId
     ? state.projects.find((p) => p.id === tracker.projectId)
     : undefined;
-  const taskMap = project
-    ? autoTaskMap(project, snapshot, tracker.taskMap)
+  // New tasks are sorted out before the sample, so it counts them as the
+  // table will show them.
+  const mapping = project
+    ? trackerMapping({
+        project,
+        teams: state.teams,
+        snapshot,
+        tracker,
+        tagAliases: deps.tagAliases,
+      })
     : null;
   const status = trackerStatus(
-    { ...tracker, snapshot, ...(taskMap ? { taskMap } : {}) },
+    { ...tracker, snapshot, ...(mapping ?? {}) },
     project,
     state.teams,
     today,
@@ -181,7 +196,7 @@ export async function refreshTracker(
   const sample =
     status.kind === "no-baseline" ? null : sampleFromStatus(status);
 
-  return { ok: true, snapshot, sample, taskMap };
+  return { ok: true, snapshot, sample, mapping };
 }
 
 /** Whole days since a snapshot was taken, or null when there is none. */

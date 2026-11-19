@@ -12,6 +12,7 @@ import {
 import type {
   AppState,
   Epic,
+  EpicTracking,
   ID,
   JiraSnapshot,
   JiraTeamSource,
@@ -879,6 +880,24 @@ export function reducer(state: AppState, action: Action): AppState {
         return next;
       });
 
+    case "setTrackerEpicTracking":
+      return updateTracker(state, action.id, (t) => {
+        const next = { ...t };
+        // An epic is in one list at most; each list absent when empty.
+        const set = (
+          field: "untrackedEpics" | "niceToHaveEpics",
+          member: boolean,
+        ) => {
+          const keys = (t[field] ?? []).filter((k) => k !== action.epicKey);
+          if (member && action.epicKey !== "") keys.push(action.epicKey);
+          if (keys.length > 0) next[field] = keys;
+          else delete next[field];
+        };
+        set("untrackedEpics", action.tracking === "untracked");
+        set("niceToHaveEpics", action.tracking === "niceToHave");
+        return next;
+      });
+
     case "setTrackerViewTeams":
       return updateTracker(state, action.id, (t) => {
         const next = { ...t };
@@ -1086,6 +1105,13 @@ export interface StoreValue {
       addedScope: { [jiraIssueKey: string]: string },
     ) => void;
     setTrackerUntrackedEpics: (id: ID, epicKeys: string[]) => void;
+    /** Track an epic, leave it out as another team's, or follow it as
+     *  nice-to-have work on top of the plan. */
+    setTrackerEpicTracking: (
+      id: ID,
+      epicKey: string,
+      tracking: EpicTracking,
+    ) => void;
     setTrackerViewTeams: (id: ID, teamNames: string[]) => void;
     setTrackerTaskTeam: (id: ID, issueKey: string, team: string | null) => void;
     setTrackerSnapshot: (
@@ -1363,6 +1389,8 @@ export function AppStoreProvider({
           dispatch({ type: "setTrackerAddedScope", id, addedScope }),
         setTrackerUntrackedEpics: (id, epicKeys) =>
           dispatch({ type: "setTrackerUntrackedEpics", id, epicKeys }),
+        setTrackerEpicTracking: (id, epicKey, tracking) =>
+          dispatch({ type: "setTrackerEpicTracking", id, epicKey, tracking }),
         setTrackerViewTeams: (id, teamNames) =>
           dispatch({ type: "setTrackerViewTeams", id, teamNames }),
         setTrackerTaskTeam: (id, issueKey, team) =>

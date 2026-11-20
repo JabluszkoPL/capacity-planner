@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Clock, type Op } from "@planner/contracts";
+import { Clock, ENTITY_KINDS, type Op } from "@planner/contracts";
 import {
   runPlan,
   seedState,
@@ -364,6 +364,72 @@ describe("last-write-wins merge", () => {
       }),
     ).toBe(true);
     expect(readAppState(db).teams).toHaveLength(0);
+  });
+});
+
+describe("tombstones for unseen rows", () => {
+  it.each(ENTITY_KINDS)("stores one for a never-seen %s", (entity) => {
+    const tombstone: Op = {
+      entity,
+      id: `ghost-${entity}`,
+      hlc: clock.tick(),
+      deleted: true,
+      data: null,
+    };
+    expect(applyRemoteOp(db, tombstone)).toBe(true);
+    expect(applyRemoteOp(db, tombstone)).toBe(false);
+    expect(readAppState(db)).toEqual({ projects: [], teams: [] });
+  });
+
+  it("refuses a stale create for an epic it only knows as deleted", () => {
+    const older = clock.tick();
+    expect(
+      applyRemoteOp(db, {
+        entity: "epic",
+        id: "e1",
+        hlc: clock.tick(),
+        deleted: true,
+        data: null,
+      }),
+    ).toBe(true);
+    expect(
+      applyRemoteOp(db, {
+        entity: "epic",
+        id: "e1",
+        hlc: older,
+        deleted: false,
+        data: { projectId: "p1", name: "Zombie", position: 0 },
+      }),
+    ).toBe(false);
+  });
+
+  it("is what a create-then-delete before any push leaves in the outbox", () => {
+    const state = seedState();
+    const project = state.projects[0];
+    const withEpic: AppState = {
+      ...state,
+      projects: [
+        {
+          ...project,
+          epics: [...project.epics, { id: "e-new", name: "Brief", tasks: [] }],
+        },
+      ],
+    };
+    const client = freshDb();
+    for (const op of diffStates({ projects: [], teams: [] }, withEpic, clock)) {
+      applyLocalOp(client, op);
+    }
+    for (const op of diffStates(withEpic, state, clock)) {
+      applyLocalOp(client, op);
+    }
+    const queued = pendingOps(client).filter((o) => o.id === "e-new");
+    expect(queued).toEqual([
+      expect.objectContaining({ entity: "epic", deleted: true, data: null }),
+    ]);
+
+    // The server has never seen e-new; applying the outbox must not throw.
+    for (const op of pendingOps(client)) applyRemoteOp(db, op);
+    expect(readAppState(db)).toEqual(canonicalState(state));
   });
 });
 

@@ -18,6 +18,38 @@ a pnpm monorepo of small packages, with each platform as a thin app on top.
 | **Sync**          | Node + SQLite WebSocket server that keeps devices in step; the Mac app runs one for you |
 | **iOS / Android** | Reserved — see [`apps/mobile`](apps/mobile/README.md)                                   |
 
+## What it looks like
+
+Light and dark themes: pick **System**, **Light** or **Dark** under
+**Settings → General → Appearance**. (Every project, team and person below is
+made up.)
+
+| Light                                                             | Dark                                                            |
+| ----------------------------------------------------------------- | --------------------------------------------------------------- |
+| ![Projects dashboard, light](docs/screenshots/projects-light.png) | ![Projects dashboard, dark](docs/screenshots/projects-dark.png) |
+
+**Plan a project.** Epics and tasks with day estimates and specializations,
+then a deterministic plan drawn as a timeline per person, task or epic, with
+days off, weekends and named markers.
+
+| Plan & timeline                                           | Epics & tasks                                             |
+| --------------------------------------------------------- | --------------------------------------------------------- |
+| ![Plan and timeline](docs/screenshots/timeline-light.png) | ![Epics and tasks, dark](docs/screenshots/tasks-dark.png) |
+
+**Teams and availability.** Rosters with specializations and speeds, and a
+calendar to paint days off.
+
+![Teams and availability](docs/screenshots/teams-light.png)
+
+**Track it against Jira.** Link a Jira initiative to the plan and see how much
+of the buffer is spent, per specialization, and who does the work that is left.
+
+| Tracker overview                                             | By specialization                                                       |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| ![Tracker overview, dark](docs/screenshots/tracker-dark.png) | ![Specialization timeline](docs/screenshots/tracker-timeline-light.png) |
+
+![Work left, by person, dark](docs/screenshots/work-left-dark.png)
+
 ## Download the Mac app
 
 Get the latest `.dmg` from

@@ -367,6 +367,42 @@ describe("remainingWork", () => {
     ).toEqual(full);
   });
 
+  it("counts a task skipped for having no estimate while Jira has it open", () => {
+    // How a plan built from Jira brings in an issue nobody estimated.
+    const project: Project = {
+      ...PROJECT,
+      epics: PROJECT.epics.map((e) => ({
+        ...e,
+        tasks: e.tasks.map((t) =>
+          t.id === "t4" ? { ...t, excluded: true } : t,
+        ),
+      })),
+    };
+    const w = remainingWork(tracker(CHILDREN), project, TEAMS, TODAY)!;
+    expect(w.unestimatedTasks.map((u) => u.key)).toEqual(["J-4"]);
+    const planned = remainingWork(tracker(CHILDREN), project, TEAMS, TODAY, {
+      unestimatedDays: 2,
+    })!;
+    expect(planned.items.find((a) => a.taskId === "t4")).toMatchObject({
+      estimateDays: 2,
+      estimateFrom: "assumed",
+    });
+    // Skipped with an estimate is left out on purpose, and stays out.
+    const onPurpose: Project = {
+      ...PROJECT,
+      epics: PROJECT.epics.map((e) => ({
+        ...e,
+        tasks: e.tasks.map((t) =>
+          t.id === "t3" ? { ...t, excluded: true } : t,
+        ),
+      })),
+    };
+    const out = remainingWork(tracker(CHILDREN), onPurpose, TEAMS, TODAY, {
+      unestimatedDays: 2,
+    })!;
+    expect(out.items.find((a) => a.taskId === "t3")).toBeUndefined();
+  });
+
   it("plans tasks with no estimate at the days asked for", () => {
     const w = remainingWork(tracker(CHILDREN), PROJECT, TEAMS, TODAY, {
       unestimatedDays: 1.5,

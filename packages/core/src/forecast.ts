@@ -12,7 +12,8 @@
  *   `countWaiting: true` plans them too, at their whole estimate, to finish
  *   on the same work as the status. A task with no estimate — in the plan or
  *   in Jira — is only counted, unless `unestimatedDays` gives it one to be
- *   planned on. A Jira task with no plan task is planned too, on Jira's
+ *   planned on. That includes a plan task skipped for having no estimate
+ *   while its Jira issue is still open. A Jira task with no plan task is planned too, on Jira's
  *   estimate, so the finish covers all the work in the initiative, not just
  *   what was planned up front.
  * - **From today, without buffer.** Every remaining task gets its plain
@@ -578,16 +579,23 @@ export function remainingWork(
     if (person) assignees[task.id] = person.id;
     rank[task.id] =
       (person ? 0 : UNASSIGNED_RANK) + priorityRank(state.priority);
-    return { ...task, estimateDays: remaining };
+    // Planned now, whatever it was skipped for.
+    return { ...task, excluded: false, estimateDays: remaining };
   };
 
   const epics: Epic[] = [];
   for (const epic of project.epics) {
     const tasks: TaskItem[] = [];
     for (const t of epic.tasks) {
-      if (t.excluded) continue;
-      inPlan.add(t.id);
       const state = taskState(issuesOf.get(t.id) ?? [], hoursPerDay);
+      // A task skipped only for want of an estimate — how a plan built from
+      // Jira, or scope added from Jira, brings in an issue nobody estimated —
+      // is still open work: counted, and planned once it has an estimate.
+      // One skipped with an estimate was left out on purpose.
+      const unestimatedSkip =
+        t.excluded && num(t.estimateDays) <= EPS && state.open.length > 0;
+      if (t.excluded && !unestimatedSkip) continue;
+      inPlan.add(t.id);
       if (state.done) continue;
       // The plan's estimate, or Jira's when the plan has none yet.
       const fromPlan = num(t.estimateDays) > EPS;

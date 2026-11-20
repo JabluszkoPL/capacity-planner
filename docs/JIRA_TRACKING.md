@@ -480,13 +480,16 @@ work (QA) is counted back from the end date in the status but starts as soon as
 someone is free here, so the summary gives development's finish and the end
 phase's apart.
 
-Nothing open drops out of sight. A task with no estimate can't be laid out,
+Nothing open drops out of sight. A task with no estimate can't be laid out
+(that includes a plan task skipped for having no estimate, as a plan built
+from Jira brings one in, while its Jira issue is still open),
 but the **Left out** line names it by key, a warning beside the timeline says
 the work may take longer than shown, and one in progress shows in its
 assignee's **Now** column. To see roughly where those tasks would land, tick
 **Also plan tasks with no estimate** and set how many days each should count
 as (1 by default). They are then planned like the rest, with a dotted outline
-in the timeline.
+in the timeline. The option is always there; it says "(none right now)" when
+every open task has an estimate.
 
 The options above sit beside the timeline, so each change shows on it at
 once. The timeline fits the forecast to the panel's width, with a label for

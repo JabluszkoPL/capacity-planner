@@ -211,6 +211,42 @@ describe("RemainingWorkPanel", () => {
     expect(section).not.toHaveTextContent("without an estimate");
   });
 
+  it("offers to plan tasks with no estimate even when there are none", () => {
+    const epic = TRACKER.snapshot!.epics[0];
+    const tracker: Tracker = {
+      ...TRACKER,
+      taskMap: { ...TRACKER.taskMap, "J-3": null },
+      snapshot: {
+        ...TRACKER.snapshot!,
+        epics: [
+          { ...epic, children: epic.children.filter((c) => c.key !== "J-3") },
+        ],
+      },
+    };
+    const project: Project = {
+      ...PROJECT,
+      epics: PROJECT.epics.map((e) => ({
+        ...e,
+        tasks: e.tasks.filter((t) => t.id !== "t3"),
+      })),
+    };
+    render(
+      <RemainingWorkPanel
+        tracker={tracker}
+        project={project}
+        teams={TEAMS}
+        today="2026-11-19"
+      />,
+    );
+    expect(
+      screen.getByRole("checkbox", {
+        name: "Also plan tasks with no estimate, at",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("(none right now)")).toBeInTheDocument();
+    expect(screen.queryByRole("note")).toBeNull();
+  });
+
   it("sets bugs apart on the chart, and names their priority", () => {
     const epic = TRACKER.snapshot!.epics[0];
     const tracker: Tracker = {

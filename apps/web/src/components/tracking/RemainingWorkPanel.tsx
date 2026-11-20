@@ -395,59 +395,59 @@ export function RemainingWorkPanel({
   ].filter(Boolean);
 
   // Beside the chart, so a change shows on it at once.
-  const hasUnestimated = work.unestimated > 0 || work.assumed > 0;
-  const options =
-    work.waitingToClose.tasks > 0 || hasNiceToHave || hasUnestimated ? (
-      <>
-        {work.waitingToClose.tasks > 0 && (
-          <label className="forecast-option">
-            <input
-              type="checkbox"
-              checked={countWaiting}
-              onChange={(e) => setCountWaiting(e.target.checked)}
-            />{" "}
-            Also plan tasks in review or ready to deploy (as the status counts
-            them)
-          </label>
+  // Always offered, so it is there to find even when nothing needs it yet.
+  const options = (
+    <>
+      {work.waitingToClose.tasks > 0 && (
+        <label className="forecast-option">
+          <input
+            type="checkbox"
+            checked={countWaiting}
+            onChange={(e) => setCountWaiting(e.target.checked)}
+          />{" "}
+          Also plan tasks in review or ready to deploy (as the status counts
+          them)
+        </label>
+      )}
+      {hasNiceToHave && (
+        <label className="forecast-option">
+          <input
+            type="checkbox"
+            checked={includeNiceToHave}
+            onChange={(e) => setIncludeNiceToHave(e.target.checked)}
+          />{" "}
+          Also plan nice-to-have work (on top of the plan; the status leaves it
+          out)
+        </label>
+      )}
+      <span className="forecast-option">
+        <label className="forecast-option-inline">
+          <input
+            type="checkbox"
+            checked={assumeEstimate}
+            onChange={(e) => setAssumeEstimate(e.target.checked)}
+          />{" "}
+          Also plan tasks with no estimate, at
+        </label>
+        <input
+          type="number"
+          className="forecast-days-input"
+          aria-label="Days for each task with no estimate"
+          min={0.5}
+          step={0.5}
+          value={assumedDays}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            if (Number.isFinite(v) && v > 0) setAssumedDays(v);
+          }}
+        />{" "}
+        d each
+        {work.unestimated === 0 && work.assumed === 0 && (
+          <span className="muted"> (none right now)</span>
         )}
-        {hasNiceToHave && (
-          <label className="forecast-option">
-            <input
-              type="checkbox"
-              checked={includeNiceToHave}
-              onChange={(e) => setIncludeNiceToHave(e.target.checked)}
-            />{" "}
-            Also plan nice-to-have work (on top of the plan; the status leaves
-            it out)
-          </label>
-        )}
-        {hasUnestimated && (
-          <span className="forecast-option">
-            <label className="forecast-option-inline">
-              <input
-                type="checkbox"
-                checked={assumeEstimate}
-                onChange={(e) => setAssumeEstimate(e.target.checked)}
-              />{" "}
-              Also plan tasks with no estimate, at
-            </label>
-            <input
-              type="number"
-              className="forecast-days-input"
-              aria-label="Days for each task with no estimate"
-              min={0.5}
-              step={0.5}
-              value={assumedDays}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                if (Number.isFinite(v) && v > 0) setAssumedDays(v);
-              }}
-            />{" "}
-            d each
-          </span>
-        )}
-      </>
-    ) : null;
+      </span>
+    </>
+  );
 
   // Not on the chart, so it can only run later than drawn: said beside it.
   const unestimatedKeys = work.unestimatedTasks

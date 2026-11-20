@@ -1,12 +1,14 @@
-/* Project helpers panel (T13) — references T01 tokens. */
+/* Teams & people view: project helpers and team start dates. Tokens only. */
 
-.helpers-panel {
-  margin-top: var(--space-5);
-}
 .helpers-intro {
-  margin-bottom: var(--space-3);
+  margin: 0 0 var(--space-3);
+  font-size: 13px;
+}
+.panel-flush .helpers-intro {
+  padding: 0 var(--space-4);
 }
 
+/* --- project helpers --- */
 .helper-list {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -15,22 +17,26 @@
 }
 .helper-row {
   display: grid;
-  grid-template-columns: 1.4fr 1.2fr 70px 140px 140px 88px 32px;
+  grid-template-columns: 1.4fr 1.2fr 70px 140px 140px 96px 32px;
   gap: var(--space-2);
   align-items: center;
-  padding: 6px 10px;
+  padding: 5px 12px;
   border-bottom: 1px solid var(--row-border);
-  min-width: 700px;
+  min-width: 720px;
 }
 .helper-row:last-child {
   border-bottom: none;
 }
+.helper-row:not(.helper-head):hover {
+  background: var(--hover);
+}
 .helper-head {
   background: var(--panel-alt);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 .helper-name-cell {
   display: flex;
@@ -38,8 +44,8 @@
   gap: var(--space-2);
 }
 .helper-name-cell .swatch {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex: none;
 }
@@ -47,23 +53,50 @@
   flex: 1;
   min-width: 0;
 }
+.helper-row input[type="text"],
+.helper-row input[type="number"],
+.helper-row input[type="date"] {
+  border-color: transparent;
+  background: transparent;
+  min-height: 28px;
+  padding: 4px 7px;
+  min-width: 0;
+}
+.helper-row input[type="text"]:hover,
+.helper-row input[type="number"]:hover,
+.helper-row input[type="date"]:hover {
+  border-color: var(--border);
+  background: var(--panel);
+}
+.helper-row input:focus {
+  border-color: var(--accent-mid);
+  background: var(--panel);
+}
+.helper-name-input {
+  font-weight: 500;
+}
 .helper-speed {
   width: 64px;
 }
 
 /* Days-off cell: a compact button that opens the day-picker modal. */
 .helper-offdays-btn {
-  padding: 5px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
   font-size: 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--panel-alt);
+  border-radius: var(--radius-pill);
+  background: var(--panel);
   color: var(--text);
-  cursor: pointer;
   white-space: nowrap;
 }
+.helper-offdays-btn .icon {
+  color: var(--muted);
+}
 .helper-offdays-btn:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-mid);
 }
 
 .helper-offdays-hint {
@@ -90,9 +123,10 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: 4px 6px 4px 10px;
+  padding: 4px 6px 4px 12px;
   border: 1px solid var(--row-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
+  background: var(--panel-alt);
   font-size: 13px;
 }
 .helper-offdays-actions {
@@ -102,9 +136,19 @@
 
 .add-helper-form {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-3);
   align-items: flex-end;
   flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--panel-alt);
+  border: 1px solid var(--row-border);
+}
+.add-helper-title {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
 }
 .add-helper-form .field label {
   display: block;
@@ -115,40 +159,34 @@
 .add-helper-form .helper-speed {
   width: 70px;
 }
+.add-helper-form .field-error {
+  flex-basis: 100%;
+  margin: 0;
+}
 
-/* --- team start dates (T14) --- */
-.member-start-list {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
+/* --- team start dates --- */
+.member-start-panel.is-collapsed > .panel-body {
+  display: none;
 }
-.member-start-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--row-border);
-}
-.member-start-row:last-child {
-  border-bottom: none;
+.member-start-panel.is-collapsed > .panel-header {
+  padding-bottom: var(--space-4);
 }
 .member-start-name {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
+  font-weight: 500;
 }
-.member-start-name .swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex: none;
+.member-start-date {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 .member-start-default {
-  color: var(--muted);
+  color: var(--faint);
   font-size: 12px;
-  width: 24px;
-  text-align: center;
+  white-space: nowrap;
+}
+.helpers-panel .empty-state {
+  margin-bottom: var(--space-3);
 }

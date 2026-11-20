@@ -1,134 +1,168 @@
-/* Projects Dashboard (T05) — ported from the POC, referencing T01 tokens. */
+/* Projects dashboard. Shared pieces (page header, field labels, .spacer,
+   badges, icon tiles) come from global.css and components/ui/ui.css. */
 
-.page-title {
-  font-size: 22px;
-  margin-bottom: var(--space-4);
-}
-
-/* Title row: heading on the left, page-level actions (Import) on the right. */
-.page-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-.page-title-actions {
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-.page-title-row .page-title {
-  margin-bottom: 0;
-}
-
-.new-project-card {
-  padding: var(--space-4);
-}
-.new-project-heading {
-  margin-bottom: var(--space-3);
-  font-size: 15px;
-}
+/* --- New project (in a modal) --- */
 .new-project-form {
   display: flex;
-  gap: var(--space-2);
-  align-items: flex-end;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
 }
-.field label {
-  display: block;
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 3px;
-}
-.np-name-input {
-  width: 220px;
-}
-.spacer {
-  flex: 1;
+.new-project-form input {
+  width: 100%;
 }
 
-.project-grid {
+/* --- Filter bar --- */
+.dashboard-filters {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+.dashboard-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 300px;
+  min-width: 200px;
+}
+.dashboard-search .icon {
+  position: absolute;
+  left: 10px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.dashboard-search input[type="search"] {
+  width: 100%;
+  padding-left: 32px;
+}
+
+/* --- Project cards --- */
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+  align-items: start;
 }
 .project-card {
+  --project-tint: var(--accent);
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  overflow: hidden;
+  min-width: 0;
+}
+.project-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--project-tint) 6%, var(--panel));
+  border-bottom: 1px solid var(--row-border);
+}
+.project-card-heading {
+  flex: 1;
+  min-width: 0;
 }
 .project-card-title {
-  font-size: 16px;
+  font-size: 17px;
+  line-height: 1.25;
   cursor: pointer;
+  overflow-wrap: anywhere;
 }
 .project-card-title:hover {
   color: var(--accent-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
-.project-card-note {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--muted);
-  white-space: pre-wrap;
-}
-.stat-line {
-  display: flex;
-  gap: 14px;
-  font-size: 13px;
-  color: var(--muted);
-}
-.card-meta-line {
-  display: flex;
-  gap: 6px;
+.project-card-teams {
+  margin-top: 2px;
   font-size: 13px;
   color: var(--text);
-  line-height: 1.4;
 }
-.card-meta-icon {
+.project-card-head .badge {
   flex: none;
 }
-.card-meta-text {
+
+.project-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  flex: 1;
+}
+.project-card-stats {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.project-card-stats > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.project-card-stats dt {
+  color: var(--muted);
+}
+.project-card-stats dd {
+  margin: 0;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.project-card-stats .not-planned {
+  font-weight: 400;
+}
+
+/* An icon + text line: helper support, the project's note. */
+.project-card-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.project-card-line .icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--muted);
+}
+.project-card-line > span {
   min-width: 0;
 }
-
-.card-badges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
+.project-card-note {
+  color: var(--muted);
 }
-.badge {
-  display: inline-block;
-  align-self: flex-start;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  font-size: 11px;
-  font-weight: 600;
-  background: var(--accent-soft);
-  color: var(--accent-dark);
-}
-/* Buffer is the headline staffing metric — give it a distinct, warmer chip so
-   it stands out from the completion badge when scanning options side by side. */
-.badge-buffer {
-  background: var(--warn-bg);
-  color: var(--warn-text);
-  border: 1px solid var(--warn-border);
-}
-.not-planned {
-  font-size: 12px;
-}
-.card-actions {
-  margin-top: var(--space-1);
+.project-card-note > span {
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
-.row {
+/* The schedule's compact overview, flattened to sit inside the card. */
+.project-card .overview-timeline {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+
+.project-card-actions {
   display: flex;
-  gap: 10px;
   align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+  border-top: 1px solid var(--row-border);
 }
 
 /* --- Export projects modal --- */

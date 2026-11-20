@@ -158,7 +158,7 @@ export function SprintGantt({
 
   return (
     <div className="sprint-gantt">
-      <h3 className="section-title">Sprint timeline</h3>
+      <h3 className="sprint-gantt-title">Sprint timeline</h3>
       {ghosts.length > 0 && (
         <p className="muted">
           Faded bars are where the baseline plan put this work.

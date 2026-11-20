@@ -14,7 +14,17 @@ import {
 } from "@planner/core";
 import { estimateUpdates, secondsToDays, trackerMapping } from "@planner/jira";
 import { useAppStore } from "@planner/client-runtime";
-import { Button } from "../components/ui/Button";
+import {
+  Button,
+  Callout,
+  EmptyState,
+  Icon,
+  IconTile,
+  Page,
+  PageHeader,
+  ViewTabs,
+  Panel,
+} from "../components/ui";
 import { useConfirm } from "../components/ui/ConfirmDialog";
 import { useToast } from "../components/ui/Toast";
 import { DeadlinesPanel } from "../components/tracking/DeadlinesPanel";
@@ -34,6 +44,7 @@ import { isJiraConfigured } from "../lib/jiraSettings";
 import { STALE_AFTER_DAYS, snapshotAgeDays } from "../lib/refreshTracker";
 import { DEFAULT_HOURS_PER_DAY } from "../lib/jiraSettings";
 import { readTagAliases } from "../lib/tagAliases";
+import { TRACKER_VIEWS, useView } from "../lib/views";
 import "../components/tracking/tracking.css";
 
 export function TrackerDetail() {
@@ -46,6 +57,7 @@ export function TrackerDetail() {
   const [importOpen, setImportOpen] = useState(false);
   const [estimatesOpen, setEstimatesOpen] = useState(false);
   const toast = useToast();
+  const [view, setView] = useView(TRACKER_VIEWS);
 
   const tracker = (state.trackers ?? []).find((t) => t.id === id);
   const [name, setName] = useState(tracker?.name ?? "");
@@ -175,16 +187,16 @@ export function TrackerDetail() {
 
   if (!tracker) {
     return (
-      <main className="page">
-        <div className="detail-topbar">
-          <Link to="/tracking" className="back-link">
-            ← Tracking
-          </Link>
-        </div>
-        <p className="muted">
-          That tracker doesn't exist (it may have been deleted).
-        </p>
-      </main>
+      <Page className="tracker-page">
+        <PageHeader
+          eyebrow={<Link to="/tracking">Tracking</Link>}
+          title="Tracker not found"
+        />
+        <EmptyState
+          title="That tracker doesn't exist"
+          message="It may have been deleted. Pick another from Tracking."
+        />
+      </Page>
     );
   }
 
@@ -215,278 +227,377 @@ export function TrackerDetail() {
     }
   }
 
+  // Each view that needs Jira's data says so the same way until there is some.
+  const noSnapshot = (
+    <EmptyState
+      title="No snapshot yet"
+      message={
+        connected
+          ? "Press Refresh to pull this initiative's epics and time tracking from Jira."
+          : "Connect Jira, then press Refresh to pull this initiative's epics and time tracking."
+      }
+    />
+  );
+  const noBaseline = (
+    <Callout tone="info" title="No baseline plan">
+      {state.projects.length === 0
+        ? "Create a project first, then link it here."
+        : "Pick a baseline plan above to compare Jira with what you planned."}
+    </Callout>
+  );
+
+  const issuesDone = snapshot
+    ? snapshot.epics.reduce((n, e) => n + e.totals.done, 0)
+    : 0;
+  const issuesAll = snapshot
+    ? snapshot.epics.reduce((n, e) => n + e.totals.all, 0)
+    : 0;
+
   return (
-    <main className="page">
-      <div className="detail-topbar">
-        <Link to="/tracking" className="back-link">
-          ← Tracking
-        </Link>
-      </div>
-
-      <div className="tracker-header">
-        <input
-          className="tracker-name-input"
-          aria-label="Tracker name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={commitName}
-          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              e.currentTarget.blur();
-            }
-          }}
-        />
-        <a
-          className="jira-link"
-          href={
-            tracker.initiativeUrl ||
-            `${tracker.baseUrl}/browse/${tracker.initiativeKey}`
-          }
-          target="_blank"
-          rel="noreferrer"
-        >
-          {tracker.initiativeKey} in Jira ↗
-        </a>
-      </div>
-
-      <div className="tracker-toolbar">
-        <Button
-          variant="primary"
-          onClick={() => void refresh(tracker)}
-          disabled={busy || !connected}
-        >
-          {busy ? "Refreshing…" : "Refresh"}
-        </Button>
-        <span className={"muted" + (stale ? " stale" : "")}>
-          {snapshot
-            ? `Snapshot ${snapshot.fetchedAt.slice(0, 16).replace("T", " ")}`
-            : "Never refreshed"}
-          {stale && " · out of date"}
-        </span>
-
-        <label className="baseline-picker">
-          <span>Baseline plan</span>
-          <select
-            value={tracker.projectId ?? ""}
-            onChange={(e) =>
-              actions.setTrackerProject(tracker.id, e.target.value || null)
-            }
-          >
-            <option value="">None</option>
-            {state.projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <Button
-          onClick={() => setImportOpen(true)}
-          disabled={!snapshot}
-          title={
-            snapshot
-              ? "Build a fresh project from this initiative's issues and estimates"
-              : "Refresh first — the plan is built from the last snapshot"
-          }
-        >
-          New plan from Jira
-        </Button>
-
-        <span className="spacer" />
-        <button
-          type="button"
-          className="link-btn"
-          onClick={() => setSettingsOpen(true)}
-        >
-          Jira settings
-        </button>
-        <Button variant="danger" small onClick={remove}>
-          Delete
-        </Button>
-      </div>
-
-      {!connected && (
-        <div className="warn-box">
-          Connect Jira before refreshing — Planner needs your Atlassian email
-          and an API token.{" "}
-          <button
-            type="button"
-            className="link-btn"
-            onClick={() => setSettingsOpen(true)}
-          >
-            Connect Jira
-          </button>
-        </div>
-      )}
-
-      {snapshot && (
-        <section className="initiative-summary" aria-label="Initiative">
-          <h2 className="section-title">{snapshot.initiative.summary}</h2>
-          <p className="muted">
-            {snapshot.initiative.status}
-            {snapshot.initiative.dueDate
-              ? ` · due ${snapshot.initiative.dueDate}`
-              : ""}
-            {" · "}
-            {snapshot.epics.length} epic
-            {snapshot.epics.length === 1 ? "" : "s"}
-            {" · "}
-            {snapshot.epics.reduce((n, e) => n + e.totals.done, 0)}/
-            {snapshot.epics.reduce((n, e) => n + e.totals.all, 0)} issues done
-            {" · "}
-            {days(
-              secondsToDays(
-                snapshot.epics.reduce((n, e) => n + e.totals.remainingSec, 0),
-                hoursPerDay,
-              ),
-            )}{" "}
-            days remaining
-          </p>
-        </section>
-      )}
-
-      {project && snapshot && (
-        <DeadlinesPanel
-          project={project}
-          deadlines={tracker.deadlines}
-          resolved={status?.deadlines ?? null}
-          onChange={(next) => actions.setTrackerDeadlines(tracker.id, next)}
-        />
-      )}
-
-      {status && projectTeams.length > 1 && (
-        <TeamSelector
-          teams={projectTeams}
-          selected={tracker.viewTeams}
-          onChange={(names) => actions.setTrackerViewTeams(tracker.id, names)}
-        />
-      )}
-
-      {status && (
-        <StatusPanel
-          status={status}
-          awaitingClose={awaitingClose}
-          pastInProgress={
-            (pastInProgress?.tasks ?? 0) > 0
-              ? {
-                  checked: countPastInProgress,
-                  onChange: setCountPastInProgress,
-                }
-              : undefined
-          }
-          planStale={
-            planCheck && status.kind !== "no-baseline" ? planCheck : undefined
-          }
-          onOpenProject={
-            project ? () => navigate(`/project/${project.id}`) : undefined
-          }
-        >
-          {state.projects.length === 0 ? (
-            <p className="muted">Create a project first, then link it here.</p>
-          ) : (
-            <p className="muted">
-              Pick a baseline plan above to compare Jira with what you planned.
-            </p>
-          )}
-        </StatusPanel>
-      )}
-
-      {snapshot && project && updates.length > 0 && (
-        <div className="estimate-updates" role="status">
-          <span>
-            {updates.length === 1
-              ? "1 plan task has a different estimate in Jira."
-              : `${updates.length} plan tasks have a different estimate in Jira.`}
-          </span>
-          <Button small onClick={() => setEstimatesOpen(true)}>
-            Review estimates…
-          </Button>
-        </div>
-      )}
-
-      {snapshot && project && (
-        <TasksTable
-          snapshot={snapshot}
-          baseUrl={tracker.baseUrl}
-          project={project}
-          taskMap={effectiveTaskMap}
-          hoursPerDay={hoursPerDay}
-          onReviewEstimates={() => setEstimatesOpen(true)}
-          addedScope={effectiveAddedScope}
-          untrackedEpics={tracker.untrackedEpics}
-          niceToHaveEpics={tracker.niceToHaveEpics}
-          onSetEpicTracking={(epicKey, tracking) =>
-            actions.setTrackerEpicTracking(tracker.id, epicKey, tracking)
-          }
-          specializations={specializations}
-          teams={projectTeams}
-          taskTeams={taskTeams}
-          shownTeams={shownTeams}
-          onSetTaskTeam={(key, team) =>
-            actions.setTrackerTaskTeam(tracker.id, key, team)
-          }
-          onSetAddedScope={(key, specialization) => {
-            // Not a plan task, so name matching must never claim it.
-            actions.setTrackerTaskMap(tracker.id, {
-              ...effectiveTaskMap,
-              [key]: null,
-            });
-            actions.setTrackerAddedScope(tracker.id, {
-              ...(effectiveAddedScope ?? {}),
-              [key]: specialization,
-            });
-          }}
-        />
-      )}
-
-      {tracker.samples && tracker.samples.length > 0 && (
-        <HistoryPanel samples={tracker.samples} />
-      )}
-
-      {snapshot && project && (
-        <RemainingWorkPanel
-          tracker={tracker}
-          project={project}
-          teams={state.teams}
-          today={today}
-          status={status}
-        />
-      )}
-
-      {snapshot && (
-        <SprintSection>
-          {project && (
-            <AutoSprintPlanner
-              tracker={tracker}
-              project={project}
-              teams={state.teams}
-              today={today}
+    <Page className="tracker-page" width="wide">
+      <PageHeader
+        eyebrow={
+          <nav aria-label="Breadcrumb" className="tracker-crumbs">
+            <Link to="/tracking">Tracking</Link>
+            <Icon name="chevronRight" size={12} />
+            <span aria-current="page">{tracker.name}</span>
+          </nav>
+        }
+        leading={<IconTile icon="target" size="lg" />}
+        title={
+          <input
+            className="page-title-input"
+            aria-label="Tracker name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
+            }}
+          />
+        }
+        subtitle={
+          <>
+            <a
+              className="jira-link"
+              href={
+                tracker.initiativeUrl ||
+                `${tracker.baseUrl}/browse/${tracker.initiativeKey}`
+              }
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Icon name="jira" size={13} />
+              {tracker.initiativeKey} in Jira ↗
+            </a>
+            <span aria-hidden="true">·</span>
+            <span className={"snapshot-age" + (stale ? " stale" : "")}>
+              {snapshot
+                ? `Snapshot ${snapshot.fetchedAt.slice(0, 16).replace("T", " ")}`
+                : "Never refreshed"}
+              {stale && " · out of date"}
+            </span>
+          </>
+        }
+        actions={
+          <>
+            <Button
+              variant="primary"
+              icon="refresh"
+              onClick={() => void refresh(tracker)}
+              disabled={busy || !connected}
+            >
+              {busy ? "Refreshing…" : "Refresh"}
+            </Button>
+            <Button
+              icon="layers"
+              onClick={() => setImportOpen(true)}
+              disabled={!snapshot}
+              title={
+                snapshot
+                  ? "Build a fresh project from this initiative's issues and estimates"
+                  : "Refresh first — the plan is built from the last snapshot"
+              }
+            >
+              New plan from Jira
+            </Button>
+            <Button
+              variant="ghost"
+              icon="settings"
+              onClick={() => setSettingsOpen(true)}
+            >
+              Jira settings
+            </Button>
+            <Button variant="danger" icon="trash" onClick={remove}>
+              Delete
+            </Button>
+          </>
+        }
+      >
+        <div className="tracker-toolbar">
+          <label className="baseline-picker">
+            <span>Baseline plan</span>
+            <select
+              value={tracker.projectId ?? ""}
+              onChange={(e) =>
+                actions.setTrackerProject(tracker.id, e.target.value || null)
+              }
+            >
+              <option value="">None</option>
+              {state.projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {status && projectTeams.length > 1 && (
+            <TeamSelector
+              teams={projectTeams}
+              selected={tracker.viewTeams}
+              onChange={(names) =>
+                actions.setTrackerViewTeams(tracker.id, names)
+              }
             />
           )}
-          <SprintPlanner
-            tracker={tracker}
-            snapshot={snapshot}
-            project={project}
-            teams={state.teams}
-            hoursPerDay={hoursPerDay}
-            onChange={(draft) =>
-              actions.setTrackerSprintDraft(tracker.id, draft)
-            }
-            onApplied={(applied) =>
-              actions.markSprintItemsApplied(tracker.id, applied)
-            }
-          />
-        </SprintSection>
+        </div>
+        <ViewTabs
+          base={`/tracking/${tracker.id}`}
+          views={TRACKER_VIEWS}
+          current={view}
+          label="Tracker views"
+        />
+      </PageHeader>
+
+      {!connected && (
+        <Callout
+          tone="warning"
+          actions={
+            <Button small onClick={() => setSettingsOpen(true)}>
+              Connect Jira
+            </Button>
+          }
+        >
+          Connect Jira before refreshing — Planner needs your Atlassian email
+          and an API token.
+        </Callout>
       )}
 
-      {!snapshot && connected && (
-        <p className="muted">
-          Press Refresh to pull this initiative's epics and time tracking from
-          Jira.
-        </p>
+      {view === "overview" && (
+        <>
+          {snapshot && (
+            <Panel
+              tone="muted"
+              className="initiative-summary"
+              aria-label="Initiative"
+              icon={<Icon name="jira" size={17} />}
+              title={snapshot.initiative.summary}
+              subtitle={
+                <>
+                  {snapshot.initiative.status}
+                  {snapshot.initiative.dueDate
+                    ? ` · due ${snapshot.initiative.dueDate}`
+                    : ""}
+                  {" · "}
+                  {snapshot.epics.length} epic
+                  {snapshot.epics.length === 1 ? "" : "s"}
+                  {" · "}
+                  {issuesDone}/{issuesAll} issues done
+                  {" · "}
+                  {days(
+                    secondsToDays(
+                      snapshot.epics.reduce(
+                        (n, e) => n + e.totals.remainingSec,
+                        0,
+                      ),
+                      hoursPerDay,
+                    ),
+                  )}{" "}
+                  days remaining
+                </>
+              }
+              actions={
+                <Button small variant="ghost" onClick={() => setView("issues")}>
+                  View issues
+                </Button>
+              }
+            />
+          )}
+
+          {status && (
+            <StatusPanel
+              status={status}
+              awaitingClose={awaitingClose}
+              pastInProgress={
+                (pastInProgress?.tasks ?? 0) > 0
+                  ? {
+                      checked: countPastInProgress,
+                      onChange: setCountPastInProgress,
+                    }
+                  : undefined
+              }
+              planStale={
+                planCheck && status.kind !== "no-baseline"
+                  ? planCheck
+                  : undefined
+              }
+              onOpenProject={
+                project ? () => navigate(`/project/${project.id}`) : undefined
+              }
+            >
+              {state.projects.length === 0 ? (
+                <p className="muted">
+                  Create a project first, then link it here.
+                </p>
+              ) : (
+                <p className="muted">
+                  Pick a baseline plan above to compare Jira with what you
+                  planned.
+                </p>
+              )}
+            </StatusPanel>
+          )}
+
+          {project && snapshot && (
+            <DeadlinesPanel
+              project={project}
+              deadlines={tracker.deadlines}
+              resolved={status?.deadlines ?? null}
+              measured={[
+                ...(status?.bySpecialization ?? []).map(
+                  (r) => r.specialization,
+                ),
+                ...specializations,
+              ]}
+              onChange={(next) => actions.setTrackerDeadlines(tracker.id, next)}
+            />
+          )}
+
+          {!snapshot && connected && (
+            <p className="muted">
+              Press Refresh to pull this initiative's epics and time tracking
+              from Jira.
+            </p>
+          )}
+        </>
       )}
+
+      {view === "issues" &&
+        (!snapshot ? (
+          noSnapshot
+        ) : !project ? (
+          noBaseline
+        ) : (
+          <>
+            {updates.length > 0 && (
+              <Callout
+                tone="info"
+                role="status"
+                actions={
+                  <Button small onClick={() => setEstimatesOpen(true)}>
+                    Review estimates…
+                  </Button>
+                }
+              >
+                {updates.length === 1
+                  ? "1 plan task has a different estimate in Jira."
+                  : `${updates.length} plan tasks have a different estimate in Jira.`}
+              </Callout>
+            )}
+            <TasksTable
+              snapshot={snapshot}
+              baseUrl={tracker.baseUrl}
+              project={project}
+              taskMap={effectiveTaskMap}
+              hoursPerDay={hoursPerDay}
+              onReviewEstimates={() => setEstimatesOpen(true)}
+              addedScope={effectiveAddedScope}
+              untrackedEpics={tracker.untrackedEpics}
+              niceToHaveEpics={tracker.niceToHaveEpics}
+              onSetEpicTracking={(epicKey, tracking) =>
+                actions.setTrackerEpicTracking(tracker.id, epicKey, tracking)
+              }
+              specializations={specializations}
+              teams={projectTeams}
+              taskTeams={taskTeams}
+              shownTeams={shownTeams}
+              onSetTaskTeam={(key, team) =>
+                actions.setTrackerTaskTeam(tracker.id, key, team)
+              }
+              onSetAddedScope={(key, specialization) => {
+                // Not a plan task, so name matching must never claim it.
+                actions.setTrackerTaskMap(tracker.id, {
+                  ...effectiveTaskMap,
+                  [key]: null,
+                });
+                actions.setTrackerAddedScope(tracker.id, {
+                  ...(effectiveAddedScope ?? {}),
+                  [key]: specialization,
+                });
+              }}
+            />
+          </>
+        ))}
+
+      {view === "forecast" &&
+        (!snapshot ? (
+          noSnapshot
+        ) : !project ? (
+          noBaseline
+        ) : (
+          <RemainingWorkPanel
+            tracker={tracker}
+            project={project}
+            teams={state.teams}
+            today={today}
+            status={status}
+          />
+        ))}
+
+      {view === "sprints" &&
+        (!snapshot ? (
+          noSnapshot
+        ) : (
+          <SprintSection
+            auto={
+              project && (
+                <AutoSprintPlanner
+                  tracker={tracker}
+                  project={project}
+                  teams={state.teams}
+                  today={today}
+                />
+              )
+            }
+          >
+            <SprintPlanner
+              tracker={tracker}
+              snapshot={snapshot}
+              project={project}
+              teams={state.teams}
+              hoursPerDay={hoursPerDay}
+              onChange={(draft) =>
+                actions.setTrackerSprintDraft(tracker.id, draft)
+              }
+              onApplied={(applied) =>
+                actions.markSprintItemsApplied(tracker.id, applied)
+              }
+            />
+          </SprintSection>
+        ))}
+
+      {view === "history" &&
+        (tracker.samples && tracker.samples.length > 0 ? (
+          <HistoryPanel samples={tracker.samples} />
+        ) : (
+          <EmptyState
+            title="No history yet"
+            message="Every refresh adds a reading here, so you can see whether the buffer is going faster this week than last."
+          />
+        ))}
 
       {project && (
         <EstimateUpdateModal
@@ -521,7 +632,7 @@ export function TrackerDetail() {
         settings={settings}
         transport={transport}
       />
-    </main>
+    </Page>
   );
 }
 

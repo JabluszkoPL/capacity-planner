@@ -32,7 +32,7 @@ it stay in sync on their own.
 | Remembered tag → specialization mappings    | Option B only                  |
 | "Allow Planner to write dates back to Jira" | Never. Switch it on yourself   |
 
-With option A or C you type the Jira connection into the app once (top bar →
+With option A or C you type the Jira connection into the app once (sidebar →
 **Jira**). That takes under a minute.
 
 ## Before you start
@@ -59,18 +59,19 @@ This works with every 0.1.x version and moves projects, teams and trackers in
 one go. Nothing is overwritten: the browser's data is merged into the app's
 row by row.
 
-1. In the Mac app, click the version in the top bar. Under **Sharing** it says
-   `http://localhost:5191`. If there is also a note that **another Planner
+1. In the Mac app, click **Settings** at the bottom of the sidebar and open
+   **Sync & sharing**. Under **Sharing** it says `http://localhost:5191`. If there is also a note that **another Planner
    server** is running on this port, see [Troubleshooting](#troubleshooting)
    first.
-2. In the **old browser page**, click the version in the top bar. The
-   **About Planner** window opens.
+2. In the **old browser page**, click the version in the top bar (0.2 and
+   newer: **Settings** at the bottom of the sidebar, then **Sync & sharing**).
+   The **About Planner** window opens.
 3. Under **Sync**, type `localhost:5191` into **Sync server** and click
    **Connect**. The page reloads.
 4. Open the window again. **Sync** should say _Connected and up to date_.
 5. Look in the Mac app: your projects, teams and trackers are there. Trackers
    keep their history.
-6. In the Mac app, click **Jira** in the top bar and enter your Jira site,
+6. In the Mac app, click **Jira** at the bottom of the sidebar and enter your Jira site,
    email and API token. Your trackers can refresh again.
 
 You can leave the browser page connected (it then stays in sync with the app)
@@ -106,14 +107,15 @@ the browser, not in the code.
 Then:
 
 1. In the **old browser page**, click the version in the top bar and scroll to
-   **Backup and transfer**.
+   **Backup and transfer** (0.2 and newer: **Settings** in the sidebar →
+   **Backup**).
 2. To bring the Jira API token, tick **Include the Jira API token**. Anyone
    holding the file can then use Jira as you, so treat the file like a
    password.
 3. Click **Export everything**. A file named `planner-backup-<date>.json` lands
    in your Downloads folder.
-4. In the **Mac app**, click the version in the top bar → **Backup and
-   transfer** → **Import backup…**, and pick that file.
+4. In the **Mac app**, click **Settings** in the sidebar → **Backup** →
+   **Import backup…**, and pick that file.
 5. Check the preview: it lists how many projects, teams and trackers will be
    added and which Jira account comes with it. Leave **Use its Jira
    connection** ticked, then click **Import**.
@@ -130,7 +132,7 @@ reach the app, for example when it is on another computer.
    click **Export _N_ projects**.
 2. Copy the file to the Mac if needed.
 3. In the Mac app: **Projects → Import…** and pick the file.
-4. Add the Jira connection in the top bar → **Jira**.
+4. Add the Jira connection: sidebar → **Jira**.
 
 Trackers come along as long as the **app** is 0.1.4 or newer. Older versions
 imported the projects but silently dropped the trackers.
@@ -142,7 +144,7 @@ imported the projects but silently dropped the trackers.
 - **Teams**: people, specializations and days off are as before.
 - **Tracking**: every tracker is listed, and its **History** still shows past
   readings.
-- **Jira**: the dot next to **Jira** in the top bar is green, and **Refresh**
+- **Jira**: the dot next to **Jira** in the sidebar is green, and **Refresh**
   on a tracker works.
 
 ## Troubleshooting

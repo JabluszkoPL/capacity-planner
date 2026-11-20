@@ -34,7 +34,8 @@ describe("GanttByPerson utilization", () => {
     const { container } = render(
       <GanttByPerson assignments={assignments} team={team} range={range} />,
     );
-    expect(screen.getByText("3d")).toBeInTheDocument();
+    // "3d" also labels the bar itself; the utilization row has its own.
+    expect(container.querySelector(".util-days")).toHaveTextContent("3d");
     const fill = container.querySelector(".util-bar-fg") as HTMLElement;
     expect(fill.style.width).toBe("30%");
   });

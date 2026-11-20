@@ -90,7 +90,12 @@ export function ImportProjectsButton() {
         hidden
         onChange={(e) => void handleFile(e.target.files?.[0])}
       />
-      <Button onClick={() => inputRef.current?.click()} disabled={busy}>
+      <Button
+        variant="ghost"
+        icon="upload"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+      >
         {busy ? "Importing…" : "Import…"}
       </Button>
     </>

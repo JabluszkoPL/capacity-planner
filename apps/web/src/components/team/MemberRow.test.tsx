@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import type { AppState } from "@planner/core";
+import { type AppState, toISO } from "@planner/core";
 import { AppStoreProvider, useAppStore } from "@planner/client-runtime";
 import { ConfirmProvider } from "../ui/ConfirmDialog";
-import { MemberChip } from "./MemberChip";
+import { MemberRow } from "./MemberRow";
 
 function baseState(): AppState {
   return {
@@ -28,7 +28,16 @@ function Harness() {
       <div data-testid="offday-keys">
         {Object.keys(state.teams[0].offDays).join(",")}
       </div>
-      {member && <MemberChip member={member} />}
+      {member && (
+        <table>
+          <tbody>
+            <MemberRow
+              member={member}
+              offDays={state.teams[0].offDays[member.id]}
+            />
+          </tbody>
+        </table>
+      )}
     </>
   );
 }
@@ -43,14 +52,28 @@ function renderChip(initial = baseState()) {
   );
 }
 
-describe("MemberChip", () => {
+describe("MemberRow", () => {
   beforeEach(() => localStorage.clear());
 
-  it("renders a colored swatch", () => {
+  it("renders an avatar tinted by specialization", () => {
     const { container } = renderChip();
-    const swatch = container.querySelector(".swatch") as HTMLElement;
-    expect(swatch).toBeTruthy();
-    expect(swatch.style.background).not.toBe("");
+    const avatar = container.querySelector(".avatar") as HTMLElement;
+    expect(avatar).toBeTruthy();
+    expect(avatar.textContent).toBe("A");
+    expect(avatar.style.getPropertyValue("--avatar")).not.toBe("");
+  });
+
+  it("shows the next upcoming day off", () => {
+    const soon = new Date();
+    soon.setDate(soon.getDate() + 3);
+    const iso = toISO(soon);
+    const state = baseState();
+    state.teams[0].offDays = { m1: ["2001-01-01", iso] };
+    renderChip(state);
+    const months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
+    expect(
+      screen.getByText(`${months[soon.getMonth()]} ${soon.getDate()}`),
+    ).toBeInTheDocument();
   });
 
   it("commits a renamed member on blur", () => {

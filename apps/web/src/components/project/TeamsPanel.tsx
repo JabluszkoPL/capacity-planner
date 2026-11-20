@@ -1,6 +1,9 @@
 import type { Project, Team } from "@planner/core";
 import { useAppStore } from "@planner/client-runtime";
 import { EmptyState } from "../ui/EmptyState";
+import { Panel } from "../ui/Panel";
+import { Badge } from "../ui/Badge";
+import { Icon } from "../ui/Icon";
 import "./project.css";
 
 interface TeamsPanelProps {
@@ -21,16 +24,11 @@ export function TeamsPanel({ project }: TeamsPanelProps) {
   const inclusions = project.teamInclusions;
 
   return (
-    <section className="helpers-panel">
-      <div className="section-head">
-        <h2 className="section-title">Teams on this project</h2>
-      </div>
-      <p className="muted helpers-intro">
-        Every team works the whole project by default. Turn a team off to
-        exclude it, or scope an included team to specific epics and/or a time
-        window.
-      </p>
-
+    <Panel
+      className="teams-panel"
+      title="Teams on this project"
+      subtitle="Every team works the whole project by default. Turn a team off to exclude it, or scope an included team to specific epics and/or a time window."
+    >
       {teams.length === 0 ? (
         <EmptyState
           compact
@@ -79,7 +77,7 @@ export function TeamsPanel({ project }: TeamsPanelProps) {
           })}
         </div>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -117,21 +115,45 @@ function TeamInclusionRow({
   const scoped = epicIds.length > 0;
   return (
     <div className={"team-inc-row" + (included ? "" : " excluded")}>
-      <label className="team-inc-head">
-        <input
-          type="checkbox"
-          checked={included}
-          onChange={onToggleIncluded}
-          aria-label={`Include ${team.name} in this project`}
-        />
-        <span className="team-inc-name">{team.name}</span>
-        <span className="muted">{team.members.length} members</span>
-      </label>
+      <div className="team-inc-top">
+        <label className="team-inc-head">
+          <input
+            type="checkbox"
+            checked={included}
+            onChange={onToggleIncluded}
+            aria-label={`Include ${team.name} in this project`}
+          />
+          <span className="team-inc-name">{team.name}</span>
+          <span className="muted">
+            {team.members.length} member
+            {team.members.length === 1 ? "" : "s"}
+          </span>
+        </label>
+        <span className="team-inc-badges">
+          {!included ? (
+            <Badge>Not on this project</Badge>
+          ) : (
+            <>
+              <Badge tone={scoped ? "accent" : "neutral"}>
+                {scoped
+                  ? `${epicIds.length} epic${epicIds.length === 1 ? "" : "s"}${exclusive ? ", reserved" : ""}`
+                  : "Any epic"}
+              </Badge>
+              {(availableFrom || availableTo) && (
+                <Badge tone="info" icon={<Icon name="calendar" size={12} />}>
+                  {availableFrom || "start"} to {availableTo || "end"}
+                </Badge>
+              )}
+              {velocity !== 1 && <Badge>{velocity}× velocity</Badge>}
+            </>
+          )}
+        </span>
+      </div>
 
       {included && (
         <div className="team-inc-config">
           <div className="epic-assign">
-            <span className="epic-assign-label">Epics:</span>
+            <span className="epic-assign-label">Epics</span>
             <div className="epic-assign-chips">
               {project.epics.length === 0 && (
                 <span className="muted">No epics yet</span>
@@ -171,7 +193,7 @@ function TeamInclusionRow({
           )}
 
           <div className="team-inc-window">
-            <span className="epic-assign-label">Time window:</span>
+            <span className="epic-assign-label">Time window</span>
             <label className="team-inc-date">
               From
               <input
@@ -202,7 +224,7 @@ function TeamInclusionRow({
           </div>
 
           <div className="team-inc-velocity">
-            <span className="epic-assign-label">Velocity:</span>
+            <span className="epic-assign-label">Velocity</span>
             <input
               type="number"
               min={0.1}

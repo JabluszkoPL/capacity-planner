@@ -180,6 +180,37 @@ describe("Tracking tab", () => {
     ).toBeInTheDocument();
   });
 
+  it("lists trackers in a portfolio table, with the add form on request", async () => {
+    const user = userEvent.setup();
+    const initial = state();
+    initial.trackers = [
+      {
+        id: "tr1",
+        name: "Season 4",
+        initiativeUrl: `${SITE}/browse/ACME-1`,
+        initiativeKey: "ACME-1",
+        baseUrl: SITE,
+      },
+    ];
+    renderTracking(initial);
+
+    const row = screen.getByRole("row", { name: /ACME-1/ });
+    expect(row).toHaveTextContent("Season 4");
+    expect(row).toHaveTextContent("No baseline plan");
+    expect(row).toHaveTextContent("Never refreshed");
+    // Not connected, so there is nothing to refresh with.
+    expect(screen.getByRole("button", { name: "Refresh all" })).toBeDisabled();
+
+    // The add form is put away until asked for, and Escape puts it back.
+    expect(screen.queryByLabelText("Initiative link or key")).toBeNull();
+    const add = screen.getByRole("button", { name: "Add tracker" });
+    await user.click(add);
+    expect(add).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("Initiative link or key")).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByLabelText("Initiative link or key")).toBeNull();
+  });
+
   it("creates a tracker from a pasted link and opens it", async () => {
     const user = userEvent.setup();
     renderTracking();
@@ -248,6 +279,7 @@ describe("Tracking tab", () => {
 
     // Epic names are irrelevant: the child task is matched by its own name.
     await user.selectOptions(screen.getByLabelText("Baseline plan"), "p1");
+    await user.click(screen.getByRole("link", { name: "Issues" }));
     await user.click(await screen.findByRole("button", { name: "Meta loop" }));
     await waitFor(() =>
       expect(
@@ -289,6 +321,8 @@ describe("Tracking tab", () => {
 
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(await screen.findByRole("button", { name: "Refresh" }));
+    // The mapping and its estimate offer live on the Issues view.
+    await user.click(screen.getByRole("link", { name: "Issues" }));
 
     await user.click(
       await screen.findByRole("button", { name: "Review estimates…" }),

@@ -15,6 +15,7 @@ import {
   type GanttRange,
   type GanttRow,
 } from "./DateGrid";
+import { Icon } from "../ui/Icon";
 
 interface GanttByEpicProps {
   assignments: Assignment[];
@@ -63,7 +64,11 @@ export function GanttByEpic({
             <span className="lbl-sub">
               {dates} · {plural(s.taskCount, "task")}
             </span>
-            {warning && <span className="lbl-sub lbl-warn">⚠ {warning}</span>}
+            {warning && (
+              <span className="lbl-sub lbl-warn">
+                <Icon name="alert" size={11} /> {warning}
+              </span>
+            )}
           </>
         ),
         bars: (
@@ -95,8 +100,9 @@ export function GanttByEpic({
     <DateGrid
       range={range}
       colWidth={COL_WIDTH}
-      labelWidth={220}
+      labelWidth={240}
       wideLabels
+      corner="Epic"
       rows={rows}
       markers={markers}
     />

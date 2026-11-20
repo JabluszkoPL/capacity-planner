@@ -44,7 +44,7 @@ describe("HelpersPanel", () => {
 
   it("rejects a blank name inline", () => {
     renderPanel();
-    fireEvent.click(screen.getByRole("button", { name: "+ Add helper" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add helper" }));
     expect(screen.getByRole("alert")).toHaveTextContent(/enter a name/i);
   });
 
@@ -59,7 +59,7 @@ describe("HelpersPanel", () => {
     fireEvent.change(screen.getByLabelText("Speed"), {
       target: { value: "0.6" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "+ Add helper" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add helper" }));
 
     expect(screen.getByDisplayValue("Contractor")).toBeInTheDocument();
     // The speed field in the row reflects the stored value.
@@ -71,7 +71,7 @@ describe("HelpersPanel", () => {
     fireEvent.change(screen.getByLabelText("Name"), {
       target: { value: "Contractor" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "+ Add helper" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add helper" }));
 
     fireEvent.change(screen.getByLabelText("Helper speed"), {
       target: { value: "0.8" },
@@ -87,7 +87,7 @@ describe("HelpersPanel", () => {
     fireEvent.change(screen.getByLabelText("Name"), {
       target: { value: "Contractor" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "+ Add helper" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add helper" }));
 
     // Cell starts at "None" and opens the manager.
     const cell = screen.getByRole("button", {
@@ -99,7 +99,7 @@ describe("HelpersPanel", () => {
     fireEvent.change(screen.getByLabelText("Off day"), {
       target: { value: "2026-12-25" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "+ Add day" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add day" }));
 
     // The count reflects the added day.
     expect(

@@ -15,6 +15,7 @@ import {
   BrowserWindow,
   dialog,
   ipcMain,
+  nativeTheme,
   session,
   shell,
   type Session,
@@ -164,7 +165,10 @@ function createWindow(): BrowserWindow {
           trafficLightPosition: { x: 14, y: 11 },
         }
       : {}),
-    backgroundColor: "#ffffff",
+    // The page's own background (styles/tokens.css), so the window never
+    // flashes the wrong colour before the first paint. Follows the OS; the
+    // app's own Light/Dark choice takes over once the page has loaded.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#1b1916" : "#f6f1e8",
     show: false,
     webPreferences: {
       preload: join(__dirname, "preload.cjs"),

@@ -1,11 +1,17 @@
 import { useState, type FormEvent } from "react";
 import { parseIssueLink } from "@planner/jira";
 import { Button } from "../ui/Button";
+import { Icon } from "../ui/Icon";
 
 interface AddTrackerFormProps {
   /** Used when the pasted text is a bare key with no site in it. */
   fallbackBaseUrl: string;
   onAdd: (link: { url: string; key: string; baseUrl: string }) => void;
+  id?: string;
+  /** Focus the link field on mount, when the form was opened on request. */
+  autoFocus?: boolean;
+  /** Offered as a Cancel button when the form can be put away. */
+  onCancel?: () => void;
 }
 
 /**
@@ -27,6 +33,9 @@ const MESSAGES: Record<string, string> = {
 export function AddTrackerForm({
   fallbackBaseUrl,
   onAdd,
+  id,
+  autoFocus = false,
+  onCancel,
 }: AddTrackerFormProps) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -46,8 +55,29 @@ export function AddTrackerForm({
   }
 
   return (
-    <form className="card add-tracker" onSubmit={submit}>
-      <h3 className="add-tracker-heading">Track a Jira initiative</h3>
+    <form
+      id={id}
+      className="panel add-tracker"
+      onSubmit={submit}
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && onCancel) {
+          e.preventDefault();
+          onCancel();
+        }
+      }}
+    >
+      <div className="add-tracker-head">
+        <span className="add-tracker-icon" aria-hidden="true">
+          <Icon name="jira" size={17} />
+        </span>
+        <div>
+          <h2 className="add-tracker-heading">Track a Jira initiative</h2>
+          <p className="muted">
+            Paste the initiative&apos;s link, then link it to the plan it should
+            be measured against.
+          </p>
+        </div>
+      </div>
       <div className="add-tracker-row">
         <div className="field grow">
           <label htmlFor="tracker-link">Initiative link or key</label>
@@ -58,12 +88,18 @@ export function AddTrackerForm({
             placeholder="https://your-company.atlassian.net/browse/ABC-123"
             aria-invalid={error !== null}
             aria-describedby={error ? "tracker-link-error" : undefined}
+            autoFocus={autoFocus}
             onChange={(e) => {
               setValue(e.target.value);
               if (error) setError(null);
             }}
           />
         </div>
+        {onCancel && (
+          <Button variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
         <Button type="submit" variant="primary" disabled={!value.trim()}>
           + Add tracker
         </Button>

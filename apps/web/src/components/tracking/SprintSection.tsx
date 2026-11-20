@@ -1,37 +1,48 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Button } from "../ui/Button";
+import { useState, type ReactNode } from "react";
+import { Segmented } from "../ui/Segmented";
+
+type Mode = "auto" | "manual";
 
 /**
- * Sprint planning, kept out of the way at the bottom of a tracker: one
- * button opens it and brings it into view, the same button closes it.
+ * The tracker's Sprints view: two ways to plan, one at a time. Automatic cuts
+ * the work left into sprints; Manual picks issues for one sprint by hand and
+ * can write their dates back to Jira. Without a baseline plan there is
+ * nothing for the automatic planner to lay out, so only Manual is shown.
  */
-export function SprintSection({ children }: { children: ReactNode }) {
-  const id = useId();
-  const [open, setOpen] = useState(false);
-  const body = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (open) body.current?.scrollIntoView?.({ block: "start" });
-  }, [open]);
+export function SprintSection({
+  auto,
+  children,
+}: {
+  /** The automatic planner; absent when it can't run (no baseline). */
+  auto?: ReactNode;
+  /** The manual planner. */
+  children: ReactNode;
+}) {
+  const [mode, setMode] = useState<Mode>("auto");
+  const shown: Mode = auto ? mode : "manual";
   return (
-    <section className="sprint-section" aria-labelledby={`${id}-title`}>
-      <div className="sprint-section-head">
-        <h2 id={`${id}-title`} className="section-title">
-          Sprint planning
-        </h2>
-        <Button
-          variant={open ? "secondary" : "primary"}
-          aria-expanded={open}
-          aria-controls={`${id}-body`}
-          onClick={() => setOpen(!open)}
-        >
-          {open ? "Hide sprint planning" : "Plan sprints"}
-        </Button>
-      </div>
-      {open && (
-        <div id={`${id}-body`} ref={body} className="sprint-section-body">
-          {children}
+    <section className="sprint-section" aria-label="Sprints">
+      {auto && (
+        <div className="sprint-section-head">
+          <Segmented<Mode>
+            label="How to plan sprints"
+            value={shown}
+            onChange={setMode}
+            options={[
+              { value: "auto", label: "Automatic" },
+              { value: "manual", label: "Manual" },
+            ]}
+          />
+          <span className="muted">
+            {shown === "auto"
+              ? "Cut the work left into sprints, laid out like the forecast."
+              : "Pick issues for one sprint, set their dates, and write them to Jira."}
+          </span>
         </div>
       )}
+      <div className="sprint-section-body">
+        {shown === "auto" ? auto : children}
+      </div>
     </section>
   );
 }

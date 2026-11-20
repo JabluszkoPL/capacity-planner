@@ -4,18 +4,18 @@
  * Shared by the team swatches (T08) and the schedule gantt bars (T10).
  */
 const PALETTE = [
-  "#4C6EF5",
-  "#12B886",
-  "#F59F00",
-  "#E64980",
-  "#7048E8",
-  "#15AABF",
-  "#FA5252",
-  "#82C91E",
-  "#FD7E14",
-  "#1098AD",
+  "#3F7D4E",
+  "#5B7FB8",
+  "#C98A2E",
+  "#B65A6E",
+  "#7D68B0",
+  "#3B8F8F",
+  "#C4553F",
+  "#8AA04A",
+  "#D07A3A",
+  "#4F86A0",
 ];
-const FALLBACK = "#9aa0ab";
+const FALLBACK = "#a59b8c";
 
 /**
  * Preset title colors for tagging a project as an "option" at a glance.

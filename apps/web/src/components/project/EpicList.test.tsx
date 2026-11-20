@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { AppState } from "@planner/core";
 import {
@@ -33,9 +33,9 @@ function stateWithEpics(names: string[]): AppState {
   };
 }
 
-function Harness() {
+function Harness({ onPaste }: { onPaste?: () => void }) {
   const { state } = useAppStore();
-  return <EpicList project={state.projects[0]} />;
+  return <EpicList project={state.projects[0]} onPaste={onPaste} />;
 }
 
 /**
@@ -44,13 +44,13 @@ function Harness() {
  * re-rendering. (`initial` on the provider is the "don't touch the store"
  * escape hatch, so the baseline has to be committed explicitly.)
  */
-async function renderList(initial: AppState) {
+async function renderList(initial: AppState, onPaste?: () => void) {
   const runtime = new PlannerRuntime({ store: createInMemoryLocalStore() });
   await runtime.commit({ projects: [], teams: [] }, initial);
   const result = render(
     <ConfirmProvider>
       <AppStoreProvider runtime={runtime} initial={initial}>
-        <Harness />
+        <Harness onPaste={onPaste} />
       </AppStoreProvider>
     </ConfirmProvider>,
   );
@@ -70,10 +70,10 @@ describe("EpicList", () => {
     expect(screen.getByText("No epics yet")).toBeInTheDocument();
   });
 
-  it("adds an epic via '+ Add epic'", async () => {
+  it("adds an epic via 'Add epic'", async () => {
     await renderList(stateWithEpics(["E1"]));
     expect(epicNames()).toEqual(["E1"]);
-    fireEvent.click(screen.getByRole("button", { name: "+ Add epic" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add epic" }));
     expect(epicNames()).toEqual(["E1", "New epic"]);
   });
 
@@ -93,5 +93,18 @@ describe("EpicList", () => {
         "E1",
       ]);
     });
+  });
+
+  it("offers 'Paste from Sheets' in the toolbar only when it can open it", async () => {
+    const onPaste = vi.fn();
+    const { unmount } = await renderList(stateWithEpics(["E1"]));
+    expect(
+      screen.queryByRole("button", { name: "Paste from Sheets" }),
+    ).toBeNull();
+    unmount();
+
+    await renderList(stateWithEpics(["E1"]), onPaste);
+    fireEvent.click(screen.getByRole("button", { name: "Paste from Sheets" }));
+    expect(onPaste).toHaveBeenCalledTimes(1);
   });
 });

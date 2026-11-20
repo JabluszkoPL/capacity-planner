@@ -9,6 +9,9 @@ import {
 import { useAppStore } from "@planner/client-runtime";
 import { EmptyState } from "../ui/EmptyState";
 import { Button } from "../ui/Button";
+import { Panel } from "../ui/Panel";
+import { Avatar } from "../ui/IconTile";
+import { Icon } from "../ui/Icon";
 import {
   addDays,
   diffDays,
@@ -18,38 +21,45 @@ import {
   toISO,
   todayISO,
   colorFor,
-  allMembers,
   mergedOffDays,
 } from "@planner/core";
 
 const GRID_DAYS = 371; // 53 weeks (~1 year) forward, whole weeks from Monday
+const WEEKS = GRID_DAYS / 7;
 
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
+const MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
+const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
-function dayLabel(d: Date): string {
-  // Show the month on the 1st and on Mondays, otherwise just the date.
-  return d.getDate() === 1 || d.getDay() === 1
-    ? MONTHS[d.getMonth()] + " " + d.getDate()
-    : String(d.getDate());
+/** "Nov 16 – 22", or "Nov 30 – Dec 6" across a month boundary. */
+function weekLabel(start: Date, end: Date): string {
+  const from = MONTHS[start.getMonth()] + " " + start.getDate();
+  const to =
+    start.getMonth() === end.getMonth()
+      ? String(end.getDate())
+      : MONTHS[end.getMonth()] + " " + end.getDate();
+  return `${from} – ${to}`;
 }
 
-export function AvailabilityGrid() {
+interface AvailabilityGridProps {
+  /** Show only this team. Absent = every team. */
+  teamId?: string;
+}
+
+/**
+ * Days off for everyone, a year ahead: a week band and a day row above each
+ * team, one row of day cells per person, and a row counting who is available
+ * each working day. Click a day to toggle it, drag along a row to paint
+ * several, or Tab to a day and press Enter/Space.
+ */
+export function AvailabilityGrid({ teamId }: AvailabilityGridProps = {}) {
   const { state, actions } = useAppStore();
-  const members = allMembers(state.teams);
   const offDays = mergedOffDays(state.teams);
+
+  // Only teams that actually have people to show. Members are grouped under
+  // their team so each roster reads as its own block.
+  const shownTeams = state.teams.filter(
+    (t) => t.members.length > 0 && (!teamId || t.id === teamId),
+  );
 
   // Grid normally opens on the current week, but a custom start date lets you
   // scroll the timeline back (or forward) to mark off-days for a period
@@ -66,6 +76,7 @@ export function AvailabilityGrid() {
     );
     return { dates: ds, todayIndex: diffDays(gridStart, today) };
   }, [startOverride]);
+  const isos = useMemo(() => dates.map(toISO), [dates]);
 
   // A paint stroke's state lives in a ref so it survives the re-renders that
   // each toggle triggers, and never itself causes a re-render.
@@ -109,63 +120,68 @@ export function AvailabilityGrid() {
     actions.toggleOffDay(memberId, iso);
   };
 
-  if (members.length === 0) {
+  const controls = (
+    <div className="offgrid-controls">
+      <label htmlFor="offgrid-start">Start date</label>
+      <input
+        id="offgrid-start"
+        type="date"
+        value={startOverride ?? todayISO()}
+        onChange={(e) => setStartOverride(e.target.value)}
+      />
+      {startOverride && (
+        <Button small onClick={() => setStartOverride(null)}>
+          Jump to today
+        </Button>
+      )}
+    </div>
+  );
+
+  if (shownTeams.length === 0) {
     return (
-      <div className="card">
-        <h3 className="team-heading">Availability</h3>
+      <Panel
+        title="Availability"
+        icon={<Icon name="calendar" size={18} />}
+        className="availability-panel"
+      >
         <EmptyState
           compact
           title="No availability to show"
           message="Add team members above to mark their days off."
         />
-      </div>
+      </Panel>
     );
   }
 
-  // Only teams that actually have people to show. Members are grouped under
-  // their team so each roster reads as its own block.
-  const shownTeams = state.teams.filter((t) => t.members.length > 0);
-
-  const dayColumns = `repeat(${GRID_DAYS}, 26px)`;
+  const dayColumns = `repeat(${GRID_DAYS}, var(--offgrid-col-w))`;
 
   // Both the frozen column and the timeline are independent grids, so they
   // can't share row sizing implicitly. We build one explicit row template and
   // apply it to both so every row lines up exactly. Each team block is a
-  // spacer (except the first), a repeated date-label header, a team-name row,
-  // and a row per member — the date header repeats above every team so the
-  // dates stay visible however far down you scroll.
+  // spacer (except the first), a week band, a day row, a row per member and a
+  // totals row; the dates repeat above every team so they stay visible
+  // however far down you scroll.
   const rowTemplate = shownTeams
     .flatMap((t, ti) => [
       ...(ti > 0 ? ["var(--offgrid-gap-h)"] : []),
+      "var(--offgrid-week-h)",
       "var(--offgrid-head-h)",
-      "var(--offgrid-team-h)",
       ...t.members.map(() => "var(--offgrid-row-h)"),
+      "var(--offgrid-total-h)",
     ])
     .join(" ");
 
+  const todayWeek = Math.floor(todayIndex / 7);
+
   return (
-    <div className="card">
-      <h3 className="team-heading">Availability</h3>
-      <p className="offgrid-hint">
-        Click a day to toggle it, or drag across a row to paint several days off
-        at once. Weekends are greyed out.
-      </p>
-      <div className="offgrid-controls">
-        <div className="field">
-          <label htmlFor="offgrid-start">Start date</label>
-          <input
-            id="offgrid-start"
-            type="date"
-            value={startOverride ?? todayISO()}
-            onChange={(e) => setStartOverride(e.target.value)}
-          />
-        </div>
-        {startOverride && (
-          <Button small onClick={() => setStartOverride(null)}>
-            Jump to today
-          </Button>
-        )}
-      </div>
+    <Panel
+      title="Availability"
+      subtitle="Click a day to toggle it, or drag across a row to paint several days off at once. Weekends are greyed out."
+      icon={<Icon name="calendar" size={18} />}
+      actions={controls}
+      className="availability-panel"
+      flush
+    >
       <div className="grid-scroll">
         {/* Frozen member column. Kept as its own sticky sub-grid rather than a
             sticky first column inside the timeline grid: a sticky grid *item*
@@ -181,24 +197,25 @@ export function AvailabilityGrid() {
           {shownTeams.map((t, ti) => (
             <Fragment key={t.id}>
               {ti > 0 && <div className="offgrid-gap" />}
-              <div className="offgrid-corner">Member</div>
               <div className="offgrid-teamname">
-                {t.name}
+                <span className="offgrid-teamname-text">{t.name}</span>
                 <span className="offgrid-teamcount">{t.members.length}</span>
               </div>
+              <div className="offgrid-corner">Person</div>
               {t.members.map((m) => (
-                <div
-                  key={m.id}
-                  className="offgrid-member"
-                  style={{
-                    borderLeft: `4px solid ${colorFor(m.specialization)}`,
-                  }}
-                >
-                  {m.name}
-                  <br />
-                  <span className="spec-tag">{m.specialization || "—"}</span>
+                <div key={m.id} className="offgrid-member">
+                  <Avatar
+                    name={m.name}
+                    color={colorFor(m.specialization)}
+                    size="sm"
+                  />
+                  <span className="offgrid-member-text">
+                    <span className="offgrid-member-name">{m.name}</span>
+                    <span className="spec-tag">{m.specialization || "—"}</span>
+                  </span>
                 </div>
               ))}
+              <div className="offgrid-total-label">Available</div>
             </Fragment>
           ))}
         </div>
@@ -213,12 +230,20 @@ export function AvailabilityGrid() {
           role="grid"
           aria-label="Team availability, next 12 months"
         >
-          {/* One block per team: the date-label header (repeated above every
-              team so the dates stay in view), a full-width band marking the
-              team boundary, then one row of day cells per member. */}
           {shownTeams.map((t, ti) => (
             <Fragment key={t.id}>
               {ti > 0 && <div className="offgrid-gap-band" />}
+              {Array.from({ length: WEEKS }, (_, w) => (
+                <div
+                  key={"w" + w}
+                  className={
+                    "offgrid-week" + (w === todayWeek ? " current" : "")
+                  }
+                  aria-hidden="true"
+                >
+                  {weekLabel(dates[w * 7]!, dates[w * 7 + 6]!)}
+                </div>
+              ))}
               {dates.map((d, i) => (
                 <div
                   key={"h" + i}
@@ -227,11 +252,14 @@ export function AvailabilityGrid() {
                     (isWeekend(d) ? " weekend" : "") +
                     (i === todayIndex ? " today" : "")
                   }
+                  aria-hidden="true"
                 >
-                  {dayLabel(d)}
+                  <span className="offgrid-weekday">
+                    {WEEKDAYS[d.getDay()]}
+                  </span>
+                  {d.getDate()}
                 </div>
               ))}
-              <div className="offgrid-team-band" />
               {t.members.map((m) => (
                 <MemberRow
                   key={m.id}
@@ -245,11 +273,60 @@ export function AvailabilityGrid() {
                   onCellToggle={toggleCell}
                 />
               ))}
+              {dates.map((d, i) => {
+                if (isWeekend(d)) {
+                  return (
+                    <div
+                      key={"t" + i}
+                      className="offgrid-total weekend"
+                      aria-hidden="true"
+                    />
+                  );
+                }
+                const total = t.members.length;
+                const free = t.members.filter(
+                  (m) => !isOff(m.id, isos[i]!),
+                ).length;
+                return (
+                  <div
+                    key={"t" + i}
+                    className={
+                      "offgrid-total" +
+                      (free < total ? " short" : "") +
+                      (i === todayIndex ? " today" : "")
+                    }
+                    title={`${t.name} · ${isos[i]}: ${free} of ${total} available`}
+                    aria-hidden="true"
+                  >
+                    {free}
+                  </div>
+                );
+              })}
             </Fragment>
           ))}
         </div>
       </div>
-    </div>
+      <div className="offgrid-legend" aria-hidden="true">
+        <span className="offgrid-legend-item">
+          <span className="offgrid-swatch off">
+            <Icon name="calendar" size={10} />
+          </span>
+          Day off
+        </span>
+        <span className="offgrid-legend-item">
+          <span className="offgrid-swatch weekend" />
+          Weekend
+        </span>
+        <span className="offgrid-legend-item">
+          <span className="offgrid-swatch today" />
+          Today
+        </span>
+        <span className="offgrid-legend-item">
+          <span className="offgrid-swatch total" />
+          Not everyone available
+        </span>
+      </div>
+    </Panel>
   );
 }
 
@@ -290,7 +367,8 @@ function MemberRow({
           "day-cell" +
           (weekend ? " weekend" : "") +
           (off ? " off" : "") +
-          (i === todayIndex ? " today" : "");
+          (i === todayIndex ? " today" : "") +
+          (d.getDay() === 1 ? " week-start" : "");
         return (
           <div
             key={iso}
@@ -314,7 +392,9 @@ function MemberRow({
             }
             onMouseOver={weekend ? undefined : () => onCellOver(memberId, iso)}
             onKeyDown={weekend ? undefined : (e) => onCellKeyDown(e, iso)}
-          />
+          >
+            {off && <Icon name="calendar" size={11} />}
+          </div>
         );
       })}
     </>

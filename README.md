@@ -26,7 +26,7 @@ drag Planner into Applications, and allow it once in System Settings → Privacy
 & Security (the build isn't notarized yet — [details](apps/desktop/FOR-TESTERS.md)).
 
 From then on it **updates itself**: when a new release is published, the
-version in the top bar turns into "Update to …", and one click downloads,
+version next to **Settings** in the sidebar turns into "Update to …", and one click downloads,
 verifies and installs it.
 
 ## Same data in the app and in a browser
@@ -34,8 +34,8 @@ verifies and installs it.
 While the Mac app is open, open <http://localhost:5191> in any browser on the
 same Mac — it's the same app on the same data, kept in step live. For several
 machines, run `pnpm serve` on one of them and open `http://<that-machine>:5191`
-everywhere. Any browser can also be pointed at a server from the app: click the
-version in the top bar → **Sync**. More in [docs/SYNC.md](docs/SYNC.md).
+everywhere. Any browser can also be pointed at a server from the app: click
+**Settings** in the sidebar → **Sync & sharing**. More in [docs/SYNC.md](docs/SYNC.md).
 
 Used Planner in a browser before and want it all in the Mac app? Follow
 [docs/MOVING_TO_THE_MAC_APP.md](docs/MOVING_TO_THE_MAC_APP.md).

@@ -5,6 +5,7 @@ import { useAppStore } from "@planner/client-runtime";
 import { useConfirm } from "../ui/ConfirmDialog";
 import { Button } from "../ui/Button";
 import { IconButton } from "../ui/IconButton";
+import { Icon } from "../ui/Icon";
 
 import { TaskRow } from "./TaskRow";
 
@@ -64,6 +65,7 @@ export function EpicCard({
   };
 
   const activeTasks = epic.tasks.filter((t) => !t.excluded);
+  const skipped = epic.tasks.length - activeTasks.length;
   const totalDays = activeTasks.reduce(
     (sum, t) => sum + (Number(t.estimateDays) || 0),
     0,
@@ -76,6 +78,14 @@ export function EpicCard({
     }
   };
 
+  const addTask = () =>
+    actions.addTask(projectId, epic.id, {
+      name: "New task",
+      estimateDays: 1,
+      specialization: "",
+      excluded: false,
+    });
+
   const handleDelete = async () => {
     const ok = await confirm({
       title: "Delete epic",
@@ -87,9 +97,10 @@ export function EpicCard({
   };
 
   return (
-    <div className="epic-card">
+    <div className={"epic-card" + (collapsed ? " collapsed" : "")}>
       <div className="epic-header">
         <IconButton
+          className="epic-toggle"
           label={
             collapsed
               ? `Expand epic ${epic.name}`
@@ -98,24 +109,8 @@ export function EpicCard({
           aria-expanded={!collapsed}
           onClick={onToggleCollapse}
         >
-          {collapsed ? "▸" : "▾"}
+          <Icon name={collapsed ? "chevronRight" : "chevronDown"} size={16} />
         </IconButton>
-        <div className="epic-order-btns">
-          <IconButton
-            label="Move epic up"
-            disabled={isFirst}
-            onClick={() => actions.reorderEpic(projectId, epic.id, -1)}
-          >
-            ▲
-          </IconButton>
-          <IconButton
-            label="Move epic down"
-            disabled={isLast}
-            onClick={() => actions.reorderEpic(projectId, epic.id, 1)}
-          >
-            ▼
-          </IconButton>
-        </div>
         <input
           type="text"
           className="epic-name"
@@ -126,33 +121,48 @@ export function EpicCard({
           onKeyDown={onNameKey}
         />
         <span className="epic-meta">
-          {activeTasks.length} tasks · {totalDays}d
+          {activeTasks.length} task{activeTasks.length === 1 ? "" : "s"}
+          {skipped > 0 && ` · ${skipped} skipped`}
         </span>
-        <Button
-          small
-          onClick={() =>
-            actions.addTask(projectId, epic.id, {
-              name: "New task",
-              estimateDays: 1,
-              specialization: "",
-              excluded: false,
-            })
-          }
-        >
-          + Task
-        </Button>
-        <IconButton
-          danger
-          label={`Delete epic ${epic.name}`}
-          onClick={handleDelete}
-        >
-          ✕
-        </IconButton>
+        <span className="epic-days">{totalDays} days</span>
+        <span className="spacer" />
+        <div className="epic-tools">
+          <Button
+            small
+            variant="ghost"
+            icon="plus"
+            aria-label={`Add task to ${epic.name}`}
+            onClick={addTask}
+          >
+            Task
+          </Button>
+          <IconButton
+            label="Move epic up"
+            disabled={isFirst}
+            onClick={() => actions.reorderEpic(projectId, epic.id, -1)}
+          >
+            <Icon name="chevronDown" size={15} className="icon-flip" />
+          </IconButton>
+          <IconButton
+            label="Move epic down"
+            disabled={isLast}
+            onClick={() => actions.reorderEpic(projectId, epic.id, 1)}
+          >
+            <Icon name="chevronDown" size={15} />
+          </IconButton>
+          <IconButton
+            danger
+            label={`Delete epic ${epic.name}`}
+            onClick={handleDelete}
+          >
+            <Icon name="trash" size={15} />
+          </IconButton>
+        </div>
       </div>
 
       {!collapsed && members.length > 0 && (
         <div className="epic-assign">
-          <span className="epic-assign-label">Assigned to:</span>
+          <span className="epic-assign-label">Assigned to</span>
           <div className="epic-assign-chips">
             {members.map((m) => {
               const on = assignedIds.includes(m.id);
@@ -189,7 +199,7 @@ export function EpicCard({
 
       {!collapsed && otherEpics.length > 0 && (
         <div className="epic-assign epic-deps">
-          <span className="epic-assign-label">Depends on:</span>
+          <span className="epic-assign-label">Depends on</span>
           <div className="epic-assign-chips">
             {otherEpics.map((e) => {
               const on = epicDeps.includes(e.id);
@@ -219,16 +229,20 @@ export function EpicCard({
 
       {collapsed ? null : epic.tasks.length > 0 ? (
         <div className="task-table-scroll">
-          <table className="task-table">
+          <table className="task-table" aria-label={`Tasks in ${epic.name}`}>
             <thead>
               <tr>
-                <th className="col-order" />
+                <th className="col-order">
+                  <span className="pd-sr-only">Order</span>
+                </th>
                 <th>Task</th>
-                <th className="col-est">Est. (days)</th>
+                <th className="col-est">Days</th>
                 <th className="col-spec">Specialization</th>
                 <th className="col-deps">Depends on</th>
-                <th className="col-status">Status</th>
-                <th className="col-del" />
+                <th className="col-status">Included</th>
+                <th className="col-del">
+                  <span className="pd-sr-only">Delete</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -252,25 +266,17 @@ export function EpicCard({
               ))}
             </tbody>
           </table>
-          <div className="epic-add-task-row">
-            <IconButton
-              label="Add task"
-              onClick={() =>
-                actions.addTask(projectId, epic.id, {
-                  name: "New task",
-                  estimateDays: 1,
-                  specialization: "",
-                  excluded: false,
-                })
-              }
-            >
-              +
-            </IconButton>
-          </div>
+          <button type="button" className="epic-add-task" onClick={addTask}>
+            <Icon name="plus" size={14} />
+            Add task
+          </button>
         </div>
       ) : (
         <div className="epic-empty">
-          No tasks yet. Click "+ Task" or paste from Sheets.
+          No tasks yet. Add one, or paste rows from Sheets.
+          <Button small icon="plus" onClick={addTask}>
+            Add task
+          </Button>
         </div>
       )}
     </div>

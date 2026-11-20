@@ -13,6 +13,13 @@ interface DeadlinesPanelProps {
   deadlines: TrackerDeadlines | undefined;
   /** The same with the plan's dates filled in, from the current status. */
   resolved: ResolvedDeadlines | null;
+  /**
+   * Specializations the tracker measures beyond the plan's own tasks: those in
+   * the current reading (Jira work added as scope counts) and the project's
+   * people. Without them a baseline whose work all arrives from Jira would
+   * offer nothing to pick.
+   */
+  measured?: string[];
   onChange: (next: TrackerDeadlines) => void;
 }
 
@@ -27,15 +34,21 @@ export function DeadlinesPanel({
   project,
   deadlines,
   resolved,
+  measured = [],
   onChange,
 }: DeadlinesPanelProps) {
   const id = useId();
   const current = deadlines ?? {};
   const endPhase = current.endPhase ?? [];
+  // The plan's own first, then whatever else the tracker measures, then any
+  // end-phase entry nothing else names any more, so it can still be ticked
+  // back. Matched exactly, as the status matches them.
   const specs = [
-    ...new Set(
-      project.epics.flatMap((e) => e.tasks.map((t) => t.specialization)),
-    ),
+    ...new Set([
+      ...project.epics.flatMap((e) => e.tasks.map((t) => t.specialization)),
+      ...measured,
+      ...endPhase,
+    ]),
   ].filter(Boolean);
   const development = specs.filter((s) => !endPhase.includes(s));
   const suggested = suggestedEndPhase(project).filter(
@@ -45,8 +58,11 @@ export function DeadlinesPanel({
     onChange({ ...current, ...patch });
 
   return (
-    <section className="deadlines-panel" aria-labelledby={`${id}-title`}>
-      <h2 className="section-title" id={`${id}-title`}>
+    <section
+      className="panel tracking-panel deadlines-panel"
+      aria-labelledby={`${id}-title`}
+    >
+      <h2 className="panel-title" id={`${id}-title`}>
         Deadlines
       </h2>
       <p className="muted deadlines-intro">

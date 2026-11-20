@@ -4,23 +4,28 @@ import { useAppStore } from "@planner/client-runtime";
 
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
+import { Panel } from "../ui/Panel";
 import { EpicCard } from "./EpicCard";
 import "./project.css";
 
 interface EpicListProps {
   project: Project;
+  /** Opens the paste-from-Sheets import; the toolbar shows a button for it. */
+  onPaste?: () => void;
 }
 
-export function EpicList({ project }: EpicListProps) {
+/**
+ * The epic/task editor: a toolbar, then each epic as a collapsible group with
+ * its tasks in a table underneath.
+ */
+export function EpicList({ project, onPaste }: EpicListProps) {
   const { actions } = useAppStore();
 
   // Local UI state: which epics are collapsed (task table hidden). Not
   // persisted — collapsing is a viewing convenience, not part of the plan.
-  // Epics start collapsed so the page opens as a compact overview; newly
-  // added epics aren't in the set, so they appear expanded and ready to edit.
-  const [collapsed, setCollapsed] = useState<Set<string>>(
-    () => new Set(project.epics.map((e) => e.id)),
-  );
+  // Epics start expanded: this list has a view of its own, so there is room
+  // to show every task. "Collapse all" folds them for an overview.
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
 
   // Auto-expand an epic when tasks appear in it while it's collapsed. A
   // collapsed epic hides its task table, so the only way it can gain tasks is
@@ -62,39 +67,74 @@ export function EpicList({ project }: EpicListProps) {
   const toggleAll = () =>
     setCollapsed(allCollapsed ? new Set() : new Set(epicIds));
 
+  const taskCount = project.epics.reduce((n, e) => n + e.tasks.length, 0);
+  const totalDays = project.epics.reduce(
+    (sum, e) =>
+      sum +
+      e.tasks
+        .filter((t) => !t.excluded)
+        .reduce((d, t) => d + (Number(t.estimateDays) || 0), 0),
+    0,
+  );
+
   return (
-    <section className="epic-list">
-      <div className="section-head">
-        <h2 className="section-title">Epics &amp; Tasks</h2>
+    <Panel
+      className="epic-list"
+      flush
+      title="Epics & Tasks"
+      subtitle={
+        project.epics.length > 0
+          ? `${project.epics.length} epic${project.epics.length === 1 ? "" : "s"} · ${taskCount} task${taskCount === 1 ? "" : "s"} · ${totalDays} days planned`
+          : undefined
+      }
+    >
+      <div className="epic-toolbar toolbar">
+        <Button
+          variant="primary"
+          small
+          icon="plus"
+          onClick={() => actions.addEpic(project.id, "New epic")}
+        >
+          Add epic
+        </Button>
+        {onPaste && (
+          <Button small icon="clipboard" onClick={onPaste}>
+            Paste from Sheets
+          </Button>
+        )}
         <span className="spacer" />
         {project.epics.length > 0 && (
-          <Button small onClick={toggleAll}>
+          <Button
+            small
+            variant="ghost"
+            icon={allCollapsed ? "chevronDown" : "chevronRight"}
+            onClick={toggleAll}
+          >
             {allCollapsed ? "Expand all" : "Collapse all"}
           </Button>
         )}
-        <Button small onClick={() => actions.addEpic(project.id, "New epic")}>
-          + Add epic
-        </Button>
       </div>
 
       {project.epics.length > 0 ? (
-        project.epics.map((epic, i) => (
-          <EpicCard
-            key={epic.id}
-            projectId={project.id}
-            epic={epic}
-            isFirst={i === 0}
-            isLast={i === project.epics.length - 1}
-            collapsed={collapsed.has(epic.id)}
-            onToggleCollapse={() => toggleEpic(epic.id)}
-          />
-        ))
+        <div className="epic-groups">
+          {project.epics.map((epic, i) => (
+            <EpicCard
+              key={epic.id}
+              projectId={project.id}
+              epic={epic}
+              isFirst={i === 0}
+              isLast={i === project.epics.length - 1}
+              collapsed={collapsed.has(epic.id)}
+              onToggleCollapse={() => toggleEpic(epic.id)}
+            />
+          ))}
+        </div>
       ) : (
         <EmptyState
           title="No epics yet"
           message="Add an epic to start breaking this project down into tasks."
         />
       )}
-    </section>
+    </Panel>
   );
 }

@@ -98,10 +98,13 @@ export function AutoSprintPlanner({
   const last = result?.sprints.sprints.at(-1);
 
   return (
-    <section className="sprint-auto" aria-labelledby={`${id}-title`}>
-      <h3 id={`${id}-title`} className="section-title">
+    <section
+      className="panel tracking-panel sprint-auto"
+      aria-labelledby={`${id}-title`}
+    >
+      <h2 id={`${id}-title`} className="panel-title">
         Plan sprints automatically
-      </h3>
+      </h2>
       <p className="muted">
         Lays the work left out sprint by sprint, the same way as{" "}
         <strong>Work left, by person</strong>: Jira's assignees first, low

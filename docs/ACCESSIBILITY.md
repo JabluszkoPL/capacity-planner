@@ -9,28 +9,52 @@ reachable via `Tab` / `Shift+Tab`, and shows a visible focus ring
 ## Global
 
 - **Tab / Shift+Tab** — move forward / backward through every control.
-- **Header nav** — `Projects` and `Team` are links; `Enter` activates.
-- **Modals** (Paste import, Confirm dialog) — open with focus moved into the
-  panel; `Esc` closes; `Tab` cycles the controls; on close, focus returns to the
-  element that opened it. A backdrop click also closes, but a click on content
-  inside the panel does not.
+- **Sidebar** — `Projects`, `Teams` and `Tracking` are links (the current
+  one has `aria-current="page"`). At the bottom: the sync status (text, not
+  just a dot), **Jira** and **Settings** buttons.
+- **View tabs** — a project or a tracker shows its views as a row of links
+  under the page header, in a labelled `nav` ("Project views" / "Tracker
+  views"); the current one has `aria-current="page"`. Each view has its own
+  URL (`?view=`).
+- **Modals** (New project, Paste import, Confirm dialog, Settings…) — open with
+  focus moved into the panel; `Esc` closes; `Tab` cycles the controls; on
+  close, focus returns to the element that opened it. A backdrop click also
+  closes, but a click on content inside the panel does not. Every modal also
+  has a corner **Close dialog** button, last in the tab order.
+- **Theme** — Settings → General → Appearance: System (follows the device's
+  light/dark setting), Light or Dark. In both palettes body text, muted
+  text, links, primary-button labels and the warning/danger strips meet WCAG
+  AA (4.5:1) on their backgrounds.
+- **Segmented toggles** (Person / Task / Epic, Balanced / Smart) are
+  radiogroups: one tab stop, **Arrow keys** move and select.
 - **Toasts** — announced via `role="status"` / `aria-live="polite"`.
 
 ## Projects dashboard (`/`)
 
-1. Tab to **Name**, type; Tab to **Start date**; **Enter** (or Tab to the
-   button and Enter) creates the project and navigates into it.
-2. Each project card: the **title** is a `role="button"` (Enter/Space opens),
-   then **Open**, **Copy**, **Delete**. Delete opens the confirm dialog.
-3. Empty roster shows a written empty state, never a blank area.
+1. **New project** in the page header opens a modal with focus in **Name**;
+   Tab to **Start date**; **Enter** (or **Create project**) creates the project
+   and navigates into it.
+2. A **Search projects** box and, with several teams, a team filter narrow the
+   cards; **Clear filters** appears when nothing matches.
+3. Each project card: the **title** is a `role="button"` (Enter/Space opens),
+   then **Open**, **Copy**, **Export {name}** and **Delete {name}**. Delete
+   opens the confirm dialog.
+4. Empty roster shows a written empty state, never a blank area.
 
 ## Project detail (`/project/:id`)
 
-- **Project name** and **Start date** at the top; name commits on blur/Enter.
-- **Paste from Sheets** opens the import modal (target-epic `select`, textarea,
-  Cancel/Import — all tabbable; Esc cancels).
-- **Epics & Tasks**: `+ Add epic`; per epic the ▲/▼ reorder buttons, the
-  inline **Epic name**, `+ Task`, and delete (confirm). Per task row: ▲/▼,
+The page is split into views, picked from the tabs under its header:
+Overview, Epics & tasks, Teams & people, Plan & timeline, Settings.
+
+- **Project name** is edited in place in the Overview header and under
+  Settings; it commits on blur/Enter. **Start date**, the **Project accent**
+  swatches (`aria-pressed`) and the comment are under Settings.
+- **Paste from Sheets** (Epics & tasks) opens the import modal (target-epic
+  `select`, textarea, a read-only parsed preview, Cancel/Import — all
+  tabbable; Esc cancels).
+- **Epics & Tasks**: **Add epic**, **Expand all / Collapse all**; per epic the
+  ▲/▼ reorder buttons, the inline **Epic name**, **Add task to {epic}**, and
+  delete (confirm). Per task row: ▲/▼,
   **Task name**, **Estimate**, **Specialization**, the
   Included/Skipped chip (`aria-pressed`, Space toggles), and delete.
   All text fields commit on **blur** or **Enter** — typing never loses focus.
@@ -38,14 +62,15 @@ reachable via `Tab` / `Shift+Tab`, and shows a visible focus ring
   **ArrowDown** opens every specialization held by the project's selected teams
   (all teams when none is selected), typing filters, **ArrowUp/ArrowDown** move,
   **Enter** picks, **Esc** closes the list. Any other value can still be typed.
-- **Run plan**: the **Run Plan** button; the **Grid by Person / Grid by Task**
-  segmented toggle (`aria-pressed`); the assignments table.
+- **Plan & timeline**: the planning mode (Balanced / Smart radiogroup), the
+  sliders, the **Run plan** button; the **Person / Task / Epic** radiogroup
+  over the timeline; the assignments table.
 
-## Team (`/team`)
+## Teams (`/team`)
 
-- Each member chip: **name** and **specialization** inputs (commit on
+- Each roster row: **name** and **specialization** inputs (commit on
   blur/Enter) and a **Remove** button (confirm; also clears their off-days).
-- **Add member** form: blank name is rejected inline via `role="alert"`.
+- **Add person** form: blank name is rejected inline via `role="alert"`.
 - **Availability grid**: weekday cells are focusable (`tabIndex=0`,
   `aria-pressed` reflects off/on). **Enter/Space** toggles the focused day.
   Mouse users can also click a day or click-drag across a row to paint several
@@ -59,7 +84,14 @@ reachable via `Tab` / `Shift+Tab`, and shows a visible focus ring
   **ArrowUp/ArrowDown** move, **Enter** picks, **Esc** closes the list.
   Leaving the field without picking keeps the current mapping.
 
-## About panel - AI assistants (Mac app)
+## Settings dialog
+
+- Opened from **Settings** at the bottom of the sidebar (its accessible name is
+  "About Planner"). The section list (General, Sync & sharing, Backup, AI
+  assistants, About) is a vertical `tablist`: one tab stop, **Arrow keys** move
+  and select, **Home/End** jump to the ends; each section is a `tabpanel`.
+
+### AI assistants (Mac app)
 
 - **Allow AI clients to connect** and **Allow changes…** are native checkboxes
   (Space toggles); the second is disabled until the first is on. The server's

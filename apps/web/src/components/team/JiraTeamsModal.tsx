@@ -8,8 +8,13 @@ import {
 } from "react";
 import { useAppStore } from "@planner/client-runtime";
 import { parseOrgId } from "@planner/jira";
+import { colorFor } from "@planner/core";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
+import { Avatar } from "../ui/IconTile";
+import { Callout } from "../ui/Callout";
+import { Icon } from "../ui/Icon";
 import { useToast } from "../ui/Toast";
 import { createJiraTransport } from "../../lib/jiraTransport";
 import { isJiraConfigured, writeJiraSettings } from "../../lib/jiraSettings";
@@ -22,7 +27,6 @@ import {
   type TeamRow,
   type TeamsDirectory,
 } from "../../lib/jiraTeams";
-import "../tracking/tracking.css";
 
 interface JiraTeamsModalProps {
   open: boolean;
@@ -42,6 +46,7 @@ export function JiraTeamsModal({ open, onClose }: JiraTeamsModalProps) {
       open={open}
       onClose={onClose}
       title="Add teams from Jira"
+      subtitle="From Jira's Teams tab, with the people already on each team."
       className="jira-teams"
     >
       <Body onClose={onClose} />
@@ -133,27 +138,27 @@ function LoadStep({
   return (
     <form onSubmit={submit}>
       <p className="modal-hint">
-        Lists the teams in Jira's Teams tab, with the people already on them.
         Added teams work like any other: set their timeline per project and
         their days off on this page.
       </p>
       {!connected && (
-        <div className="warn-box">
+        <Callout tone="warning">
           Connect Jira first (Tracking → Connect Jira).
-        </div>
+        </Callout>
       )}
       {transport.unavailableReason && (
-        <div className="warn-box">{transport.unavailableReason}</div>
+        <Callout tone="warning">{transport.unavailableReason}</Callout>
       )}
       {busy && (
-        <p className="muted" role="status">
+        <p className="jira-teams-status muted" role="status">
+          <Icon name="refresh" size={14} className="jira-spin" />
           Reading teams from Jira…
         </p>
       )}
       {error && (
-        <p className="field-error" role="alert">
+        <Callout tone="danger" role="alert">
           {error}
-        </p>
+        </Callout>
       )}
       {askOrg && (
         <div className="field jira-teams-org">
@@ -332,9 +337,8 @@ function PickStep({
   return (
     <div>
       <p className="modal-hint">
-        Tick the teams to add; their people come from Jira's Teams tab. Anyone
-        already in Planner is skipped. Fill in specializations — the scheduler
-        matches tasks by them.
+        Tick the teams to add. Anyone already in Planner is skipped. Fill in
+        specializations: the scheduler matches tasks by them.
       </p>
       {directory.teams.length > 6 && (
         <input
@@ -361,39 +365,41 @@ function PickStep({
                   checked={on}
                   onChange={() => togglePicked(team.id)}
                 />
-                <label htmlFor={boxId} className="jira-team-name">
-                  {team.name}
-                </label>
-                {row && (
-                  <span className="muted">
-                    {plural(row.people.length, "person", "people")}
-                  </span>
-                )}
+                <div className="jira-team-text">
+                  <label htmlFor={boxId} className="jira-team-name">
+                    {team.name}
+                  </label>
+                  {team.description && (
+                    <p className="muted jira-team-desc">{team.description}</p>
+                  )}
+                </div>
                 {row?.existing && (
-                  <span className="jira-badge">
-                    Updates “{row.existing.name}”
-                  </span>
+                  <Badge tone="accent">Updates “{row.existing.name}”</Badge>
+                )}
+                {row && (
+                  <Badge>{plural(row.people.length, "person", "people")}</Badge>
                 )}
               </div>
-              {team.description && (
-                <p className="muted jira-team-desc">{team.description}</p>
-              )}
               {on && entry?.status === "loading" && (
-                <p className="muted" role="status">
+                <p className="jira-teams-status muted" role="status">
+                  <Icon name="refresh" size={14} className="jira-spin" />
                   Loading members…
                 </p>
               )}
               {on && entry?.status === "error" && (
-                <p className="field-error" role="alert">
-                  {entry.message}{" "}
-                  <button
-                    type="button"
-                    className="link-btn"
-                    onClick={() => void loadPeople(team.id)}
+                <div className="jira-team-body">
+                  <Callout
+                    tone="danger"
+                    role="alert"
+                    actions={
+                      <Button small onClick={() => void loadPeople(team.id)}>
+                        Retry
+                      </Button>
+                    }
                   >
-                    Retry
-                  </button>
-                </p>
+                    {entry.message}
+                  </Callout>
+                </div>
               )}
               {on && row && (
                 <TeamBody
@@ -450,7 +456,7 @@ function TeamBody({
   return (
     <div className="jira-team-body">
       {!row.existing && (
-        <div className="field jira-team-rename">
+        <div className="jira-team-rename">
           <label htmlFor={`${boxId}-name`}>Name in Planner</label>
           <input
             id={`${boxId}-name`}
@@ -462,31 +468,41 @@ function TeamBody({
       )}
       {row.source.kind === "issues" && (
         <div className="jira-team-fallback" role="note">
-          <strong>
-            Not the team's roster — the people assigned to its Jira issues.
-          </strong>{" "}
-          {row.source.refusal} So these are everyone assigned an issue with Team
-          = {row.team.name}, updated in the last {row.source.sinceDays} days.
-          Untick anyone who isn't on the team; add anyone missing on this page
-          afterwards.
+          <Callout
+            tone="warning"
+            title="Not the team's roster - the people assigned to its Jira issues."
+          >
+            {row.source.refusal} So these are everyone assigned an issue with
+            Team = {row.team.name}, updated in the last {row.source.sinceDays}{" "}
+            days. Untick anyone who isn't on the team; add anyone missing on
+            this page afterwards.
+          </Callout>
         </div>
       )}
       {row.people.length === 0 ? (
-        <p className="muted">
+        <p className="muted jira-team-empty">
           {row.source.kind === "issues"
             ? "No recent Jira issues of this team are assigned to anyone."
             : "This team has no members in Jira yet."}
         </p>
       ) : fresh === 0 ? (
-        <p className="muted">Everyone on this team is already in Planner.</p>
+        <p className="muted jira-team-empty">
+          Everyone on this team is already in Planner.
+        </p>
       ) : null}
       {row.people.length > 0 && (
-        <table className="jira-people">
+        <table className="data-table jira-people">
           <thead>
             <tr>
-              <th scope="col">Add</th>
+              <th scope="col" className="jira-people-check">
+                Add
+              </th>
               <th scope="col">Person</th>
-              {row.source.kind === "issues" && <th scope="col">Issues</th>}
+              {row.source.kind === "issues" && (
+                <th scope="col" className="num">
+                  Issues
+                </th>
+              )}
               <th scope="col">Specialization</th>
             </tr>
           </thead>
@@ -494,8 +510,11 @@ function TeamBody({
             {row.people.map((p) => {
               const pid = `${boxId}-${p.person.accountId}`;
               return (
-                <tr key={p.person.accountId}>
-                  <td>
+                <tr
+                  key={p.person.accountId}
+                  className={p.alreadyIn ? "is-already" : undefined}
+                >
+                  <td className="jira-people-check">
                     <input
                       id={pid}
                       type="checkbox"
@@ -509,17 +528,22 @@ function TeamBody({
                     />
                   </td>
                   <td>
-                    <label htmlFor={pid}>{p.person.displayName}</label>
+                    <span className="jira-person">
+                      <Avatar
+                        name={p.person.displayName}
+                        color={colorFor(p.specialization)}
+                        size="sm"
+                      />
+                      <label htmlFor={pid}>{p.person.displayName}</label>
+                    </span>
                     {p.alreadyIn && (
-                      <span className="muted">
-                        {" "}
-                        — already in {p.alreadyIn.name}
+                      <span className="jira-person-note muted">
+                        already in {p.alreadyIn.name}
                       </span>
                     )}
                     {twice.has(p.person.accountId) && p.selected && (
-                      <span className="jira-twice">
-                        {" "}
-                        — ticked on another team too
+                      <span className="jira-person-note jira-twice">
+                        ticked on another team too
                       </span>
                     )}
                   </td>
@@ -530,6 +554,7 @@ function TeamBody({
                     {!p.alreadyIn && (
                       <input
                         type="text"
+                        className="jira-spec-input"
                         list="spec-list"
                         aria-label={`Specialization of ${p.person.displayName}`}
                         placeholder="e.g. Backend"

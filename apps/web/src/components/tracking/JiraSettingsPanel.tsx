@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { basicAuth } from "@planner/jira";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
+import { Icon } from "../ui/Icon";
 import { useToast } from "../ui/Toast";
 import { useConfirm } from "../ui/ConfirmDialog";
 import {
@@ -188,9 +190,23 @@ export function JiraSettingsPanel({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Jira connection">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Jira connection"
+      className="tracking-dialog jira-settings-dialog"
+      subtitle={
+        isJiraConfigured(settings) ? (
+          <Badge tone="success" icon={<Icon name="check" size={13} />}>
+            Connected
+          </Badge>
+        ) : (
+          <Badge tone="neutral">Not connected</Badge>
+        )
+      }
+    >
       <div className="jira-settings">
-        <p className="muted">
+        <p className="muted jira-settings-intro">
           Planner talks to Jira with your own Atlassian API token. It is stored
           on this device only — never synced to your other devices, and never
           part of an export.

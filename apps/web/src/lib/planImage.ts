@@ -42,7 +42,34 @@ const COL_W = 26;
 const ROW_H = 40;
 const HEADER_H = 40;
 const MARKER_ROW_H = 20;
-const MARKER_COLOR = "#7048e8";
+const MARKER_COLOR = "#7a5aa6";
+// The app's "Warm Focus" palette (styles/tokens.css), so a saved image looks
+// like the screen it came from.
+const C = {
+  bg: "#fffdf8",
+  text: "#2b2721",
+  muted: "#7b7266",
+  weekend: "#f5efe4",
+  gridline: "#e5dccd",
+  rowLine: "#efe7da",
+  offDay: "#f6d6cb",
+  today: "#bf4f3a",
+};
+
+/** Mix a #rrggbb colour toward another by `t` (0 = a, 1 = b). */
+function mixHex(a: string, b: string, t: number): string {
+  const parse = (h: string) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(h.trim());
+    if (!m) return null;
+    const n = parseInt(m[1]!, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const x = parse(a);
+  const y = parse(b);
+  if (!x || !y) return a;
+  const out = x.map((v, i) => Math.round(v + (y[i]! - v) * t));
+  return "#" + out.map((v) => v.toString(16).padStart(2, "0")).join("");
+}
 const PAD = 16;
 const SCALE = 2;
 
@@ -151,15 +178,15 @@ export function renderTimelineCanvas(
   ctx.scale(SCALE, SCALE);
 
   // Background.
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, width, height);
 
   const originX = PAD;
   const originY = PAD;
 
   // Title.
-  ctx.fillStyle = "#0f172a";
-  ctx.font = "600 16px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = C.text;
+  ctx.font = '600 17px "Iowan Old Style", Charter, Georgia, serif';
   ctx.textBaseline = "middle";
   ctx.fillText(title, originX, originY + titleH / 2);
 
@@ -175,13 +202,13 @@ export function renderTimelineCanvas(
   dates.forEach((d, i) => {
     const x = tracksLeft + i * COL_W;
     if (isWeekend(d)) {
-      ctx.fillStyle = "#f1f4f8";
+      ctx.fillStyle = C.weekend;
       ctx.fillRect(x, tracksTop, COL_W, rows.length * ROW_H);
     }
     if (i === 0 || d.getDay() === 1) {
-      ctx.fillStyle = "#e2e8f0";
+      ctx.fillStyle = C.gridline;
       ctx.fillRect(x, gridTop, 1, headerH + rows.length * ROW_H);
-      ctx.fillStyle = "#64748b";
+      ctx.fillStyle = C.muted;
       ctx.textBaseline = "top";
       ctx.fillText(
         `${MONTHS[d.getMonth()]} ${d.getDate()}`,
@@ -199,19 +226,19 @@ export function renderTimelineCanvas(
     // Off-day shading for this row.
     dates.forEach((d, i) => {
       if (!isWeekend(d) && offDays.has(toISO(d))) {
-        ctx.fillStyle = "#fbeaea";
+        ctx.fillStyle = C.offDay;
         ctx.fillRect(tracksLeft + i * COL_W, y, COL_W, ROW_H);
       }
     });
 
     // Row separator.
-    ctx.fillStyle = "#eef1f5";
+    ctx.fillStyle = C.rowLine;
     ctx.fillRect(originX, y + ROW_H - 1, gridW, 1);
 
     // Left accent + label.
     ctx.fillStyle = row.borderColor;
     ctx.fillRect(originX, y, 3, ROW_H);
-    ctx.fillStyle = "#0f172a";
+    ctx.fillStyle = C.text;
     ctx.textBaseline = "middle";
     ctx.font = "600 12px system-ui, -apple-system, sans-serif";
     ctx.fillText(
@@ -220,7 +247,7 @@ export function renderTimelineCanvas(
       y + (row.subtitle ? ROW_H / 2 - 8 : ROW_H / 2),
     );
     if (row.subtitle) {
-      ctx.fillStyle = "#64748b";
+      ctx.fillStyle = C.muted;
       ctx.font = "10px system-ui, -apple-system, sans-serif";
       ctx.fillText(
         clip(ctx, row.subtitle, labelWidth - 14),
@@ -238,9 +265,14 @@ export function renderTimelineCanvas(
       const by = y + 5;
       const bh = ROW_H - 10;
       roundRect(ctx, bx, by, bw, bh, 5);
-      ctx.fillStyle = bar.color;
+      // A light wash of the bar's colour with a firmer edge and dark text,
+      // as the on-screen bars are drawn.
+      ctx.fillStyle = mixHex(bar.color, "#ffffff", 0.8);
       ctx.fill();
-      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = mixHex(bar.color, "#ffffff", 0.55);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = mixHex(bar.color, "#000000", 0.35);
       ctx.font = "600 11px system-ui, -apple-system, sans-serif";
       // Person lanes name the task; task lanes name the assignee; epic rows
       // carry their task count in memberName.
@@ -253,7 +285,7 @@ export function renderTimelineCanvas(
   const todayIdx = dates.findIndex((d) => toISO(d) === todayISO);
   if (todayIdx >= 0) {
     const x = tracksLeft + todayIdx * COL_W;
-    ctx.fillStyle = "#e03131";
+    ctx.fillStyle = C.today;
     ctx.fillRect(x, gridTop, 2, headerH + rows.length * ROW_H);
   }
 

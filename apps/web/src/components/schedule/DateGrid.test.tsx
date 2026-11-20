@@ -134,6 +134,30 @@ describe("DateGrid", () => {
     expect(line.style.left).toBe(`${130 + 2 * COL_WIDTH}px`);
   });
 
+  it("labels today in the header and names the label column", () => {
+    const { container, getByText } = render(
+      <DateGrid
+        range={range}
+        colWidth={COL_WIDTH}
+        labelWidth={130}
+        corner="Person"
+        rows={[{ key: "r1", label: "Row", offDays: new Set(), bars: null }]}
+      />,
+    );
+    const label = getByText("Today");
+    // Centred over today's column.
+    expect(label.style.left).toBe(`${130 + 2 * COL_WIDTH + COL_WIDTH / 2}px`);
+    expect(container.querySelector(".gantt-corner")).toHaveTextContent(
+      "Person",
+    );
+    expect(getByText("Jul 2026")).toBeInTheDocument();
+    // 18px columns are wide enough to number every day.
+    expect(container.querySelectorAll(".gantt-daylabel")).toHaveLength(7);
+    expect(container.querySelector(".gantt-daylabel.today")).toHaveTextContent(
+      "29",
+    );
+  });
+
   it("draws each marker in range as a line with a label", () => {
     const { container, getByText, queryByText } = render(
       <DateGrid

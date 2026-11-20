@@ -104,11 +104,11 @@ function StoredDeadlines() {
   );
 }
 
-function renderTracker() {
+function renderTracker(initial: AppState = state()) {
   return render(
     <ToastProvider>
       <ConfirmProvider>
-        <AppStoreProvider initial={state()}>
+        <AppStoreProvider initial={initial}>
           <MemoryRouter initialEntries={["/tracking/tr"]}>
             <Routes>
               <Route
@@ -151,6 +151,28 @@ describe("Deadlines", () => {
       ).toBeChecked();
     }
     expect(screen.getByTestId("stored")).toHaveTextContent("null");
+  });
+
+  it("lists what the tracker measures when the plan has no tasks of its own", () => {
+    // A baseline whose work all arrives from Jira as added scope: its own
+    // epics are empty, yet Backend and QA are still read and still need
+    // sorting into development and end-of-project work.
+    const initial = state();
+    initial.projects[0]!.epics = [];
+    initial.trackers![0] = {
+      ...initial.trackers![0]!,
+      taskMap: { "S-2": null, "S-3": null, "S-4": null },
+      addedScope: { "S-2": "Backend", "S-3": "Backend", "S-4": "QA" },
+      deadlines: { endPhase: ["QA"] },
+    };
+    renderTracker(initial);
+    const deadlines = screen.getByRole("region", { name: "Deadlines" });
+    expect(
+      within(deadlines).getByRole("checkbox", { name: "Backend" }),
+    ).toBeChecked();
+    expect(
+      within(deadlines).getByRole("checkbox", { name: "QA" }),
+    ).not.toBeChecked();
   });
 
   it("offers to treat QA as end-of-project work, in one click", async () => {

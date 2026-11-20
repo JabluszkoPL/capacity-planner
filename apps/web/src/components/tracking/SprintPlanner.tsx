@@ -154,9 +154,12 @@ export function SprintPlanner({
   const canWrite = settings.allowWrites && transport.canWrite;
 
   return (
-    <section className="sprint-panel" aria-label="Sprint planning">
+    <section
+      className="panel tracking-panel sprint-panel"
+      aria-label="Sprint planning"
+    >
       <div className="sprint-head">
-        <h2 className="section-title">Sprint</h2>
+        <h2 className="panel-title">Sprint</h2>
         <div className="sprint-window">
           <label>
             <span>From</span>{" "}

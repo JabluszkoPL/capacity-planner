@@ -1,9 +1,8 @@
 /*
- * Window chrome for the desktop build.
+ * Window chrome and the sidebar.
  *
  * `--titlebar-h` is 0 everywhere except the Mac app (see lib/hostBridge), so
- * the browser build reserves no space and the sticky header still starts at the
- * very top of the viewport.
+ * the browser build reserves no space.
  */
 :root {
   --titlebar-h: 0px;
@@ -15,81 +14,383 @@
   --titlebar-h: 34px;
 }
 
+/*
+ * The Mac app's draggable strip. Fixed across the top of the window; its left
+ * part matches the sidebar beneath it so the traffic lights read as part of
+ * the sidebar, and the rest matches the page.
+ */
 .titlebar {
   height: var(--titlebar-h);
-  background: var(--panel);
-  position: sticky;
+  position: fixed;
   top: 0;
-  /* Above the header, which sticks directly beneath it. */
+  left: 0;
+  right: 0;
   z-index: 30;
-  /* The whole strip is a window handle. */
-  -webkit-app-region: drag;
-  app-region: drag;
-  /* No border: sharing the header's background makes the two read as one bar
-     with the window buttons tucked into its top-left. */
-}
-
-/*
- * Let the header be grabbed too — an app you can only move by a 34px sliver is
- * still annoying. Interactive children opt back out, or they'd stop responding
- * to clicks.
- */
-:root[data-host="electron"] .app-header {
+  background: linear-gradient(
+    to right,
+    var(--sidebar-bg) var(--sidebar-w),
+    var(--bg) var(--sidebar-w)
+  );
   -webkit-app-region: drag;
   app-region: drag;
 }
 
-:root[data-host="electron"] .app-header a,
-:root[data-host="electron"] .app-header button,
-:root[data-host="electron"] .app-header input,
-:root[data-host="electron"] .app-header select {
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
+/* --- sidebar --- */
+.sidebar {
+  width: var(--sidebar-w);
+  flex: none;
+  position: sticky;
+  top: var(--titlebar-h);
+  height: calc(100vh - var(--titlebar-h));
+  overflow-y: auto;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  z-index: 20;
 }
 
-/*
- * The version in the header and the About panel it opens.
- */
-.header-right {
-  gap: var(--space-1);
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 10px var(--space-4);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.version-btn {
+.sidebar-brand-icon {
+  color: var(--accent);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-link .icon {
+  color: var(--muted);
+  flex: none;
+}
+
+.sidebar-link:hover {
+  background: var(--hover-soft);
+}
+
+.sidebar-link.active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.sidebar-link.active .icon {
+  color: var(--accent-text);
+}
+
+.sidebar-spacer {
+  flex: 1;
+  min-height: var(--space-5);
+}
+
+.sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-footer-btn {
+  font-size: 13px;
+  padding: 6px 10px;
+  font-weight: 500;
+}
+
+.sidebar-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
   font-size: 12px;
-  padding: 5px 10px;
+  color: var(--muted);
+}
+
+.sidebar-status .icon {
+  color: var(--muted);
+}
+
+.sync-dot,
+.jira-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--faint);
+  margin-left: auto;
+  flex: none;
+}
+
+.sync-ok .sync-dot,
+.jira-dot.connected {
+  background: var(--ok);
+}
+
+.sync-pending .sync-dot {
+  background: var(--warn-mark);
+}
+
+.sync-bad .sync-dot {
+  background: var(--danger);
+}
+
+.version-label {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
 .version-btn.update-pending {
   background: var(--accent-soft);
   color: var(--accent-dark);
+}
+
+.version-btn.update-pending .version-label {
+  color: var(--accent-dark);
   font-weight: 600;
 }
 
-.about-version {
-  font-size: 13px;
+@media (max-width: 760px) {
+  :root {
+    --sidebar-w: 64px;
+  }
+  .sidebar {
+    padding-inline: var(--space-2);
+  }
+  .sidebar-brand span,
+  .sidebar-link span,
+  .sidebar-status span:not(.sync-dot) {
+    display: none;
+  }
+  .sidebar-link {
+    justify-content: center;
+  }
+}
+
+/*
+ * The About / settings panel.
+ */
+/* A wide dialog: the section list on the left, the selected section on the
+   right. A fixed height, so switching sections doesn't make it jump. */
+.modal.settings-modal {
+  width: 880px;
+  height: min(640px, 88vh);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.settings-layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2);
+  background: var(--panel-alt);
+  border: 1px solid var(--row-border);
+  border-radius: var(--radius);
+  align-self: start;
+}
+
+.settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
   color: var(--muted);
-  margin-bottom: var(--space-3);
-}
-
-.about-section {
-  border-top: 1px solid var(--border);
-  padding-top: var(--space-3);
-  margin-top: var(--space-3);
-}
-
-.about-section h4 {
   font-size: 13px;
-  margin: 0 0 var(--space-2);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
 }
 
-.about-status {
+.settings-tab:hover {
+  background: var(--hover-soft);
+  color: var(--text);
+}
+
+.settings-tab.active {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+.settings-tab .icon {
+  flex: none;
+}
+
+.settings-panel {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: 2px 2px var(--space-2);
+}
+
+.settings-panel[hidden] {
+  display: none;
+}
+
+/* --- a group: heading + badge, then rows --- */
+.settings-group {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  box-shadow: var(--shadow-card);
+}
+
+.settings-group-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 26px;
+}
+
+.settings-group-head h4 {
+  margin: 0;
   font-size: 14px;
+  font-weight: 600;
+}
+
+.settings-group-icon {
+  color: var(--accent);
+}
+
+.settings-group-status {
+  margin-left: auto;
+  display: inline-flex;
+}
+
+.settings-group-desc {
+  color: var(--muted);
+  font-size: 13px;
   line-height: 1.5;
+  margin-top: var(--space-1);
+}
+
+.settings-group-desc p {
   margin: 0;
 }
 
-.about-status code {
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--row-border);
+}
+
+.settings-group-head + .settings-row {
+  margin-top: var(--space-2);
+}
+
+.settings-group-desc + .settings-row,
+.settings-group-desc + .settings-note {
+  margin-top: var(--space-3);
+}
+
+.settings-row-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.settings-row-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.settings-row-control {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Label on top, a full-width control (an address and its buttons) below. */
+.settings-row.stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.settings-row.stacked .settings-row-control input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-row.stacked .settings-hint {
+  margin: 0;
+}
+
+.settings-hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+
+.settings-hint:empty {
+  display: none;
+}
+
+.settings-footnote {
+  font-size: 12px;
+  color: var(--faint);
+  margin: var(--space-2) 0 var(--space-1);
+}
+
+.settings-value {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-group code,
+.settings-code {
   font-family: var(--font-mono);
   font-size: 12px;
   background: var(--hover-soft);
@@ -98,33 +399,97 @@
   word-break: break-all;
 }
 
-.about-actions {
+.settings-actions {
   display: flex;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
-}
-
-.about-actions.about-wrap {
   flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
-.about-actions a.btn {
+.settings-row-control a.btn,
+.settings-actions a.btn {
   text-decoration: none;
+}
+
+/* A warning strip inside a group (another server on the port, a bad file). */
+.settings-note {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: var(--space-2) 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+}
+
+.settings-note.about-warning {
+  background: var(--danger-bg);
+  border-color: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* A checkbox drawn as a switch. Still a checkbox to assistive tech and the
+   keyboard (Space toggles it). */
+.settings-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 20px;
+  margin: 0;
+  border-radius: var(--radius-pill);
+  background: var(--border-strong);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settings-switch::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--panel);
+  box-shadow: var(--shadow-bar);
+  transition: transform 0.15s;
+}
+
+.settings-switch:checked {
+  background: var(--accent);
+}
+
+.settings-switch:checked::before {
+  transform: translateX(14px);
+}
+
+.settings-switch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.settings-switch:focus {
+  outline: none;
+}
+
+.settings-switch:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-switch,
+  .settings-switch::before {
+    transition: none;
+  }
 }
 
 .about-progress {
   width: 100%;
-  margin-top: var(--space-2);
-}
-
-.about-row {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.about-row input {
-  flex: 1;
-  min-width: 0;
+  accent-color: var(--accent);
 }
 
 .about-check {
@@ -139,14 +504,50 @@
   color: var(--danger);
 }
 
+/* What an import will do, shown before anything changes. */
 .backup-preview {
-  margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  margin: var(--space-2) 0 var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--accent-softer);
+  border: 1px solid var(--chip-on-border);
+  border-radius: var(--radius-sm);
+}
+
+.backup-preview-summary {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.backup-preview .settings-actions {
+  justify-content: flex-end;
 }
 
 .backup-preview:focus {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+/* Narrow windows: the section list runs across the top and scrolls. */
+@media (max-width: 720px) {
+  .modal.settings-modal {
+    height: 88vh;
+  }
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+  .settings-tabs {
+    flex-direction: row;
+    overflow-x: auto;
+    align-self: stretch;
+  }
+  .settings-tab {
+    width: auto;
+    flex: none;
+  }
+  .settings-row:not(.stacked) {
+    flex-wrap: wrap;
+  }
 }

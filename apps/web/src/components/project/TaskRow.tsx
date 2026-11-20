@@ -8,6 +8,7 @@ import {
 import {
   type Epic,
   type TaskItem,
+  colorFor,
   projectSpecializations,
 } from "@planner/core";
 import { useAppStore } from "@planner/client-runtime";
@@ -16,6 +17,7 @@ import { ComboInput } from "../ui/ComboInput";
 import { IconButton } from "../ui/IconButton";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
+import { Icon } from "../ui/Icon";
 import { DependencyPicker } from "./DependencyPicker";
 
 interface TaskRowProps {
@@ -123,6 +125,17 @@ export function TaskRow({
     [project, state.teams],
   );
 
+  // The first dependency by name, so the column reads like the plan does.
+  const depNames = deps
+    .map((id) => {
+      for (const e of allEpics) {
+        const t = e.tasks.find((x) => x.id === id);
+        if (t) return t.name;
+      }
+      return null;
+    })
+    .filter((n): n is string => n !== null);
+
   const rowClass = [
     task.excluded ? "excluded" : "",
     isDragging ? "dragging" : "",
@@ -157,20 +170,21 @@ export function TaskRow({
             disabled={isFirst}
             onClick={() => actions.reorderTask(projectId, epicId, task.id, -1)}
           >
-            ▲
+            <Icon name="chevronDown" size={13} className="icon-flip" />
           </IconButton>
           <IconButton
             label="Move task down"
             disabled={isLast}
             onClick={() => actions.reorderTask(projectId, epicId, task.id, 1)}
           >
-            ▼
+            <Icon name="chevronDown" size={13} />
           </IconButton>
         </div>
       </td>
-      <td>
+      <td className="task-name-cell">
         <input
           type="text"
+          className="task-name-input"
           aria-label="Task name"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -192,14 +206,19 @@ export function TaskRow({
         />
       </td>
       <td>
-        <ComboInput
-          aria-label="Specialization"
-          placeholder="e.g. Backend"
-          value={spec}
-          options={specOptions}
-          onChange={setSpec}
-          onCommit={commitSpec}
-        />
+        <div
+          className={"spec-cell" + (spec.trim() ? " has-spec" : "")}
+          style={{ ["--tag" as string]: colorFor(spec) }}
+        >
+          <ComboInput
+            aria-label="Specialization"
+            placeholder="e.g. Backend"
+            value={spec}
+            options={specOptions}
+            onChange={setSpec}
+            onCommit={commitSpec}
+          />
+        </div>
       </td>
       <td>
         <button
@@ -208,7 +227,22 @@ export function TaskRow({
           aria-label={`Edit dependencies for ${task.name}`}
           onClick={() => setDepsOpen(true)}
         >
-          {deps.length ? `🔗 ${deps.length}` : "＋ Add"}
+          {deps.length ? (
+            <>
+              <Icon name="link" size={12} />
+              <span className="dep-btn-name">
+                {depNames[0] ?? `${deps.length} tasks`}
+              </span>
+              {depNames.length > 1 && (
+                <span className="dep-btn-more">+{depNames.length - 1}</span>
+              )}
+            </>
+          ) : (
+            <>
+              <Icon name="plus" size={12} />
+              Add
+            </>
+          )}
         </button>
         <Modal
           open={depsOpen}
@@ -233,7 +267,7 @@ export function TaskRow({
           </div>
         </Modal>
       </td>
-      <td>
+      <td className="col-status">
         <Chip
           on={!task.excluded}
           onChange={() =>
@@ -247,7 +281,7 @@ export function TaskRow({
           label={`Delete task ${task.name}`}
           onClick={() => actions.deleteTask(projectId, epicId, task.id)}
         >
-          ✕
+          <Icon name="trash" size={14} />
         </IconButton>
       </td>
     </tr>

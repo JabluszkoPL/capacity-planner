@@ -36,7 +36,7 @@ Releases are built and published by CI from a version tag — see
 ## Updates
 
 The app checks this repository's GitHub releases and installs newer versions
-itself: the version in the header becomes **Update to vX.Y.Z**, and the About
+itself: the version next to **Settings** in the sidebar becomes **Update to vX.Y.Z**, and the About
 panel downloads, verifies and swaps in the new build on restart. How, and why
 it is not electron-updater: [RELEASING.md](RELEASING.md).
 

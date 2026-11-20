@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { Icon } from "./Icon";
 
 interface ModalProps {
   open: boolean;
@@ -6,6 +7,10 @@ interface ModalProps {
   title?: string;
   /** Extra class on the panel, e.g. to widen it. */
   className?: string;
+  /** The dialog's accessible name, when it should differ from the title. */
+  ariaLabel?: string;
+  /** A muted line under the title. */
+  subtitle?: ReactNode;
   children: ReactNode;
 }
 
@@ -26,6 +31,8 @@ export function Modal({
   onClose,
   title,
   className,
+  subtitle,
+  ariaLabel,
   children,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -82,12 +89,24 @@ export function Modal({
         className={className ? `modal ${className}` : "modal"}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={ariaLabel ?? title}
         tabIndex={-1}
         ref={panelRef}
       >
         {title && <h3>{title}</h3>}
+        {subtitle && <div className="modal-subtitle">{subtitle}</div>}
         {children}
+        {/* Last in the DOM so opening still focuses the first real control;
+            positioned into the corner by CSS. Escape closes it too. */}
+        <button
+          type="button"
+          className="modal-close"
+          aria-label="Close dialog"
+          title="Close (Esc)"
+          onClick={onClose}
+        >
+          <Icon name="x" size={16} />
+        </button>
       </div>
     </div>
   );

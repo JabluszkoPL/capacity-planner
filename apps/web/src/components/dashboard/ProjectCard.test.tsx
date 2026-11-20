@@ -190,6 +190,12 @@ describe("planSummary", () => {
   });
 });
 
+/** The value shown next to a stat label on the card. */
+function stat(label: string): string | null | undefined {
+  return screen.getByText(label, { selector: "dt" }).nextElementSibling
+    ?.textContent;
+}
+
 describe("ProjectCard", () => {
   it("shows stats and the 'Not planned yet' state, and fires callbacks", () => {
     const onOpen = vi.fn();
@@ -203,10 +209,12 @@ describe("ProjectCard", () => {
         onDelete={onDelete}
       />,
     );
-    expect(screen.getByText("1 epics")).toBeInTheDocument();
-    expect(screen.getByText("2 tasks")).toBeInTheDocument();
-    expect(screen.getByText("3d planned")).toBeInTheDocument();
-    expect(screen.getByText("Not planned yet")).toBeInTheDocument();
+    expect(stat("Epics")).toBe("1");
+    expect(stat("Tasks")).toBe("2");
+    expect(stat("Estimate")).toBe("3 days");
+    expect(stat("Planned finish")).toBe("Not planned yet");
+    expect(screen.getByText("Buffer 0%")).toBeInTheDocument();
+    expect(screen.getByText("No teams yet")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Open" }));
     fireEvent.click(screen.getByRole("button", { name: "Copy" }));
@@ -214,9 +222,73 @@ describe("ProjectCard", () => {
     expect(onOpen).toHaveBeenCalledWith("p1");
     expect(onCopy).toHaveBeenCalledWith("p1");
     expect(onDelete).toHaveBeenCalledWith("p1");
+    // No onExport -> no per-card export button.
+    expect(
+      screen.queryByRole("button", { name: "Export Alpha" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("shows a 'Completes' badge when a plan exists", () => {
+  it("opens from the title with Enter or Space", () => {
+    const onOpen = vi.fn();
+    render(
+      <ProjectCard
+        project={makeProject()}
+        onOpen={onOpen}
+        onCopy={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    const title = screen.getByRole("button", { name: "Alpha" });
+    fireEvent.keyDown(title, { key: "Enter" });
+    fireEvent.keyDown(title, { key: " " });
+    fireEvent.click(title);
+    expect(onOpen).toHaveBeenCalledTimes(3);
+  });
+
+  it("shows teams (with late starts), helpers, buffer, note and export", () => {
+    const onExport = vi.fn();
+    render(
+      <ProjectCard
+        project={makeProject({
+          buffer: 20,
+          note: "Waiting on design",
+          titleColor: "#5b7fb8",
+          teamInclusions: [
+            { teamId: "tA" },
+            { teamId: "tB", availableFrom: "2026-08-10" },
+          ],
+          helpers: [
+            {
+              id: "h1",
+              name: "H1",
+              specialization: "QA",
+              speed: 1,
+              availableFrom: "2026-08-20",
+              availableTo: "2026-09-01",
+            },
+          ],
+        })}
+        teams={makeTeams()}
+        onOpen={() => {}}
+        onCopy={() => {}}
+        onExport={onExport}
+        onDelete={() => {}}
+      />,
+    );
+    expect(screen.getByTitle("Teams working this project")).toHaveTextContent(
+      "Core, Strike (from Aug 10)",
+    );
+    expect(
+      screen.getByTitle("Additional support (helpers), by specialization"),
+    ).toHaveTextContent("1 QA (avg start Aug 20)");
+    expect(screen.getByText("Buffer 20%")).toBeInTheDocument();
+    expect(screen.getByText("Waiting on design")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Export Alpha" }));
+    expect(onExport).toHaveBeenCalledWith("p1");
+  });
+
+  it("shows the planned finish date when a plan exists", () => {
     const planned = makeProject({
       plan: {
         generatedAt: "2026-07-23T00:00:00Z",
@@ -246,6 +318,7 @@ describe("ProjectCard", () => {
         onDelete={() => {}}
       />,
     );
-    expect(screen.getByText("Completes Jul 29")).toBeInTheDocument();
+    expect(stat("Planned finish")).toBe("Jul 29, 2026");
+    expect(screen.queryByText("Not planned yet")).not.toBeInTheDocument();
   });
 });

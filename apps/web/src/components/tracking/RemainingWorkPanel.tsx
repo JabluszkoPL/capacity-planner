@@ -463,8 +463,11 @@ export function RemainingWorkPanel({
         : null;
 
   return (
-    <section className="remaining-work" aria-labelledby="remaining-work-title">
-      <h2 id="remaining-work-title" className="section-title">
+    <section
+      className="panel tracking-panel remaining-work"
+      aria-labelledby="remaining-work-title"
+    >
+      <h2 id="remaining-work-title" className="panel-title">
         Work left, by person
       </h2>
       {work.items.length === 0 ? (
@@ -500,17 +503,6 @@ export function RemainingWorkPanel({
             ` ${plural(notInPlan.length, "Jira task")} not in the plan ${notInPlan.length === 1 ? "is" : "are"} included on Jira's estimate.`}
         </p>
       )}
-      <p className="muted">
-        Only tasks in To Do or In Progress are planned. Work in progress (▶)
-        stays with whoever has it, for what Jira says is left of it. Of the
-        rest, what Jira already has on someone goes to them first, then the rest
-        by Jira priority: low-priority work comes last.
-        {work.countWaiting &&
-          work.waitingToClose.tasks > 0 &&
-          ` ${plural(work.waitingToClose.tasks, "task")} waiting to be closed (⏸, ${days(work.waitingToClose.days)} d) ${work.waitingToClose.tasks === 1 ? "still counts" : "still count"} as work at ${work.waitingToClose.tasks === 1 ? "its" : "their"} whole estimate, as in the status.`}
-        {leftOut.length > 0 && ` Left out: ${leftOut.join(" · ")}.`}
-      </p>
-      <Comparison rows={comparison} />
 
       <ForecastTimeline
         work={work}
@@ -571,6 +563,17 @@ export function RemainingWorkPanel({
           </tbody>
         </table>
       </div>
+      <p className="muted">
+        Only tasks in To Do or In Progress are planned. Work in progress (▶)
+        stays with whoever has it, for what Jira says is left of it. Of the
+        rest, what Jira already has on someone goes to them first, then the rest
+        by Jira priority: low-priority work comes last.
+        {work.countWaiting &&
+          work.waitingToClose.tasks > 0 &&
+          ` ${plural(work.waitingToClose.tasks, "task")} waiting to be closed (⏸, ${days(work.waitingToClose.days)} d) ${work.waitingToClose.tasks === 1 ? "still counts" : "still count"} as work at ${work.waitingToClose.tasks === 1 ? "its" : "their"} whole estimate, as in the status.`}
+        {leftOut.length > 0 && ` Left out: ${leftOut.join(" · ")}.`}
+      </p>
+      <Comparison rows={comparison} />
     </section>
   );
 }

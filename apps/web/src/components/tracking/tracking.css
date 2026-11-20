@@ -1,16 +1,14 @@
 /*
- * Jira tracking tab.
+ * Jira tracking: the portfolio (TrackingPage) and one tracker's views
+ * (TrackerDetail).
  *
  * Status colour is always paired with a glyph and a word (see StatusPanel), so
- * nothing here is the sole carrier of meaning — the panel has to read correctly
- * in greyscale.
+ * nothing here is the sole carrier of meaning: the pages have to read
+ * correctly in greyscale. Green is done or on track, amber is spending buffer,
+ * terracotta is behind or late, hatching is buffer.
  */
 
-/* --- connection line + add form --- */
-
-.jira-conn-line {
-  margin: 0 0 var(--space-4);
-}
+/* --- shared --- */
 
 .link-btn {
   border: none;
@@ -19,28 +17,106 @@
   color: var(--accent-dark);
   font: inherit;
   text-decoration: underline;
+  text-underline-offset: 2px;
   cursor: pointer;
 }
 .link-btn:hover {
   color: var(--accent);
 }
+.stale {
+  color: var(--warn-text);
+  font-weight: 600;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.warn-box {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  font-size: 13px;
+}
+
+/*
+ * The tracker's own sections (task comparison, work left, history, deadlines,
+ * sprint planners) are <section class="panel tracking-panel">: the kit's
+ * panel surface, with the body padding a <Panel> would give them.
+ */
+.panel.tracking-panel {
+  padding: var(--space-4);
+}
+.tracking-panel > .panel-title,
+.tracking-panel .epics-head .panel-title,
+.tracking-panel .sprint-head .panel-title {
+  margin: 0 0 var(--space-1);
+}
+.tracking-panel > .muted {
+  margin: 0 0 var(--space-3);
+  max-width: 90ch;
+}
+.tracking-panel p {
+  margin: 0 0 var(--space-2);
+}
+
+/* A short pill glyph (▲ ● ▼ ■) inside a Badge. */
+.badge-glyph {
+  font-size: 9px;
+  line-height: 1;
+}
+
+/* --- portfolio (TrackingPage) --- */
+
+.jira-conn-line {
+  display: inline;
+}
 
 .add-tracker {
   padding: var(--space-4);
-  margin-bottom: var(--space-5);
+}
+.add-tracker-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  margin-bottom: var(--space-3);
+}
+.add-tracker-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  background: var(--accent-softer);
 }
 .add-tracker-heading {
-  margin: 0 0 var(--space-3);
-  font-size: 14px;
+  margin: 0;
+  font-size: 17px;
 }
 .add-tracker-row {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-2);
   align-items: flex-end;
   flex-wrap: wrap;
 }
 .add-tracker-row .field.grow {
   flex: 1 1 320px;
+}
+.add-tracker-row .field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 4px;
 }
 .add-tracker-row input {
   width: 100%;
@@ -51,158 +127,225 @@
   font-size: 13px;
 }
 
-.tracking-toolbar {
-  display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
+.tracker-table td {
+  vertical-align: middle;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
-
-/* --- tracker cards --- */
-
-.tracker-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-4);
+.tracker-table th:first-child,
+.tracker-table td:first-child {
+  padding-left: var(--space-4);
 }
-
-.tracker-card {
-  padding: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+.tracker-table th:last-child,
+.tracker-table td:last-child {
+  padding-right: var(--space-4);
 }
 .tracker-title {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-2);
   border: none;
   background: none;
   padding: 0;
   text-align: left;
   cursor: pointer;
+  color: inherit;
+}
+.tracker-title-icon {
+  color: var(--cat-1);
+  margin-top: 2px;
+  flex: none;
+}
+.tracker-title-text,
+.tracker-project-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  min-width: 0;
 }
 .tracker-key {
-  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+}
+.tracker-name {
   font-size: 12px;
   color: var(--muted);
 }
-.tracker-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
-}
-.tracker-title:hover .tracker-name {
+.tracker-title:hover .tracker-key {
   color: var(--accent-dark);
+  text-decoration: underline;
 }
-.tracker-meta {
-  margin: 0;
-}
-.stale {
-  color: var(--warn-text);
-  font-weight: 600;
-}
-.tracker-card-actions {
-  display: flex;
-  gap: var(--space-2);
+.tracker-project {
+  display: inline-flex;
   align-items: center;
-  margin-top: var(--space-1);
+  gap: var(--space-2);
 }
-.spacer {
-  flex: 1;
-}
-
-/* --- detail header --- */
-
-.tracker-header {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-3);
-}
-.tracker-name-input {
-  font-size: 22px;
+.tracker-project-name {
   font-weight: 600;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  padding: 2px 6px;
-  background: transparent;
-  color: var(--text);
-  min-width: 260px;
 }
-.tracker-name-input:hover {
-  border-color: var(--border);
+.tracker-project .muted {
+  font-size: 12px;
 }
-.jira-link {
-  font-size: 13px;
+.tracker-health {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  max-width: 260px;
+}
+.tracker-health-text {
+  font-size: 11.5px;
+  line-height: 1.3;
   color: var(--muted);
 }
+.tracker-age {
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+.tracker-meta {
+  display: block;
+  font-size: 12px;
+}
+.tracker-finish {
+  display: block;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.tracker-row-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+.tracker-row-actions > * + * {
+  margin-left: var(--space-1);
+}
 
+/* --- one tracker (TrackerDetail) --- */
+
+.tracker-crumbs {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.tracker-crumbs .icon {
+  color: var(--faint);
+}
+.jira-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.jira-link .icon {
+  color: var(--cat-1);
+}
+.jira-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.snapshot-age {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Baseline plan and teams: the slim row under the header. */
 .tracker-toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-3) var(--space-5);
   flex-wrap: wrap;
-  margin-bottom: var(--space-4);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--row-border);
 }
 .baseline-picker {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   font-size: 13px;
   color: var(--muted);
 }
-
-.initiative-summary {
-  margin-bottom: var(--space-4);
-}
-.initiative-summary .section-title {
-  margin-bottom: var(--space-1);
+.baseline-picker select {
+  min-width: 200px;
+  color: var(--text);
 }
 
-.warn-box {
-  background: var(--warn-bg);
-  border: 1px solid var(--warn-border);
-  color: var(--warn-text);
-  border-radius: var(--radius);
-  padding: var(--space-3);
-  margin-bottom: var(--space-4);
-  font-size: 13px;
+.initiative-summary .panel-title {
+  font-size: 15px;
+}
+.initiative-summary > .panel-body:empty {
+  display: none;
+}
+.initiative-summary .panel-header {
+  padding-bottom: var(--space-4);
 }
 
-/* --- status --- */
+/* --- status (overview) --- */
 
 .status-panel {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+/* The headline: "Using buffer · 5 days behind the finish without buffer". */
+.status-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius);
+  border: 1px solid var(--chip-on-border);
+  background: var(--accent-softer);
+}
+.status-strip .badge {
+  font-size: 13px;
+  padding: 3px 12px;
+}
+.status-strip.warn {
+  border-color: var(--warn-border);
+  background: var(--warn-bg);
+}
+.status-strip.bad {
+  border-color: var(--danger-soft);
+  background: var(--danger-bg);
+}
+.status-strip.muted {
+  border-color: var(--border);
+  background: var(--panel-alt);
+}
+.status-strip-text {
+  flex: 1;
+  min-width: 240px;
 }
 .status-line {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 16px;
-  margin: 0 0 var(--space-3);
+  font-size: 15px;
+  margin: 0;
+  color: var(--text);
 }
 .status-line.small {
   font-size: 13px;
-  margin-bottom: 0;
 }
 .status-glyph {
   font-size: 12px;
 }
-.status-line.ok {
-  color: var(--ok);
-}
-.status-line.info {
-  color: var(--accent-dark);
-}
-.status-line.warn {
-  color: var(--warn-text);
-}
-.status-line.bad {
-  color: var(--danger);
-}
-.status-line.muted {
+.status-enddate {
+  margin: 2px 0 0;
+  font-size: 13px;
   color: var(--muted);
+}
+
+.status-facts {
+  margin-bottom: var(--space-4);
+}
+.status-facts > .panel {
+  margin-bottom: 0;
+}
+.status-facts:not(.grid-2) > .panel {
+  margin-bottom: var(--space-4);
 }
 
 .buffer-meter {
@@ -212,13 +355,20 @@
   overflow: hidden;
   background: var(--hover-soft);
   margin-bottom: var(--space-4);
-  max-width: 520px;
 }
 .buffer-seg.used {
-  background: var(--warn-border);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--warn-bg) 0 3px,
+    var(--warn-mark) 3px 5px
+  );
 }
 .buffer-seg.free {
-  background: var(--chip-on-border);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--chip-on-bg) 0 3px,
+    var(--accent-mid) 3px 5px
+  );
 }
 .buffer-seg.over {
   background: var(--danger);
@@ -226,8 +376,8 @@
 
 .fact-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-3) var(--space-4);
   margin: 0;
 }
 .fact dt {
@@ -239,6 +389,7 @@
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 /* --- tables --- */
@@ -246,18 +397,23 @@
 .table-scroll {
   overflow-x: auto;
 }
-.tasks-section,
-.sprint-section,
-.history-panel,
-.sprint-panel,
-.remaining-work {
-  margin-bottom: var(--space-6);
+.sprint-section {
+  margin-bottom: var(--space-4);
 }
 .epics-head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-3) var(--space-5);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+.epics-head > div:first-child {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+.epics-head .muted {
+  max-width: 90ch;
 }
 .epics-sort {
   display: flex;
@@ -267,6 +423,7 @@
   color: var(--muted);
 }
 
+/* The tracker's own tables share the kit's calm .data-table look. */
 .epics-table,
 .history-table,
 .sprint-table {
@@ -279,22 +436,31 @@
 .sprint-table th {
   text-align: left;
   font-weight: 600;
+  font-size: 12px;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
-  padding: var(--space-2);
+  padding: 8px 12px;
   white-space: nowrap;
 }
 .epics-table td,
 .history-table td,
 .sprint-table td {
-  padding: var(--space-2);
+  padding: 8px 12px;
   border-bottom: 1px solid var(--row-border);
   vertical-align: middle;
+}
+.epics-table tbody tr:last-child td,
+.history-table tbody tr:last-child td,
+.sprint-table tbody tr:last-child td {
+  border-bottom: none;
 }
 .epics-table .num,
 .history-table .num,
 .sprint-table .num {
   text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.history-table td:first-child {
   font-variant-numeric: tabular-nums;
 }
 
@@ -516,29 +682,58 @@
 
 /* --- history --- */
 
+.history-chart {
+  overflow-x: auto;
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-3) 0;
+  border: 1px solid var(--row-border);
+  border-radius: var(--radius);
+  background: var(--panel-alt);
+}
 .variance-strip {
   display: block;
-  margin-bottom: var(--space-3);
 }
 .variance-axis {
-  stroke: var(--border);
-  stroke-width: 1;
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+.variance-hatch-bg {
+  fill: var(--accent-softer);
+}
+.variance-hatch {
+  stroke: var(--accent-mid);
+  stroke-width: 2;
 }
 .variance-bar.ok {
   fill: var(--ok);
 }
 .variance-bar.warn {
-  fill: var(--warn-border);
+  fill: var(--warn-mark);
 }
 .variance-bar.bad {
   fill: var(--danger);
+}
+.variance-value {
+  font-size: 10.5px;
+  font-weight: 600;
+  fill: var(--text);
+}
+.variance-date {
+  font-size: 10.5px;
+  fill: var(--muted);
+}
+.sv-swatch.history-warn {
+  background: var(--warn-mark);
+}
+.sv-swatch.history-bad {
+  background: var(--danger);
 }
 
 /* --- sprint planner --- */
 
 .sprint-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-4);
   flex-wrap: wrap;
 }
@@ -561,8 +756,9 @@
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   margin-bottom: var(--space-4);
+  background: var(--panel-alt);
 }
 .candidate-epic {
   margin-bottom: var(--space-3);
@@ -576,13 +772,17 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 2px 0;
+  padding: 4px 0;
   font-size: 13px;
 }
+.candidate-epic .candidate + .candidate {
+  border-top: 1px solid var(--row-border);
+}
 .candidate-key {
-  font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--muted);
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
 }
 
 .sprint-table input[type="number"] {
@@ -612,36 +812,63 @@
   margin: var(--space-2) 0 0;
 }
 
-/* --- settings modal --- */
+/* --- dialogs (settings, estimates, write-back) --- */
 
-.jira-settings > .muted:first-child {
+.modal.tracking-dialog {
+  width: 680px;
+}
+.modal.jira-settings-dialog {
+  width: 600px;
+}
+.modal.tracking-dialog .modal-subtitle .badge {
+  vertical-align: middle;
+}
+.jira-settings-intro {
   margin-bottom: var(--space-4);
 }
+/* Label on the left, control on the right, help under the control. */
 .jira-settings .field {
-  margin-bottom: var(--space-3);
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-4);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--row-border);
 }
 .jira-settings .field label {
-  display: block;
-  margin-bottom: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
 }
 .jira-settings .field input {
   width: 100%;
 }
-.jira-settings .muted {
+.jira-settings .field .muted {
+  grid-column: 2;
+  font-size: 12px;
   margin: var(--space-1) 0 0;
+}
+.jira-settings > .muted {
+  margin: var(--space-2) 0 0;
 }
 .jira-writes {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-2);
   font-size: 13px;
-  margin: var(--space-3) 0;
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--panel-alt);
+  border: 1px solid var(--row-border);
 }
-.modal-actions {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  margin-top: var(--space-4);
+@media (max-width: 560px) {
+  .jira-settings .field {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .jira-settings .field .muted {
+    grid-column: 1;
+  }
 }
 
 /* --- sprint timeline --- */
@@ -649,8 +876,9 @@
 .sprint-gantt {
   margin-top: var(--space-5);
 }
-.sprint-gantt .section-title {
-  font-size: 14px;
+.sprint-gantt-title {
+  font-size: 15px;
+  margin: 0 0 var(--space-2);
 }
 
 /*
@@ -658,7 +886,7 @@
  * are context for how far the plan has drifted, not something to read off.
  */
 .ghost-bar-wrap .gantt-bar {
-  opacity: 0.28;
+  opacity: 0.5;
   box-shadow: none;
   pointer-events: none;
 }
@@ -669,49 +897,47 @@
   margin: 0 0 var(--space-3);
 }
 .writeback-scroll {
-  max-height: 320px;
+  max-height: 340px;
   overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-3);
 }
-.writeback-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
+.writeback-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--panel-alt);
+  z-index: 1;
 }
-.writeback-table th[scope="col"] {
-  text-align: left;
+.writeback-table th[scope="row"],
+.writeback-key {
   font-weight: 600;
-  color: var(--muted);
-  border-bottom: 1px solid var(--border);
-  padding: var(--space-2);
-  white-space: nowrap;
-}
-.writeback-table th[scope="row"] {
-  text-align: left;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--muted);
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--row-border);
+  color: var(--accent);
   white-space: nowrap;
 }
 .writeback-table td {
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--row-border);
-  vertical-align: middle;
   white-space: nowrap;
 }
 .writeback-table td:nth-child(2) {
   white-space: normal;
 }
-/* The old date is context, the new one is the point. */
+.writeback-check {
+  width: 36px;
+}
+.writeback-table tr.unchosen td {
+  color: var(--muted);
+}
+/* The old value is context, the new one is the point. */
 .writeback-from {
   color: var(--muted);
+}
+.writeback-change {
+  font-variant-numeric: tabular-nums;
 }
 
 .writeback-review {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-2);
   font-size: 13px;
   margin: var(--space-3) 0;
@@ -729,11 +955,6 @@
   gap: var(--space-2);
   padding: var(--space-2);
   border-bottom: 1px solid var(--row-border);
-}
-.writeback-key {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--muted);
 }
 /* Colour repeats the glyph and the word; it never carries meaning alone. */
 .writeback-result.ok .writeback-glyph {
@@ -780,7 +1001,8 @@
 }
 .jira-import-tags {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
+  background: var(--panel-alt);
   padding: var(--space-2) var(--space-3) var(--space-3);
   margin: 0 0 var(--space-4);
 }
@@ -841,6 +1063,20 @@
 .jira-import-issues summary {
   cursor: pointer;
   font-size: 13px;
+  font-weight: 500;
+  color: var(--accent-dark);
+  margin-bottom: var(--space-2);
+}
+.modal.jira-import .table-scroll {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-3);
+}
+.modal.jira-import .epics-table th {
+  background: var(--panel-alt);
+}
+.jira-import-epic .table-scroll,
+.jira-import-epic > table {
   margin-bottom: var(--space-2);
 }
 .jira-import-epic h4 {
@@ -849,14 +1085,6 @@
 }
 .jira-import-epic tr.excluded td {
   color: var(--muted);
-}
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }
 .jira-import-epic table {
   table-layout: fixed;
@@ -873,8 +1101,10 @@
 }
 
 .status-option {
-  display: block;
-  margin: var(--space-2) 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-3);
   font-size: 13px;
   color: var(--muted);
 }
@@ -882,22 +1112,28 @@
   font-size: 12px;
   margin: var(--space-2) 0 0;
 }
-.status-enddate {
-  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-}
-.spec-status {
-  margin-top: var(--space-4);
-}
-.spec-status-title {
-  font-size: 14px;
-  margin: 0 0 var(--space-1);
-}
 .spec-status th[scope="row"] {
   text-align: left;
   font-weight: 600;
+  white-space: nowrap;
+}
+.spec-table td,
+.spec-table th[scope="row"] {
+  vertical-align: top;
+}
+.spec-status-cell {
+  min-width: 220px;
+}
+/* A verdict: the pill, then the sentence when it says more. */
+.spec-verdict {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+.spec-verdict-text {
+  font-size: 12px;
+  line-height: 1.35;
 }
 .spec-detail {
   display: block;
@@ -906,9 +1142,6 @@
 }
 
 /* --- deadlines --- */
-.deadlines-panel {
-  margin-bottom: var(--space-6);
-}
 .deadlines-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1006,24 +1239,7 @@
   margin-bottom: var(--space-2);
 }
 
-/* --- Jira estimates that differ from the baseline --- */
-
-.estimate-updates {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-3);
-  margin: 0 0 var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-}
-
 /* Work in review or ready: written, but not earned until Done. */
-.awaiting-close {
-  margin-top: var(--space-3);
-}
 .awaiting-close p {
   margin: 4px 0;
 }
@@ -1034,14 +1250,17 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-3);
-  margin: 0 0 var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 13px;
 }
+/* A legend can't sit inline in a flex fieldset; float takes it into the row. */
 .team-selector legend {
-  padding: 0 4px;
-  font-weight: 600;
+  float: left;
+  padding: 0;
+  margin-right: var(--space-1);
+  color: var(--muted);
 }
 .team-selector label {
   display: inline-flex;
@@ -1049,7 +1268,8 @@
   gap: 6px;
 }
 .team-scope-note {
-  margin: var(--space-2) 0;
+  margin: 0 0 var(--space-3);
+  font-size: 13px;
 }
 .team-scope-note .warn-text {
   color: var(--warn-text);
@@ -1112,47 +1332,61 @@
 .forecast-gantt + .table-scroll {
   margin-top: var(--space-4);
 }
-.forecast-toolbar .seg-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
+.forecast-zoom {
+  flex: none;
+}
+.forecast-zoom .segmented-option {
+  min-height: 24px;
 }
 .forecast-swatch {
+  --bar: var(--cat-fallback);
   display: inline-block;
   width: 14px;
   height: 10px;
   border-radius: 3px;
   vertical-align: middle;
-  background: var(--muted);
+  border: 1px solid color-mix(in srgb, var(--bar) var(--bar-edge), var(--panel));
+  background-color: color-mix(
+    in srgb,
+    var(--bar) var(--bar-fill),
+    var(--panel)
+  );
 }
-/* The planner's pick, not a decision anyone made yet: striped. The bar sets
-   its colour inline with the `background` shorthand, which would otherwise
-   reset the stripes. */
+/* The planner's pick, not a decision anyone made yet: striped in a darker
+   wash of the bar's own colour (bars are light, so white stripes vanish). */
 .gantt-bar.suggested,
 .forecast-swatch.suggested {
   background-image: repeating-linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.25) 0 4px,
-    transparent 4px 8px
-  ) !important;
+    color-mix(in srgb, var(--bar) 30%, var(--ink) 8%) 0 2px,
+    transparent 2px 7px
+  );
 }
 /* A bug keeps its specialization's colour, tinted red with a red edge, so
    it reads as the same person's work and as a bug at once. */
 .gantt-bar.bug,
 .forecast-swatch.bug {
   background-image: linear-gradient(
-    rgba(224, 49, 49, 0.45),
-    rgba(224, 49, 49, 0.45)
-  ) !important;
+    color-mix(in srgb, var(--danger) 30%, transparent),
+    color-mix(in srgb, var(--danger) 30%, transparent)
+  );
   box-shadow: inset 4px 0 0 var(--danger);
 }
 .gantt-bar.bug.suggested {
   background-image:
     repeating-linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.25) 0 4px,
-      transparent 4px 8px
+      color-mix(in srgb, var(--bar) 30%, var(--ink) 8%) 0 2px,
+      transparent 2px 7px
     ),
-    linear-gradient(rgba(224, 49, 49, 0.45), rgba(224, 49, 49, 0.45)) !important;
+    linear-gradient(
+      color-mix(in srgb, var(--danger) 30%, transparent),
+      color-mix(in srgb, var(--danger) 30%, transparent)
+    );
+}
+/* The label's solid backing carries the bug's red tint too. */
+.gantt-bar.bug .gantt-bar-label {
+  background: color-mix(in srgb, var(--danger) 30%, var(--bar-bg));
 }
 /* Planned on an estimate nobody gave it. */
 .gantt-bar.assumed,
@@ -1212,16 +1446,10 @@
 /* --- sprint planning: collapsed at the bottom, opened by a button --- */
 .sprint-section-head {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: var(--space-3);
-}
-.sprint-section-body {
-  margin-top: var(--space-3);
-  scroll-margin-top: var(--space-4);
-}
-.sprint-auto {
-  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
 }
 .sprint-auto-form {
   display: flex;

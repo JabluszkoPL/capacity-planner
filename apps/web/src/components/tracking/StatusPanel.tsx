@@ -3,6 +3,9 @@ import type {
   SpecializationStatus,
   TrackerStatus,
 } from "@planner/core";
+import type { ReactNode } from "react";
+import { Badge, Callout, Panel, StatRow, StatTile, type Tone } from "../ui";
+import { Icon } from "../ui/Icon";
 import {
   SpecChartView,
   SpecViewSwitch,
@@ -106,6 +109,86 @@ function endDateLine(s: TrackerStatus): string | undefined {
 
 function plural(n: number, word: string): string {
   return `${days(n)} ${word}${n === 1 ? "" : "s"}`;
+}
+
+/**
+ * The reading as one short word for a pill ("Using buffer", "Late"), with the
+ * tone it is drawn in. Always shown beside the full sentence, never instead.
+ */
+export function statusBadge(s: TrackerStatus): { word: string; tone: Tone } {
+  switch (s.kind) {
+    case "ahead":
+      return { word: "Ahead", tone: "success" };
+    case "on-plan":
+      return { word: "On track", tone: "success" };
+    case "using-buffer":
+      return { word: "Using buffer", tone: "warning" };
+    case "over-buffer":
+      return { word: "Late", tone: "danger" };
+    default:
+      return { word: "No baseline", tone: "neutral" };
+  }
+}
+
+/** The same for one specialization's row. */
+export function specializationBadge(r: SpecializationStatus): {
+  word: string;
+  tone: Tone;
+} {
+  switch (r.kind) {
+    case "ahead":
+      return { word: "Ahead", tone: "success" };
+    case "on-plan":
+      return { word: "On time", tone: "success" };
+    case "behind":
+      return { word: "Behind", tone: "warning" };
+    case "late":
+      return { word: "Late", tone: "danger" };
+    case "not-started":
+      return { word: "Not started", tone: "neutral" };
+    case "done":
+      return { word: "Done", tone: "success" };
+    case "no-estimate":
+      return { word: "No estimates yet", tone: "neutral" };
+    default:
+      return { word: "No one", tone: "danger" };
+  }
+}
+
+/**
+ * A specialization's verdict: the pill, then the sentence when it says more
+ * than the pill does. The glyph rides in the pill, so colour is never alone.
+ */
+export function SpecVerdict({
+  r,
+  deadline,
+  className,
+}: {
+  r: SpecializationStatus;
+  deadline?: string;
+  className?: string;
+}) {
+  const label = specializationLabel(r, deadline);
+  const badge = specializationBadge(r);
+  return (
+    <span className={"spec-verdict" + (className ? " " + className : "")}>
+      <Badge
+        tone={badge.tone}
+        icon={
+          <span aria-hidden="true" className="badge-glyph">
+            {label.glyph}
+          </span>
+        }
+      >
+        {badge.word}
+      </Badge>
+      {label.text !== badge.word && (
+        <span className={"spec-verdict-text status-cell " + label.tone}>
+          {label.text}
+        </span>
+      )}
+    </span>
+  );
 }
 
 /**
@@ -441,11 +524,16 @@ function SpecializationTable({
   status: TrackerStatus;
   awaitingClose?: AwaitingCloseWhatIf | null;
   /** Shown beside the view tabs. */
-  option?: React.ReactNode;
+  option?: ReactNode;
 }) {
   const [view, setView] = useSpecView();
   return (
-    <section className="spec-status" aria-label="By specialization">
+    <Panel
+      className="spec-status"
+      aria-label="By specialization"
+      title="By specialization"
+      icon={<Icon name="layers" size={17} />}
+    >
       <SpecViewSwitch value={view} onChange={setView}>
         {option}
       </SpecViewSwitch>
@@ -467,7 +555,7 @@ function SpecializationTable({
               {r.specialization} schedule, counted back from the end date (
               {r.phase!.bufferDays > 0 ? "buffer included" : "no buffer"})
             </summary>
-            <table className="epics-table">
+            <table className="data-table">
               <thead>
                 <tr>
                   <th scope="col">Task</th>
@@ -491,7 +579,7 @@ function SpecializationTable({
             </table>
           </details>
         ))}
-    </section>
+    </Panel>
   );
 }
 
@@ -508,7 +596,7 @@ function SpecTable({
   return (
     <>
       <div className="table-scroll">
-        <table className="epics-table">
+        <table className="data-table spec-table">
           <thead>
             <tr>
               <th scope="col">Specialization</th>
@@ -521,19 +609,17 @@ function SpecTable({
           </thead>
           <tbody>
             {rows.map((r) => {
-              const label = specializationLabel(
-                r,
-                `the ${deadlineName(status)}`,
-              );
               return (
                 <tr key={r.specialization}>
                   <th scope="row">
                     {r.specialization}
                     {r.phase && <span className="muted"> · end phase</span>}
                   </th>
-                  <td className={"status-cell " + label.tone}>
-                    <span aria-hidden="true">{label.glyph} </span>
-                    {label.text}
+                  <td className="spec-status-cell">
+                    <SpecVerdict
+                      r={r}
+                      deadline={`the ${deadlineName(status)}`}
+                    />
                     <SpecDetails
                       r={r}
                       status={status}
@@ -542,7 +628,9 @@ function SpecTable({
                   </td>
                   <td className="num">
                     {days(r.earnedDays)} / {days(r.plannedDays)} d
-                    <span className="muted"> of {days(r.totalDays)}</span>
+                    <span className="spec-detail muted">
+                      of {days(r.totalDays)}
+                    </span>
                   </td>
                   <td>
                     {r.phase
@@ -610,8 +698,12 @@ export function AwaitingClose({
         ? `projected finish ${closed.projectedFinish} instead of ${status.projectedFinish}, ${plural(sooner, "working day")} sooner. `
         : "the projected finish would not move: what is left still sets it. ";
   return (
-    <div className="awaiting-close">
-      <h3 className="spec-status-title">Waiting to be closed</h3>
+    <Panel
+      className="awaiting-close"
+      tone="muted"
+      title="Waiting to be closed"
+      icon={<Icon name="clipboard" size={17} />}
+    >
       <p>
         <strong>
           {whatIf.tasks} task{whatIf.tasks === 1 ? "" : "s"} ·{" "}
@@ -630,7 +722,7 @@ export function AwaitingClose({
           <span className="muted">{statusLabel(closed).text}.</span>
         </p>
       )}
-    </div>
+    </Panel>
   );
 }
 
@@ -736,7 +828,7 @@ function Fact({ label, value }: { label: string; value: string }) {
 interface StatusPanelProps {
   status: TrackerStatus;
   /** Rendered when there is no baseline — usually a link to pick one. */
-  children?: React.ReactNode;
+  children?: ReactNode;
   /**
    * Set when the plan stored on the project no longer matches re-running it:
    * the project changed after Run Plan was last pressed. The tracker always
@@ -762,29 +854,48 @@ export function StatusPanel({
   pastInProgress,
 }: StatusPanelProps) {
   const label = statusLabel(status);
+  const badge = statusBadge(status);
   const comparable = status.kind !== "no-baseline";
   // With the per-specialization views shown, the option sits beside their
   // tabs; without them it stays under the status line.
   const specTabs = comparable && status.bySpecialization.length > 1;
+  const finishTone: Tone =
+    status.kind === "over-buffer"
+      ? "danger"
+      : status.kind === "using-buffer"
+        ? "warning"
+        : "success";
 
   return (
     <section className="status-panel" aria-label="Delivery status">
-      <h2 className="section-title">Status</h2>
+      <h2 className="sr-only">Status</h2>
 
-      <p className={"status-line " + label.tone}>
-        <span aria-hidden="true" className="status-glyph">
-          {label.glyph}
-        </span>
-        <strong>{label.text}</strong>
-      </p>
-      {label.endDate && <p className="status-enddate">{label.endDate}</p>}
+      <div className={"status-strip " + label.tone}>
+        <Badge
+          tone={badge.tone}
+          icon={
+            <span aria-hidden="true" className="badge-glyph">
+              {label.glyph}
+            </span>
+          }
+        >
+          {badge.word}
+        </Badge>
+        <div className="status-strip-text">
+          <p className={"status-line " + label.tone}>
+            <strong>{label.text}</strong>
+          </p>
+          {label.endDate && <p className="status-enddate">{label.endDate}</p>}
+        </div>
+      </div>
+
       {status.teamScope && <TeamScopeNote scope={status.teamScope} />}
       {pastInProgress && !specTabs && (
         <PastInProgressOption option={pastInProgress} />
       )}
 
       {suspiciousLead(status) && (
-        <div className="warn-box">
+        <Callout tone="warning">
           Jira shows {days(status.earnedDays)} plan days finished, while the
           plan expected only {days(status.plannedDays)} by today. That often
           means the plan is slower than what really happened: a start date later
@@ -794,18 +905,18 @@ export function StatusPanel({
               Check the project
             </button>
           )}
-        </div>
+        </Callout>
       )}
 
       {!comparable && (
-        <div className="info-box">
+        <Callout tone="info">
           <p>{status.reason ?? "Nothing to compare against yet."}</p>
           {children}
-        </div>
+        </Callout>
       )}
 
       {planStale && (
-        <div className="warn-box">
+        <Callout tone="warning">
           {planStale.storedEnd
             ? `The plan on the project page is out of date: it finishes ${planStale.storedEnd}, but with today's tasks, estimates, people and days off it finishes ${planStale.currentEnd ?? "—"} (with buffer). The numbers here use the up-to-date plan. Re-run the plan so the project page matches.`
             : "The project has no plan yet. The numbers here come from running it now; press Run Plan on the project to keep one."}{" "}
@@ -814,88 +925,117 @@ export function StatusPanel({
               Open the project
             </button>
           )}
-        </div>
+        </Callout>
       )}
 
-      {comparable && <BufferMeter status={status} />}
+      {comparable && (
+        <StatRow>
+          <StatTile
+            icon={<Icon name="calendar" size={18} />}
+            label={
+              (status.scope === "development"
+                ? "Development finish without buffer"
+                : "Finish without buffer") +
+              (status.window ? " (your dates)" : "")
+            }
+            value={status.unbufferedEnd ?? "—"}
+          />
+          <StatTile
+            icon={<Icon name="trend" size={18} />}
+            tone={finishTone}
+            label="Projected finish"
+            value={status.projectedFinish ?? "—"}
+          />
+          {status.deadlines?.devEndDate && (
+            <StatTile
+              icon={<Icon name="flag" size={18} />}
+              label={
+                status.deadlines.devEndFromPlan
+                  ? "Development ends (plan)"
+                  : "Development ends (custom)"
+              }
+              value={status.deadlines.devEndDate}
+            />
+          )}
+          <StatTile
+            icon={<Icon name="flag" size={18} />}
+            label={
+              status.deadlines && !status.deadlines.endDateFromPlan
+                ? "End date (custom)"
+                : "End date (plan, with buffer)"
+            }
+            value={status.deadlines?.endDate ?? status.bufferedEnd ?? "—"}
+          />
+        </StatRow>
+      )}
 
-      <dl className="fact-grid">
+      <div className={comparable ? "grid-2 status-facts" : "status-facts"}>
         {comparable && (
-          <>
-            <Fact
-              label="Planned so far"
-              value={`${days(status.plannedDays)} d`}
-            />
-            <Fact label="Earned" value={`${days(status.earnedDays)} d`} />
-            <Fact
-              label={
-                criticalName(status)
-                  ? `Variance (${status.critical}, vs. finish without buffer)`
-                  : "Variance (vs. finish without buffer)"
-              }
-              value={`${status.varianceDays > 0 ? "+" : ""}${days(status.varianceDays)} d`}
-            />
-            <Fact
-              label={
-                status.deadlineKind === "end" &&
-                (status.deadlines?.endDateFromPlan ?? true)
-                  ? "Schedule buffer"
-                  : `Slack before ${deadlineName(status)}`
-              }
-              value={`${days(status.bufferDays)} d`}
-            />
-            <Fact
-              label={
-                (status.scope === "development"
-                  ? "Development finish without buffer"
-                  : "Finish without buffer") +
-                (status.window ? " (your dates)" : "")
-              }
-              value={status.unbufferedEnd ?? "—"}
-            />
-            {status.deadlines?.devEndDate && (
+          <Panel
+            title="Buffer"
+            icon={<Icon name="gauge" size={17} />}
+            className="status-buffer"
+          >
+            <BufferMeter status={status} />
+            <dl className="fact-grid">
               <Fact
                 label={
-                  status.deadlines.devEndFromPlan
-                    ? "Development ends (plan)"
-                    : "Development ends (custom)"
+                  criticalName(status)
+                    ? `Variance (${status.critical}, vs. finish without buffer)`
+                    : "Variance (vs. finish without buffer)"
                 }
-                value={status.deadlines.devEndDate}
+                value={`${status.varianceDays > 0 ? "+" : ""}${days(status.varianceDays)} d`}
               />
+              <Fact
+                label={
+                  status.deadlineKind === "end" &&
+                  (status.deadlines?.endDateFromPlan ?? true)
+                    ? "Schedule buffer"
+                    : `Slack before ${deadlineName(status)}`
+                }
+                value={`${days(status.bufferDays)} d`}
+              />
+              <Fact
+                label="Effort buffer"
+                value={`${days(status.effortBufferDays)} d`}
+              />
+              <Fact
+                label="Rounding slack"
+                value={`${days(status.roundingBufferDays)} d`}
+              />
+            </dl>
+          </Panel>
+        )}
+        <Panel title="Progress" icon={<Icon name="chart" size={17} />}>
+          <dl className="fact-grid">
+            {comparable && (
+              <>
+                <Fact
+                  label="Planned so far"
+                  value={`${days(status.plannedDays)} d`}
+                />
+                <Fact label="Earned" value={`${days(status.earnedDays)} d`} />
+                <Fact
+                  label="Plan remaining"
+                  value={`${days(status.planRemainingDays)} d`}
+                />
+              </>
             )}
             <Fact
-              label={
-                status.deadlines && !status.deadlines.endDateFromPlan
-                  ? "End date (custom)"
-                  : "End date (plan, with buffer)"
-              }
-              value={status.deadlines?.endDate ?? status.bufferedEnd ?? "—"}
+              label="Jira estimated"
+              value={`${days(status.jiraSetDays)} d`}
             />
             <Fact
-              label="Projected finish"
-              value={status.projectedFinish ?? "—"}
+              label="Jira spent"
+              value={`${days(status.jiraSpentDays)} d`}
             />
             <Fact
-              label="Effort buffer"
-              value={`${days(status.effortBufferDays)} d`}
+              label="Jira remaining"
+              value={`${days(status.jiraRemainingDays)} d`}
             />
-            <Fact
-              label="Rounding slack"
-              value={`${days(status.roundingBufferDays)} d`}
-            />
-            <Fact
-              label="Plan remaining"
-              value={`${days(status.planRemainingDays)} d`}
-            />
-          </>
-        )}
-        <Fact label="Jira estimated" value={`${days(status.jiraSetDays)} d`} />
-        <Fact label="Jira spent" value={`${days(status.jiraSpentDays)} d`} />
-        <Fact
-          label="Jira remaining"
-          value={`${days(status.jiraRemainingDays)} d`}
-        />
-      </dl>
+          </dl>
+        </Panel>
+      </div>
 
       {comparable && awaitingClose && (
         <AwaitingClose status={status} whatIf={awaitingClose} />

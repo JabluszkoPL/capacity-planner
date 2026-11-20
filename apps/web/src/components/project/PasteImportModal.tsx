@@ -1,9 +1,14 @@
-import { useState } from "react";
-import { type Project, parseImport, NEW_EPIC } from "@planner/core";
+import { useMemo, useState } from "react";
+import { type Project, parseImport, colorFor, NEW_EPIC } from "@planner/core";
 import { useAppStore } from "@planner/client-runtime";
 import { useToast } from "../ui/Toast";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
+import { Callout } from "../ui/Callout";
+import { ColorTag } from "../ui/Badge";
+
+/** At most this many parsed rows are previewed; the import takes them all. */
+const PREVIEW_ROWS = 50;
 
 interface PasteImportModalProps {
   open: boolean;
@@ -20,6 +25,25 @@ export function PasteImportModal({
   const toast = useToast();
   const [text, setText] = useState("");
   const [target, setTarget] = useState(NEW_EPIC);
+
+  // A live, read-only preview of what Import will create. The same parser
+  // runs again on Import, so the preview can never disagree with the result.
+  const preview = useMemo(() => {
+    if (!text.trim()) return null;
+    const result = parseImport(
+      text,
+      project.epics.map((e) => ({ id: e.id, name: e.name })),
+      target,
+    );
+    const rows = result.groups.flatMap((g) => {
+      const epic =
+        g.newEpicName ??
+        project.epics.find((e) => e.id === g.existingEpicId)?.name ??
+        "";
+      return g.tasks.map((t) => ({ epic, isNew: !!g.newEpicName, task: t }));
+    });
+    return { count: result.importedCount, rows };
+  }, [text, target, project.epics]);
 
   const close = () => {
     setText("");
@@ -140,23 +164,29 @@ export function PasteImportModal({
   };
 
   return (
-    <Modal open={open} onClose={close} title="Paste from Google Sheets">
+    <Modal
+      open={open}
+      onClose={close}
+      title="Paste from Google Sheets"
+      subtitle="Bring epics and tasks in from a spreadsheet."
+      className="import-modal"
+    >
       <p className="modal-hint">
         Paste rows copied from a spreadsheet. Columns are tab-separated (comma
         also works). Two shapes are supported:
       </p>
       <ul className="modal-hint-list">
         <li>
-          <strong>4 columns:</strong> Epic, Task, Estimate, Specialization — the
+          <strong>4 columns:</strong> Epic, Task, Estimate, Specialization. The
           epic is created if it doesn't exist yet.
         </li>
         <li>
-          <strong>3 columns:</strong> Task, Estimate, Specialization — added to
+          <strong>3 columns:</strong> Task, Estimate, Specialization, added to
           the epic selected below.
         </li>
         <li>
           <strong>Optional 5th/6th columns:</strong> task dependencies and epic
-          dependencies — reference other tasks/epics by name, separating several
+          dependencies. Reference other tasks/epics by name, separating several
           with <code>;</code> or <code>|</code>. Names are matched
           case-insensitively; unmatched ones are reported and skipped.
         </li>
@@ -167,6 +197,7 @@ export function PasteImportModal({
       </label>
       <select
         id="import-target"
+        className="import-target"
         value={target}
         onChange={(e) => setTarget(e.target.value)}
       >
@@ -190,6 +221,61 @@ export function PasteImportModal({
         }
         onChange={(e) => setText(e.target.value)}
       />
+
+      {preview && (
+        <div className="import-preview">
+          {preview.count > 0 ? (
+            <>
+              <div className="modal-field-label">
+                Parsed preview ({preview.count} row
+                {preview.count === 1 ? "" : "s"})
+              </div>
+              <div className="import-preview-table">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Epic</th>
+                      <th>Task</th>
+                      <th className="num">Days</th>
+                      <th>Specialization</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.rows.slice(0, PREVIEW_ROWS).map((r, i) => (
+                      <tr key={i}>
+                        <td>
+                          {r.epic}
+                          {r.isNew && <span className="import-new"> new</span>}
+                        </td>
+                        <td>{r.task.name}</td>
+                        <td className="num">{r.task.estimateDays}</td>
+                        <td>
+                          {r.task.specialization && (
+                            <ColorTag color={colorFor(r.task.specialization)}>
+                              {r.task.specialization}
+                            </ColorTag>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Callout tone="success" role="status">
+                {preview.count} row{preview.count === 1 ? "" : "s"} ready to
+                import.
+                {preview.rows.length > PREVIEW_ROWS &&
+                  ` Showing the first ${PREVIEW_ROWS}.`}
+              </Callout>
+            </>
+          ) : (
+            <Callout tone="warning" role="status">
+              Nothing to import yet. Check the columns match one of the shapes
+              above.
+            </Callout>
+          )}
+        </div>
+      )}
 
       <div className="modal-actions">
         <Button onClick={close}>Cancel</Button>

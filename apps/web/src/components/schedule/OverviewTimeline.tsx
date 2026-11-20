@@ -261,7 +261,7 @@ export function OverviewTimeline({
                     style={{
                       left: `${pct(startOff)}%`,
                       width: `${pct(span)}%`,
-                      background: colorFor(a.specialization),
+                      ["--bar" as string]: colorFor(a.specialization),
                     }}
                     title={`${a.taskName} (${a.epicName})\n${a.memberName} · ${a.start} → ${a.end} · ${a.estimateDays}d`}
                   />

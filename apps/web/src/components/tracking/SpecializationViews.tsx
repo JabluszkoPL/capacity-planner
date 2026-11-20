@@ -6,6 +6,7 @@ import type {
 } from "@planner/core";
 import {
   SpecDetails,
+  SpecVerdict,
   days,
   hasSpecDetails,
   marginText,
@@ -253,17 +254,17 @@ function RowLabel({
   r: SpecializationStatus;
   status: TrackerStatus;
 }) {
-  const label = specializationLabel(r, `the ${deadlineName(status)}`);
   return (
     <div className="sv-label">
       <span className="sv-name">
         {r.specialization}
         {r.phase && <span className="muted"> · end phase</span>}
       </span>
-      <span className={"sv-verdict status-cell " + label.tone}>
-        <span aria-hidden="true">{label.glyph} </span>
-        {label.text}
-      </span>
+      <SpecVerdict
+        r={r}
+        deadline={`the ${deadlineName(status)}`}
+        className="sv-verdict"
+      />
     </div>
   );
 }
@@ -728,10 +729,11 @@ function CardsView({ rows, status, awaitingClose }: ViewProps) {
               {r.specialization}
               {r.phase && <span className="muted"> · end phase</span>}
             </h4>
-            <p className={"sv-card-verdict status-cell " + label.tone}>
-              <span aria-hidden="true">{label.glyph} </span>
-              {label.text}
-            </p>
+            <SpecVerdict
+              r={r}
+              deadline={`the ${deadlineName(status)}`}
+              className="sv-card-verdict"
+            />
             {domain && (
               <div className="sv-track">
                 <TodayLine domain={domain} today={status.today} />

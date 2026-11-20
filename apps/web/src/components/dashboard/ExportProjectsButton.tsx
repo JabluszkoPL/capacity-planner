@@ -70,7 +70,12 @@ export function ExportProjectsButton() {
 
   return (
     <>
-      <Button onClick={openModal} disabled={projects.length === 0}>
+      <Button
+        variant="ghost"
+        icon="download"
+        onClick={openModal}
+        disabled={projects.length === 0}
+      >
         Export…
       </Button>
       <Modal open={open} onClose={() => setOpen(false)} title="Export projects">

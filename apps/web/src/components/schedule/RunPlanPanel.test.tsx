@@ -85,6 +85,20 @@ describe("RunPlanPanel", () => {
     expect(screen.getByText(/No plan yet/i)).toBeInTheDocument();
   });
 
+  it("switches the planning mode, showing look-ahead only for Smart", () => {
+    renderPanel();
+    const balanced = screen.getByRole("radio", { name: "Balanced" });
+    expect(balanced).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByLabelText("Lookahead window size")).toBeNull();
+
+    // Arrow keys move the choice, like native radios.
+    fireEvent.keyDown(balanced, { key: "ArrowRight" });
+    expect(
+      screen.getByRole("radio", { name: "Smart (days-off aware)" }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByLabelText("Lookahead window size")).toHaveValue("5");
+  });
+
   it("runs the plan, showing assignments and an unassigned callout", () => {
     renderPanel();
     fireEvent.click(screen.getByRole("button", { name: /Run Plan/i }));
@@ -105,10 +119,15 @@ describe("RunPlanPanel", () => {
     const lastRun = screen.getByText(/Last run/i).textContent;
 
     // Toggle to the task view.
-    fireEvent.click(screen.getByRole("button", { name: /Grid by Task/i }));
-    expect(
-      screen.getByRole("button", { name: /Grid by Task/i }),
-    ).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("radio", { name: "By task" }));
+    expect(screen.getByRole("radio", { name: "By task" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(screen.getByRole("radio", { name: "By person" })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
 
     // Plan is still there and the run timestamp is unchanged (not re-run).
     expect(screen.getAllByText("Build API").length).toBeGreaterThan(0);
@@ -118,7 +137,7 @@ describe("RunPlanPanel", () => {
   it("shows each epic's start and end in the epic grid", () => {
     renderPanel();
     fireEvent.click(screen.getByRole("button", { name: /Run Plan/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Grid by Epic/i }));
+    fireEvent.click(screen.getByRole("radio", { name: "By epic" }));
 
     // Alice does Build API (Mon–Tue), then Write docs (Wed).
     expect(screen.getByText("Jul 27 → Jul 28 · 1 task")).toBeInTheDocument();

@@ -16,6 +16,7 @@ import {
   type GanttRow,
 } from "../schedule/DateGrid";
 import { days } from "./StatusPanel";
+import { Icon } from "../ui/Icon";
 import "../schedule/schedule.css";
 
 /** Width of the person column in the timeline. */
@@ -201,19 +202,29 @@ export function ForecastTimeline({
             )}
           </div>
           {range && (
-            <div className="seg-toggle" role="group" aria-label="Zoom">
+            // The kit's segmented look, but plain buttons: − and + are
+            // actions and Fit is a toggle, not one choice among three, so a
+            // radiogroup (<Segmented>) would announce the wrong thing.
+            <div
+              className="segmented segmented-sm forecast-zoom"
+              role="group"
+              aria-label="Zoom"
+            >
               <button
                 type="button"
-                className="seg-btn"
+                className="segmented-option"
                 onClick={() => zoomOut && setZoom(zoomOut)}
                 disabled={!zoomOut}
                 aria-label="Zoom out"
+                title="Zoom out"
               >
-                −
+                <Icon name="minus" size={13} />
               </button>
               <button
                 type="button"
-                className={"seg-btn" + (zoom === "fit" ? " active" : "")}
+                className={
+                  "segmented-option" + (zoom === "fit" ? " active" : "")
+                }
                 aria-pressed={zoom === "fit"}
                 onClick={() => setZoom("fit")}
               >
@@ -221,12 +232,13 @@ export function ForecastTimeline({
               </button>
               <button
                 type="button"
-                className="seg-btn"
+                className="segmented-option"
                 onClick={() => zoomIn && setZoom(zoomIn)}
                 disabled={!zoomIn}
                 aria-label="Zoom in"
+                title="Zoom in"
               >
-                +
+                <Icon name="plus" size={13} />
               </button>
             </div>
           )}

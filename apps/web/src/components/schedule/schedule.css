@@ -1,5 +1,13 @@
-/* Schedule visualization (T10) — ported from the POC, referencing T01 tokens. */
+/*
+ * Schedule: the run-plan settings card, the plan timelines (overview + the
+ * person / task / epic gantts) and the result tables. "Warm Focus" (v0.2):
+ * tokens only, no raw colours.
+ *
+ * DateGrid, GanttBar, .info-box, .seg-toggle and .table-scroll are also used
+ * by the tracking screens, which import this file; keep those names.
+ */
 
+/* --- shared helpers (tracking screens use these too) --- */
 .info-box {
   background: var(--info-bg);
   border: 1px solid var(--info-border);
@@ -10,184 +18,358 @@
   margin-bottom: 14px;
 }
 
-.callout {
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  font-size: 13px;
-  margin-bottom: 12px;
-}
-.callout.warn {
-  background: var(--warn-bg);
-  border: 1px solid var(--warn-border);
-  color: var(--warn-text);
-}
-.callout ul {
-  margin: 6px 0 0;
-  padding-left: 18px;
-}
-
-.run-row {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  margin-bottom: 14px;
-}
-.completion-note {
-  color: var(--muted);
-  font-size: 13px;
-  margin-bottom: 10px;
-}
-.completion-note strong {
-  color: var(--text);
-}
-.rounding-note {
-  margin-top: -4px;
-}
-.rounding-note strong {
-  color: var(--ok-text, var(--text));
-}
-
-/* --- export actions --- */
-.export-row {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-}
-.plan-search-row {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-  font-size: 12px;
-}
-.plan-search {
-  flex: 1 1 240px;
-  max-width: 360px;
-}
-.plan-search-empty {
-  margin-bottom: 14px;
-}
-.export-hint {
-  font-size: 12px;
-}
-
-/* --- segmented toggle --- */
+/* A legacy pill toggle, styled like the kit's <Segmented>. */
 .seg-toggle {
   display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--hover-soft);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
   margin-bottom: 12px;
 }
 .seg-btn {
-  padding: 6px 14px;
+  padding: 3px 12px;
   border: none;
-  border-right: 1px solid var(--border);
-  background: #fff;
-  font-size: 13px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: 12px;
   font-weight: 500;
   color: var(--muted);
+  white-space: nowrap;
 }
-.seg-btn:last-child {
-  border-right: none;
+.seg-btn:hover:not(.active):not(:disabled) {
+  color: var(--text);
 }
 .seg-btn.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-text);
+  box-shadow: var(--shadow-bar);
 }
 
-/* --- planning mode + lookahead --- */
-.plan-mode-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4, 16px);
-  margin-bottom: 14px;
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 16px;
 }
-.plan-mode-row .seg-toggle {
-  margin-bottom: 0;
+.panel-flush .table-scroll {
+  margin-top: 0;
 }
-.lookahead-control {
+
+/* --- run plan: settings card + markers --- */
+.run-plan-panel {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  font-size: 13px;
+  gap: var(--space-4);
 }
-.lookahead-control input[type="range"] {
-  width: 200px;
-  accent-color: var(--accent);
+.run-plan-panel > .panel,
+.run-plan-panel .plan-tables > .panel,
+.run-plan-top > .panel {
+  margin-bottom: 0;
 }
-.lookahead-hint {
-  font-size: 12px;
+.run-plan-panel > .callout {
+  margin-bottom: 0;
 }
-.buffer-row {
-  margin-bottom: 14px;
+.run-plan-top {
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .run-plan-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-/* --- timeline markers editor + toggle --- */
-.markers-editor {
-  margin-bottom: 14px;
+.run-plan-settings .panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
-.markers-head {
+.rp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   font-size: 13px;
-  margin-bottom: 6px;
+}
+.rp-field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.rp-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.rp-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.rp-field input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.rp-mode {
+  align-self: flex-start;
+}
+.rp-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.rp-hint strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.rp-run {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--row-border);
+}
+.run-plan-btn {
+  width: 100%;
+  min-height: 38px;
+  font-size: 14px;
+}
+.rp-last-run {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+.run-plan-settings .callout {
+  margin-bottom: 0;
+  align-items: center;
+}
+.completion-note strong {
+  font-weight: 700;
+}
+.rounding-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.rounding-note strong {
+  color: var(--accent-dark);
+}
+
+/* --- timeline markers editor --- */
+.markers-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.markers-toggle input {
+  accent-color: var(--accent);
 }
 .marker-list {
   list-style: none;
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-3);
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 .marker-row,
 .marker-add {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
-.marker-row input[type="text"],
-.marker-add input[type="text"] {
-  width: 200px;
-  max-width: 100%;
+.marker-row {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--row-border);
 }
-.marker-swatch {
-  width: 4px;
-  height: 18px;
-  border-radius: 2px;
-  background: var(--marker);
+.marker-row:first-child {
+  padding-top: 0;
+}
+.marker-flag {
+  color: var(--marker);
+  flex: none;
+}
+.marker-row input[type="text"] {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.marker-row input[type="date"] {
+  flex: none;
+}
+.marker-empty {
+  margin: 0 0 var(--space-3);
+  font-size: 12.5px;
 }
 .marker-add {
-  padding-left: 12px;
+  padding-top: 2px;
 }
-.markers-toggle {
+.marker-add input[type="text"] {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+/* --- results: timeline panel --- */
+.plan-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  font-size: 12px;
+}
+.plan-search-field {
+  position: relative;
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+.plan-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--faint);
+  pointer-events: none;
+}
+.plan-search-field .plan-search {
+  width: 100%;
+  padding-left: 30px;
+}
+.plan-search-empty {
+  margin: var(--space-2) 0;
+}
+
+.gantt-legend {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: 12px;
+  color: var(--muted);
+}
+.gantt-legend li {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+.legend-swatch {
+  width: 14px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+.legend-swatch.weekend {
+  background: var(--weekend-cell);
+}
+.legend-swatch.nonwork {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--off-day) 0 3px,
+    var(--panel) 3px 6px
+  );
+}
+.legend-line.today {
+  width: 2px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--today);
+}
+.legend-diamond {
+  width: 8px;
+  height: 8px;
+  margin: 0 2px;
+  transform: rotate(45deg);
+  border-radius: 1px;
+  background: var(--marker);
+}
+
+/* --- results: tables --- */
+.plan-tables {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(0, 2.6fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+/* Only the assignments (no team totals): let it span the row. */
+.plan-tables > .panel:only-child {
+  grid-column: 1 / -1;
+}
+@media (max-width: 1100px) {
+  .plan-tables {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.assignments-table .assignment-task {
+  font-weight: 500;
+}
+.assignments-table .date-cell {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.assignments-table .num {
+  white-space: nowrap;
+}
+
+/* --- planned days by team / specialization --- */
+.tb-table .tb-group-row th,
+.tb-table .tb-group-row td {
+  background: var(--panel-alt);
   font-size: 13px;
-  margin-bottom: 8px;
-  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+  border-bottom: 1px solid var(--row-border);
+  border-top: 1px solid var(--row-border);
+}
+.tb-table .tb-group-name {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tb-table .tb-external .tb-group-name {
+  font-style: italic;
+}
+.tb-table .tb-spec td {
+  border-bottom: none;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.tb-table .tb-spec-name {
+  padding-left: 22px;
+}
+.tb-table .tb-spec-days {
+  color: var(--muted);
+}
+
+/* --- unassigned callout --- */
+.unassigned-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
 }
 
 /* --- overview timeline (compact, always-fits summary) --- */
 .overview-timeline {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: #fff;
+  border: 1px solid var(--row-border);
+  border-radius: var(--radius-sm);
+  background: var(--panel-alt);
   padding: 10px 12px 12px;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-3);
 }
 .overview-title {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-variant: all-small-caps;
+  letter-spacing: 0.04em;
   color: var(--muted);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .overview-grid {
   position: relative;
@@ -221,7 +403,7 @@
   top: 0;
   transform: translateX(-50%);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-text);
   font-size: 9px;
   font-weight: 600;
   line-height: 1;
@@ -266,8 +448,8 @@
   position: relative;
   flex: 1;
   height: 14px;
-  background: var(--nonwork);
-  border-radius: 4px;
+  background: var(--hover-soft);
+  border-radius: var(--radius-pill);
   overflow: hidden;
 }
 .overview-bar {
@@ -276,7 +458,13 @@
   bottom: 0;
   min-width: 2px;
   border-radius: 3px;
-  opacity: 0.9;
+  background: color-mix(
+    in srgb,
+    var(--bar, var(--cat-fallback)) 78%,
+    var(--panel)
+  );
+  /* A hairline of track colour keeps back-to-back tasks apart. */
+  box-shadow: inset -1px 0 0 var(--panel-alt);
 }
 .overview-markers {
   position: relative;
@@ -287,7 +475,7 @@
   height: 14px;
   transform: translateX(-1px);
   background: var(--marker);
-  color: #fff;
+  color: var(--accent-text);
   font-size: 9px;
   font-weight: 600;
   line-height: 14px;
@@ -295,8 +483,7 @@
   border-radius: 0 3px 3px 0;
   white-space: nowrap;
 }
-.overview-markerlabel.flip,
-.gantt-markerlabel.flip {
+.overview-markerlabel.flip {
   transform: translateX(calc(-100% + 1px));
   border-radius: 3px 0 0 3px;
 }
@@ -312,38 +499,68 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 1px;
-  background: var(--danger);
+  width: 2px;
+  background: var(--today);
   z-index: 1;
 }
 
-/* --- gantt --- */
+/* --- gantt (DateGrid) --- */
 .gantt-wrap {
   overflow: auto;
   max-height: 70vh;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #fff;
-  padding-bottom: 6px;
+  background: var(--panel);
 }
 .gantt-inner {
   position: relative;
 }
+
+/* Header: months over days, sticky to the top of the scroll area. */
 .gantt-header {
   position: sticky;
   top: 0;
-  height: 24px;
-  background: #fff;
-  border-bottom: 1px solid var(--gridline);
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
   z-index: 5;
 }
-.gantt-header.with-days {
-  height: 40px;
+/* Over the label column: names the rows and hides dates scrolled under it. */
+.gantt-corner {
+  position: sticky;
+  left: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 12px 6px;
+  box-sizing: border-box;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant: all-small-caps;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  z-index: 7;
+}
+.gantt-monthlabel {
+  position: absolute;
+  top: 3px;
+  padding-left: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant: all-small-caps;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
 }
 .gantt-daylabel {
   position: absolute;
-  top: 22px;
+  top: 18px;
+  height: 20px;
+  line-height: 20px;
   font-size: 10px;
+  font-variant-numeric: tabular-nums;
   color: var(--muted);
   text-align: center;
   pointer-events: none;
@@ -351,16 +568,38 @@
   overflow: hidden;
 }
 .gantt-daylabel.weekend {
-  opacity: 0.55;
+  color: var(--faint);
 }
+.gantt-daylabel.today {
+  color: var(--today);
+  font-weight: 700;
+}
+/* Narrow columns: Mondays only. */
 .gantt-datelabel {
   position: absolute;
-  top: 0;
+  top: 18px;
+  line-height: 20px;
+  padding-left: 4px;
   font-size: 10px;
+  font-variant-numeric: tabular-nums;
   color: var(--muted);
-  padding-left: 3px;
-  padding-top: 4px;
   pointer-events: none;
+}
+.gantt-todaylabel {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--today);
+  color: var(--accent-text);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 14px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
 }
 .gantt-gridline {
   position: absolute;
@@ -370,19 +609,24 @@
   border-left: 1px solid var(--gridline);
   pointer-events: none;
 }
+
 .gantt-row {
   display: flex;
   align-items: stretch;
   border-bottom: 1px solid var(--row-border);
 }
+.gantt-row.group-start {
+  border-top: 1px solid var(--border);
+}
 .gantt-label {
   position: sticky;
   left: 0;
-  background: #fff;
+  box-sizing: border-box;
+  background: var(--panel);
   width: 130px;
   flex: none;
-  font-size: 12px;
-  padding: 6px 10px;
+  font-size: 12.5px;
+  padding: 6px 12px;
   border-right: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -390,6 +634,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* The row's colour (its specialization or epic) as a slim inset edge. */
+.gantt-label.accented {
+  box-shadow: inset 3px 0 0 var(--row-accent);
 }
 .gantt-label.wide {
   width: 220px;
@@ -404,19 +652,38 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 198px;
+  max-width: 100%;
 }
 .gantt-label .lbl-sub {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 198px;
+  max-width: 100%;
 }
 .gantt-label .lbl-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   color: var(--warn-text);
 }
+.gantt-label .lbl-warn .icon {
+  flex: none;
+}
+.lbl-person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.lbl-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
 .gantt-track {
   position: relative;
   height: 40px;
@@ -426,34 +693,66 @@
   top: 0;
   bottom: 0;
 }
-.gantt-bgcell.nonwork {
-  background: var(--nonwork);
-}
 .gantt-bgcell.weekend {
-  background: var(--weekend-bar);
+  background: var(--weekend-cell);
 }
+/* A person's own day off: hatched, so it reads apart from a weekend. */
+.gantt-bgcell.nonwork {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--off-day) 0 3px,
+    transparent 3px 7px
+  );
+  opacity: 0.8;
+}
+
+/* A rounded bar: a solid tint of its colour, with text mixed toward --ink
+   (darker in light mode, lighter in dark). The mix strengths are tokens so
+   the dark palette can use a fuller colour. */
 .gantt-bar {
+  --bar: var(--cat-fallback);
+  --bar-bg: color-mix(in srgb, var(--bar) var(--bar-fill), var(--panel));
   position: absolute;
-  top: 5px;
-  height: 30px;
-  border-radius: 5px;
-  color: #fff;
-  font-size: 11px;
-  padding: 0 7px;
+  top: 7px;
+  height: 26px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--bar) var(--bar-edge), var(--panel));
+  background-color: var(--bar-bg);
+  color: color-mix(in srgb, var(--bar) var(--bar-text), var(--ink));
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 0 8px;
   display: flex;
   align-items: center;
+  gap: 4px;
   overflow: hidden;
   white-space: nowrap;
+}
+.gantt-bar-label {
+  overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: var(--shadow-bar);
+  min-width: 0;
+  /* A solid patch of the bar's own fill, so text stays readable over the
+     stripes of a suggested bar or the red of a bug. */
+  background: var(--bar-bg);
+  border-radius: 4px;
+  padding: 0 4px;
+  margin-left: -4px;
+}
+.gantt-bar-meta {
+  flex: none;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
 }
 .gantt-todayline {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--danger);
+  background: var(--today);
   z-index: 1;
+  pointer-events: none;
 }
 
 /* --- timeline markers (alpha gate, beta gate...) --- */
@@ -462,23 +761,37 @@
   top: 0;
   bottom: 0;
   width: 0;
-  border-left: 2px dashed var(--marker);
+  border-left: 1.5px dashed var(--marker);
   transform: translateX(-1px);
   z-index: 1;
   pointer-events: none;
 }
+/* Name tag hanging off the line, led by a milestone diamond on the line. */
 .gantt-markerlabel {
   position: absolute;
   height: 16px;
-  transform: translateX(-1px);
-  background: var(--marker);
-  color: #fff;
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transform: translateX(-4px);
+  color: var(--marker);
+  font-size: 10.5px;
   font-weight: 600;
   line-height: 16px;
-  padding: 0 5px;
-  border-radius: 0 3px 3px 0;
   white-space: nowrap;
+}
+.gantt-markerlabel::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+  transform: rotate(45deg);
+  background: var(--marker);
+}
+.gantt-markerlabel.flip {
+  flex-direction: row-reverse;
+  transform: translateX(calc(-100% + 4px));
 }
 
 /* --- hover highlight --- */
@@ -487,7 +800,7 @@
   top: 0;
   bottom: 0;
   background: var(--accent);
-  opacity: 0.1;
+  opacity: 0.07;
   z-index: 1;
   pointer-events: none;
 }
@@ -496,7 +809,7 @@
   top: 2px;
   transform: translateX(-50%);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-text);
   font-size: 10px;
   font-weight: 600;
   line-height: 1;
@@ -507,14 +820,24 @@
   z-index: 6;
 }
 
-/* --- utilization --- */
+/* --- utilization (person view) --- */
+.util-section {
+  margin-top: var(--space-4);
+}
+.util-title {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant: all-small-caps;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
 .util-grid {
   display: grid;
-  grid-template-columns: 130px 1fr 60px;
-  gap: 6px 10px;
+  grid-template-columns: 150px minmax(0, 1fr) 48px;
+  gap: 6px 12px;
   align-items: center;
-  font-size: 12px;
-  margin-top: 14px;
+  font-size: 12.5px;
 }
 .util-name {
   overflow: hidden;
@@ -522,117 +845,18 @@
   white-space: nowrap;
 }
 .util-bar-bg {
-  background: var(--nonwork);
-  border-radius: 4px;
+  background: var(--hover-soft);
+  border-radius: var(--radius-pill);
   height: 8px;
   overflow: hidden;
 }
 .util-bar-fg {
   height: 100%;
-  background: var(--accent);
-}
-
-/* --- planned days by team / specialization --- */
-.team-breakdown {
-  margin-top: 20px;
-}
-.team-breakdown-title {
-  font-size: 13px;
-  font-weight: 600;
-  margin: 0 0 10px;
-}
-.tb-groups {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-.tb-group {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-}
-.tb-group.tb-external {
-  border-style: dashed;
-}
-.tb-group-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  padding-bottom: 6px;
-  margin-bottom: 6px;
-  border-bottom: 1px solid var(--border);
-}
-.tb-group-name {
-  font-weight: 600;
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tb-group-total {
-  font-weight: 600;
-  font-size: 13px;
-  white-space: nowrap;
-}
-.tb-specs {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.tb-spec {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-}
-.tb-swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  flex: none;
-}
-.tb-spec-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tb-spec-days {
-  margin-left: auto;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-/* --- assignments table --- */
-.table-scroll {
-  overflow-x: auto;
-  margin-top: 16px;
-}
-.assignments-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.assignments-table th {
-  text-align: left;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--muted);
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
-}
-.assignments-table td {
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--row-border);
-  font-size: 13px;
-}
-.spec-badge {
-  display: inline-block;
-  padding: 2px 8px;
   border-radius: var(--radius-pill);
-  font-size: 11px;
-  font-weight: 600;
+  background: var(--accent-mid);
+}
+.util-days {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
 }

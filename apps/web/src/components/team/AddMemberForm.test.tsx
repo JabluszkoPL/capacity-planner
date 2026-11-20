@@ -6,7 +6,7 @@ describe("AddMemberForm", () => {
   it("rejects a blank name inline instead of silently doing nothing", () => {
     const onAdd = vi.fn();
     render(<AddMemberForm onAdd={onAdd} />);
-    fireEvent.click(screen.getByRole("button", { name: "+ Add member" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add person" }));
     expect(screen.getByRole("alert")).toHaveTextContent(/enter a name/i);
     expect(onAdd).not.toHaveBeenCalled();
   });
@@ -19,7 +19,7 @@ describe("AddMemberForm", () => {
     fireEvent.change(screen.getByLabelText("Specialization"), {
       target: { value: " Frontend " },
     });
-    fireEvent.click(screen.getByRole("button", { name: "+ Add member" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add person" }));
 
     expect(onAdd).toHaveBeenCalledWith("Alice Kim", "Frontend");
     expect(nameInput.value).toBe("");
@@ -27,7 +27,7 @@ describe("AddMemberForm", () => {
 
   it("clears the error as soon as the user types a name", () => {
     render(<AddMemberForm onAdd={() => {}} />);
-    fireEvent.click(screen.getByRole("button", { name: "+ Add member" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add person" }));
     expect(screen.queryByRole("alert")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Name"), {
       target: { value: "B" },

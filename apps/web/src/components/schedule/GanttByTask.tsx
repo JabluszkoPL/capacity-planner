@@ -30,32 +30,40 @@ export function GanttByTask({
   range,
   markers,
 }: GanttByTaskProps) {
-  const rows: GanttRow[] = taskRows(assignments, epics, offDays).map((r) => ({
-    key: r.key,
-    labelBorderColor: r.borderColor,
-    offDays: r.offDays,
-    label: (
-      <>
-        <span className="lbl-title">{r.title}</span>
-        <span className="lbl-sub">{r.subtitle}</span>
-      </>
-    ),
-    bars: (
-      <GanttBar
-        bar={r.bars[0]}
-        rangeStart={range.rangeStart}
-        colWidth={COL_WIDTH}
-        label={r.bars[0].memberName}
-      />
-    ),
-  }));
+  // Rows come in epic order; a rule above each epic's first task groups them.
+  const rows: GanttRow[] = taskRows(assignments, epics, offDays).map(
+    (r, i, all) => ({
+      key: r.key,
+      className:
+        i > 0 && all[i - 1].bars[0].epicName !== r.bars[0].epicName
+          ? "group-start"
+          : undefined,
+      labelBorderColor: r.borderColor,
+      offDays: r.offDays,
+      label: (
+        <>
+          <span className="lbl-title">{r.title}</span>
+          <span className="lbl-sub">{r.subtitle}</span>
+        </>
+      ),
+      bars: (
+        <GanttBar
+          bar={r.bars[0]}
+          rangeStart={range.rangeStart}
+          colWidth={COL_WIDTH}
+          label={r.bars[0].memberName}
+        />
+      ),
+    }),
+  );
 
   return (
     <DateGrid
       range={range}
       colWidth={COL_WIDTH}
-      labelWidth={220}
+      labelWidth={240}
       wideLabels
+      corner="Task"
       rows={rows}
       markers={markers}
     />

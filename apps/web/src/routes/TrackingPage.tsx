@@ -4,15 +4,15 @@ import { todayISO } from "@planner/core";
 import { useAppStore } from "@planner/client-runtime";
 import { useConfirm } from "../components/ui/ConfirmDialog";
 import { useToast } from "../components/ui/Toast";
-import { EmptyState } from "../components/ui/EmptyState";
-import { Button } from "../components/ui/Button";
+import { Button, EmptyState, Page, PageHeader, Panel } from "../components/ui";
 import { AddTrackerForm } from "../components/tracking/AddTrackerForm";
 import { JiraSettingsPanel } from "../components/tracking/JiraSettingsPanel";
-import { TrackerCard } from "../components/tracking/TrackerCard";
+import { TrackerRow } from "../components/tracking/TrackerCard";
 import { useTrackerRefresh } from "../components/tracking/useTrackerRefresh";
 import { isJiraConfigured } from "../lib/jiraSettings";
 import "../components/tracking/tracking.css";
 
+/** "Tracking - portfolio": every tracked initiative, one row each. */
 export function TrackingPage() {
   const { state, actions } = useAppStore();
   const navigate = useNavigate();
@@ -21,11 +21,14 @@ export function TrackingPage() {
   const { refresh, busyIds, transport, settings } = useTrackerRefresh();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [refreshingAll, setRefreshingAll] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   const trackers = state.trackers ?? [];
   const connected = isJiraConfigured(settings);
   const now = new Date().toISOString();
   const today = todayISO();
+  // With nothing tracked yet, the form is the page's whole point.
+  const showForm = adding || trackers.length === 0;
 
   function add(link: { url: string; key: string; baseUrl: string }) {
     const id = actions.createTracker(
@@ -73,29 +76,64 @@ export function TrackingPage() {
   }
 
   return (
-    <main className="page">
-      <h1 className="page-title">Tracking</h1>
-
-      <p className="muted jira-conn-line">
-        {connected ? (
+    <Page className="tracking-page">
+      <PageHeader
+        title="Tracking"
+        subtitle={
+          <span className="jira-conn-line">
+            {connected ? (
+              <>
+                Jira: {settings.email} ·{" "}
+                {settings.baseUrl.replace(/^https?:\/\//, "")} · refresh{" "}
+                {transport.description}
+              </>
+            ) : (
+              <>Jira is not connected yet.</>
+            )}{" "}
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => setSettingsOpen(true)}
+            >
+              {connected ? "Settings" : "Connect Jira"}
+            </button>
+          </span>
+        }
+        actions={
           <>
-            Jira: {settings.email} ·{" "}
-            {settings.baseUrl.replace(/^https?:\/\//, "")} · refresh{" "}
-            {transport.description}
+            {trackers.length > 0 && (
+              <Button
+                icon="refresh"
+                onClick={refreshAll}
+                disabled={refreshingAll || !connected}
+              >
+                {refreshingAll ? "Refreshing all…" : "Refresh all"}
+              </Button>
+            )}
+            {trackers.length > 0 && (
+              <Button
+                variant="primary"
+                icon="plus"
+                aria-expanded={adding}
+                aria-controls="add-tracker-form"
+                onClick={() => setAdding(!adding)}
+              >
+                Add tracker
+              </Button>
+            )}
           </>
-        ) : (
-          <>Jira is not connected yet.</>
-        )}{" "}
-        <button
-          type="button"
-          className="link-btn"
-          onClick={() => setSettingsOpen(true)}
-        >
-          {connected ? "Settings" : "Connect Jira"}
-        </button>
-      </p>
+        }
+      />
 
-      <AddTrackerForm fallbackBaseUrl={settings.baseUrl} onAdd={add} />
+      {showForm && (
+        <AddTrackerForm
+          id="add-tracker-form"
+          fallbackBaseUrl={settings.baseUrl}
+          onAdd={add}
+          autoFocus={adding}
+          onCancel={trackers.length > 0 ? () => setAdding(false) : undefined}
+        />
+      )}
 
       {trackers.length === 0 ? (
         <EmptyState
@@ -103,31 +141,45 @@ export function TrackingPage() {
           message="Paste a Jira initiative link above to compare what is actually happening with one of your plans."
         />
       ) : (
-        <>
-          <div className="tracking-toolbar">
-            <Button onClick={refreshAll} disabled={refreshingAll || !connected}>
-              {refreshingAll ? "Refreshing all…" : "Refresh all"}
-            </Button>
+        <Panel flush className="tracker-portfolio">
+          <div className="table-scroll">
+            <table className="data-table tracker-table">
+              <thead>
+                <tr>
+                  <th scope="col">Tracker</th>
+                  <th scope="col">Project (baseline)</th>
+                  <th scope="col">Health</th>
+                  <th scope="col">Last refreshed</th>
+                  <th scope="col" className="num">
+                    Buffer remaining
+                  </th>
+                  <th scope="col">Forecast finish</th>
+                  <th scope="col">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {trackers.map((tracker) => (
+                  <TrackerRow
+                    key={tracker.id}
+                    tracker={tracker}
+                    state={state}
+                    today={today}
+                    now={now}
+                    busy={busyIds.has(tracker.id)}
+                    onOpen={(id) => navigate(`/tracking/${id}`)}
+                    onRefresh={(id) => {
+                      const t = trackers.find((x) => x.id === id);
+                      if (t) void refresh(t);
+                    }}
+                    onDelete={remove}
+                  />
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="tracker-grid">
-            {trackers.map((tracker) => (
-              <TrackerCard
-                key={tracker.id}
-                tracker={tracker}
-                state={state}
-                today={today}
-                now={now}
-                busy={busyIds.has(tracker.id)}
-                onOpen={(id) => navigate(`/tracking/${id}`)}
-                onRefresh={(id) => {
-                  const t = trackers.find((x) => x.id === id);
-                  if (t) void refresh(t);
-                }}
-                onDelete={remove}
-              />
-            ))}
-          </div>
-        </>
+        </Panel>
       )}
 
       <JiraSettingsPanel
@@ -136,6 +188,6 @@ export function TrackingPage() {
         settings={settings}
         transport={transport}
       />
-    </main>
+    </Page>
   );
 }

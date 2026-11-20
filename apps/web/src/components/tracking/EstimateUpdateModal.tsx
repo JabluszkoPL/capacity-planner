@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { EstimateUpdate } from "@planner/jira";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
+import { Badge } from "../ui/Badge";
 import { days } from "./StatusPanel";
 
 interface EstimateUpdateModalProps {
@@ -57,7 +58,17 @@ export function EstimateUpdateModal({
   const selected = updates.filter((u) => chosen.has(u.taskId));
 
   return (
-    <Modal open={open} onClose={onClose} title="Update estimates from Jira">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Update estimates from Jira"
+      className="tracking-dialog"
+      subtitle={
+        updates.length === 0
+          ? undefined
+          : `Review and confirm: ${selected.length} of ${updates.length} selected`
+      }
+    >
       <div className="writeback">
         <p className="writeback-summary">
           {updates.length === 0
@@ -67,37 +78,85 @@ export function EstimateUpdateModal({
 
         {updates.length > 0 && (
           <div className="writeback-scroll">
-            <table className="writeback-table">
+            <table className="data-table writeback-table">
               <thead>
                 <tr>
-                  <th scope="col">Copy</th>
+                  <th scope="col" className="writeback-check">
+                    <input
+                      type="checkbox"
+                      aria-label="Copy every Jira estimate"
+                      checked={selected.length === updates.length}
+                      ref={(el) => {
+                        if (el)
+                          el.indeterminate =
+                            selected.length > 0 &&
+                            selected.length < updates.length;
+                      }}
+                      onChange={(e) =>
+                        setChosen(
+                          e.target.checked
+                            ? new Set(updates.map((u) => u.taskId))
+                            : new Set(),
+                        )
+                      }
+                    />
+                  </th>
                   <th scope="col">Plan task</th>
                   <th scope="col">Jira</th>
-                  <th scope="col">Estimate</th>
+                  <th scope="col">Old → New</th>
+                  <th scope="col" className="num">
+                    Change
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {updates.map((u) => (
-                  <tr key={u.taskId}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        aria-label={`Copy the Jira estimate to ${u.taskName}`}
-                        checked={chosen.has(u.taskId)}
-                        onChange={() => toggle(u.taskId)}
-                      />
-                    </td>
-                    <td>
-                      {u.taskName}
-                      <span className="muted"> · {u.epicName}</span>
-                    </td>
-                    <td className="writeback-key">{u.issueKeys.join(", ")}</td>
-                    <td>
-                      <span className="writeback-from">{baselineCell(u)}</span>{" "}
-                      → {days(u.jiraDays)} d
-                    </td>
-                  </tr>
-                ))}
+                {updates.map((u) => {
+                  const delta =
+                    u.jiraDays - (u.currentExcluded ? 0 : u.currentDays);
+                  return (
+                    <tr
+                      key={u.taskId}
+                      className={chosen.has(u.taskId) ? undefined : "unchosen"}
+                    >
+                      <td className="writeback-check">
+                        <input
+                          type="checkbox"
+                          aria-label={`Copy the Jira estimate to ${u.taskName}`}
+                          checked={chosen.has(u.taskId)}
+                          onChange={() => toggle(u.taskId)}
+                        />
+                      </td>
+                      <td>
+                        {u.taskName}
+                        <span className="muted"> · {u.epicName}</span>
+                      </td>
+                      <td className="writeback-key">
+                        {u.issueKeys.join(", ")}
+                      </td>
+                      <td className="writeback-change">
+                        <span className="writeback-from">
+                          {baselineCell(u)}
+                        </span>{" "}
+                        → {days(u.jiraDays)} d
+                      </td>
+                      <td className="num">
+                        <Badge
+                          tone={
+                            u.currentExcluded
+                              ? "info"
+                              : delta > 0
+                                ? "warning"
+                                : "success"
+                          }
+                        >
+                          {u.currentExcluded
+                            ? "Un-skip"
+                            : `${delta > 0 ? "+" : "−"}${days(Math.abs(delta))} d`}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

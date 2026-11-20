@@ -6,7 +6,7 @@ import {
   Route,
   useLocation,
 } from "react-router-dom";
-import { Header } from "./components/layout/Header";
+import { Sidebar } from "./components/layout/Sidebar";
 import { TitleBar } from "./components/layout/TitleBar";
 import { ToastProvider, ToastHost } from "./components/ui/Toast";
 import { ConfirmProvider } from "./components/ui/ConfirmDialog";
@@ -57,19 +57,23 @@ export default function App({ runtime }: { runtime: PlannerRuntime }) {
         <AppStoreProvider runtime={runtime}>
           <Router>
             <TitleBar />
-            <Header />
             {/* AI clients' tool calls, in the Mac app only. Inside the router
                 so a tool can open a page. */}
             <McpBridge />
-            <PageBoundary>
-              <Routes>
-                <Route path="/" element={<ProjectsDashboard />} />
-                <Route path="/project/:id" element={<ProjectDetail />} />
-                <Route path="/team" element={<TeamPage />} />
-                <Route path="/tracking" element={<TrackingPage />} />
-                <Route path="/tracking/:id" element={<TrackerDetail />} />
-              </Routes>
-            </PageBoundary>
+            <div className="app-shell">
+              <Sidebar />
+              <div className="app-main">
+                <PageBoundary>
+                  <Routes>
+                    <Route path="/" element={<ProjectsDashboard />} />
+                    <Route path="/project/:id" element={<ProjectDetail />} />
+                    <Route path="/team" element={<TeamPage />} />
+                    <Route path="/tracking" element={<TrackingPage />} />
+                    <Route path="/tracking/:id" element={<TrackerDetail />} />
+                  </Routes>
+                </PageBoundary>
+              </div>
+            </div>
           </Router>
           <ToastHost />
         </AppStoreProvider>

@@ -14,8 +14,8 @@ you get the same app with the same projects, kept in step live. It listens on
 loopback only, so nothing on the network can reach it. Set `PLANNER_SHARE=0`
 before launching to turn this off, or `PLANNER_SHARE_PORT` to move it.
 
-**A browser can be pointed at a server from the app.** Click the version in
-the header → **Sync** → enter `localhost:5191` (or any server address) →
+**A browser can be pointed at a server from the app.** Click **Settings** at
+the bottom of the sidebar → **Sync & sharing** → enter `localhost:5191` (or any server address) →
 **Connect**. The choice is stored in that browser only. Whatever this browser
 held is merged into the server's data — nothing is overwritten wholesale; the
 merge rule below applies row by row.

@@ -14,6 +14,8 @@ import { ComboInput } from "../ui/ComboInput";
 import { IconButton } from "../ui/IconButton";
 import { EmptyState } from "../ui/EmptyState";
 import { Modal } from "../ui/Modal";
+import { Panel } from "../ui/Panel";
+import { Icon } from "../ui/Icon";
 import "./helpers.css";
 
 interface HelpersPanelProps {
@@ -29,17 +31,11 @@ export function HelpersPanel({ project }: HelpersPanelProps) {
   );
 
   return (
-    <section className="helpers-panel">
-      <div className="section-head">
-        <h2 className="section-title">Project helpers</h2>
-      </div>
-      <p className="muted helpers-intro">
-        External people lending a hand on this project only. Speed scales the
-        estimate — e.g. 0.6 means a 5-day task takes ~9 workdays — and a helper
-        is only scheduled within their availability dates. Add days off (e.g.
-        Christmas holidays) to keep the plan off those dates.
-      </p>
-
+    <Panel
+      className="helpers-panel"
+      title="Project helpers"
+      subtitle="External people lending a hand on this project only. Speed scales the estimate (0.6 means a 5-day task takes about 9 workdays), and a helper is only scheduled within their availability dates and outside their days off."
+    >
       {helpers.length === 0 ? (
         <EmptyState
           compact
@@ -73,7 +69,7 @@ export function HelpersPanel({ project }: HelpersPanelProps) {
         specOptions={specOptions}
         defaultFrom={project.startDate}
       />
-    </section>
+    </Panel>
   );
 }
 
@@ -122,6 +118,7 @@ function HelperRow({
         />
         <input
           type="text"
+          className="helper-name-input"
           aria-label="Helper name"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -177,7 +174,7 @@ function HelperRow({
         label={`Remove ${helper.name}`}
         onClick={() => actions.deleteHelper(projectId, helper.id)}
       >
-        ✕
+        <Icon name="trash" size={14} />
       </IconButton>
     </div>
   );
@@ -236,6 +233,7 @@ function HelperOffDays({
         aria-label={`Days off for ${helper.name}`}
         onClick={() => setOpen(true)}
       >
+        <Icon name="calendar" size={13} />
         {offDays.length === 0
           ? "None"
           : `${offDays.length} day${offDays.length === 1 ? "" : "s"}`}
@@ -261,10 +259,11 @@ function HelperOffDays({
           <Button
             type="button"
             variant="primary"
+            icon="plus"
             onClick={addDay}
             disabled={!pick}
           >
-            + Add day
+            Add day
           </Button>
         </div>
         {offDays.length === 0 ? (
@@ -279,7 +278,7 @@ function HelperOffDays({
                   label={`Remove ${offDayLabel(iso)}`}
                   onClick={() => removeDay(iso)}
                 >
-                  ✕
+                  <Icon name="x" size={14} />
                 </IconButton>
               </li>
             ))}
@@ -336,7 +335,14 @@ function AddHelperForm({
   };
 
   return (
-    <form className="add-helper-form" onSubmit={submit}>
+    <form
+      className="add-helper-form"
+      onSubmit={submit}
+      aria-labelledby="ah-title"
+    >
+      <h3 id="ah-title" className="add-helper-title">
+        Add a helper
+      </h3>
       <div className="field">
         <label htmlFor="ah-name">Name</label>
         <input
@@ -391,8 +397,8 @@ function AddHelperForm({
           onChange={(e) => setTo(e.target.value)}
         />
       </div>
-      <Button type="submit" variant="primary">
-        + Add helper
+      <Button type="submit" variant="primary" icon="plus">
+        Add helper
       </Button>
       {error && (
         <p className="field-error" role="alert">

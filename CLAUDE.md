@@ -93,6 +93,20 @@ or it will silently not persist.
 `apps/web/src/runtime.ts` picks a `LocalStore` based on whether Electron's
 `window.planner` bridge is present. Do not fork the UI per platform.
 
+**Screens are built from the UI kit, inside one shell.** The left sidebar
+(`components/layout/Sidebar.tsx`) switches sections; there is no top bar. A
+project and a tracker are split into views (`lib/views.ts`, `?view=` in the
+URL), shown as tabs under the page header (`ui/ViewTabs`) and rendered one at
+a time — add a view there rather than growing a page. Every route renders `<Page>` +
+`<PageHeader>` + `<Panel>`s from `components/ui` (also `Badge`, `Segmented`,
+`StatTile`, `Callout`, `Icon`, `IconTile`), styled against
+`styles/tokens.css` ("Warm Focus"); no raw hex in feature CSS. The category
+palette in `core/src/colors.ts` must match the `--cat-*` tokens. Dark mode is
+the same token names redefined in `tokens.css`, so token-only CSS needs no
+dark rules; tint text with `color-mix(…, var(--ink))`, never `black`. The
+Light/Dark/System choice is per device (`lib/theme.ts`, localStorage), never
+in AppState.
+
 **Jira tracking is a tracker entity plus an injected transport.** A `Tracker`
 links a Jira initiative to a baseline project and syncs like any other row; its
 `snapshot` is derived data (regenerable by refreshing) but its `samples` are

@@ -164,16 +164,27 @@ describe.each([
         within(dialog).getByRole("button", { name: "Create project" }),
       );
 
-      // The real project page, with the plan already run.
+      // The real project page: its overview lists the imported epics...
       expect(screen.queryByText(/CRASHED/)).not.toBeInTheDocument();
-      expect(screen.getByText("Epics & Tasks")).toBeInTheDocument();
+      expect(screen.getByText("Project summary")).toBeInTheDocument();
       expect(
         screen.getAllByText("Payment provider swap").length,
       ).toBeGreaterThan(0);
+
+      // ...the editor opens on them...
+      await user.click(screen.getByRole("link", { name: "Epics & tasks" }));
+      expect(screen.queryByText(/CRASHED/)).not.toBeInTheDocument();
+      expect(screen.getByText("Epics & Tasks")).toBeInTheDocument();
+
+      // ...and the plan has already been run.
+      const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
+      await user.click(within(crumbs).getAllByRole("link")[1]!);
+      await user.click(screen.getByRole("link", { name: "Plan & timeline" }));
+      expect(screen.queryByText(/CRASHED/)).not.toBeInTheDocument();
       expect(screen.getByText(/Estimated completion/)).toBeInTheDocument();
 
       // And the tracking side still renders afterwards.
-      await user.click(screen.getByRole("link", { name: /All Projects/ }));
+      await user.click(screen.getByRole("link", { name: "Projects" }));
       expect(screen.queryByText(/CRASHED/)).not.toBeInTheDocument();
     },
   );

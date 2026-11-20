@@ -1,69 +1,180 @@
-/* Team roster (T08) — ported from the POC, referencing T01 tokens. */
+/* Teams & availability: team rosters and the "Add teams from Jira" dialog. */
 
-.page-title {
-  font-size: 22px;
-  margin-bottom: var(--space-4);
-}
-.team-heading {
-  margin-bottom: var(--space-3);
-  font-size: 15px;
-}
-
-.member-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: var(--space-4);
-}
-.member-chip {
+/* --- page header: team filter --- */
+.team-filter {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 8px 10px;
-  background: #fff;
+  margin-top: var(--space-3);
+  font-size: 13px;
 }
-.member-chip .swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex: none;
-}
-.member-chip input {
-  border: 1px solid transparent;
-  background: transparent;
-  padding: 2px 4px;
-}
-.member-chip input:hover,
-.member-chip input:focus {
-  border-color: var(--border);
-  background: var(--panel-alt);
-}
-.member-chip input.m-name {
-  font-weight: 600;
-  width: 110px;
-}
-.member-chip input.m-spec {
-  width: 100px;
+.team-filter label {
   color: var(--muted);
 }
+.team-filter select {
+  min-width: 180px;
+}
+
+/* --- rosters: one panel per team; two or more sit side by side --- */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.team-grid > .panel {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+.team-panel > .panel-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The team name is the panel title, edited in place. */
+.team-panel input.team-name-input {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 2px 6px;
+  margin-left: -7px;
+  border-radius: var(--radius-sm);
+  width: 100%;
+  max-width: 360px;
+  min-height: 0;
+}
+.team-panel input.team-name-input:hover {
+  border-color: var(--border);
+}
+.team-panel input.team-name-input:focus {
+  background: var(--panel);
+}
+.team-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* --- roster table --- */
+.roster-scroll {
+  overflow-x: auto;
+}
+.roster-table th,
+.roster-table td {
+  padding: 5px 8px;
+}
+.roster-table th:first-child,
+.roster-table td:first-child {
+  padding-left: var(--space-4);
+}
+.roster-table th:last-child,
+.roster-table td:last-child {
+  padding-right: var(--space-3);
+}
+.roster-table .roster-actions {
+  width: 1%;
+  text-align: right;
+}
+.roster-empty {
+  padding: 0 var(--space-4) var(--space-3);
+}
+
+.m-person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* In-place inputs: read as plain text until hovered or focused. */
+.member-row input.m-name,
+.member-row input.m-speed {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 2px 6px;
+  min-height: 0;
+}
+.member-row input.m-name:hover,
+.member-row input.m-speed:hover {
+  border-color: var(--border);
+}
+.member-row input.m-name:focus,
+.member-row input.m-speed:focus {
+  background: var(--panel);
+}
+.member-row input.m-name {
+  font-weight: 600;
+  width: 100%;
+  min-width: 90px;
+}
+
+/* The specialization is a tinted pill, like a ColorTag, that is also an input. */
+.member-row input.m-spec {
+  width: 112px;
+  min-height: 0;
+  padding: 2px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--tag) 80%, var(--ink));
+  background: color-mix(in srgb, var(--tag) 16%, var(--panel));
+}
+.member-row input.m-spec.is-empty {
+  color: var(--text);
+  background: transparent;
+  border-color: var(--border);
+  border-style: dashed;
+}
+.member-row input.m-spec:hover {
+  border-color: color-mix(in srgb, var(--tag) 40%, var(--panel));
+}
+.member-row input.m-spec:focus {
+  background: var(--panel);
+  color: var(--text);
+}
+
 .m-speed-label {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  justify-content: flex-end;
+  gap: 1px;
   color: var(--muted);
   font-size: 12px;
 }
-.member-chip input.m-speed {
-  width: 52px;
+.member-row input.m-speed {
+  width: 50px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
+.m-off {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.m-off .icon {
+  color: var(--danger);
+}
+
+/* --- add a person: the roster's footer strip --- */
 .add-member-form {
   display: flex;
   gap: var(--space-2);
   align-items: flex-end;
   flex-wrap: wrap;
+  margin-top: auto;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--row-border);
+  background: var(--panel-alt);
+  border-radius: 0 0 var(--radius) var(--radius);
 }
 .add-member-form .field label {
   display: block;
@@ -72,10 +183,10 @@
   margin-bottom: 3px;
 }
 .nm-name-input {
-  width: 160px;
+  width: 180px;
 }
 .nm-spec-input {
-  width: 140px;
+  width: 150px;
 }
 .field-error {
   color: var(--danger);
@@ -84,55 +195,31 @@
   margin-top: 2px;
 }
 
-/* Multi-team page controls */
-.team-page-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-.team-page-head .page-title {
-  margin-bottom: 0;
-}
-.team-card-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-.team-name-input {
-  font-size: 16px;
-  font-weight: 700;
-  border: 1px solid transparent;
-  padding: 4px 6px;
-  flex: 1;
-  min-width: 160px;
-}
-.team-name-input:hover,
-.team-name-input:focus {
-  border-color: var(--border);
-}
-.team-meta {
-  font-size: 13px;
-}
-
-/* Teams added from Jira */
-.team-page-actions {
-  display: flex;
-  gap: var(--space-2);
-}
-.jira-badge {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-dark);
-  white-space: nowrap;
-}
+/* --- "Add teams from Jira" dialog --- */
 .modal.jira-teams {
   width: 760px;
+}
+.jira-teams .callout {
+  margin: var(--space-3) 0 0;
+}
+.jira-teams-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+}
+.jira-spin {
+  animation: jira-spin 1.2s linear infinite;
+}
+@keyframes jira-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jira-spin {
+    animation: none;
+  }
 }
 .jira-teams-org {
   margin: var(--space-3) 0;
@@ -144,84 +231,109 @@
   font-size: 12px;
   margin-top: 4px;
 }
-.jira-team-desc {
-  font-size: 12px;
-  margin: 2px 0 0 24px;
-}
 .jira-teams-filter {
   width: 100%;
-  margin-bottom: var(--space-3);
+  margin: var(--space-3) 0 0;
 }
+
+/* The teams read as one calm table: rows divided by hairlines, the ticked
+   ones tinted, each opening onto its people. */
 .jira-teams-list {
   list-style: none;
-  margin: 0;
+  margin: var(--space-3) 0 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-.jira-team-row {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: var(--space-2) var(--space-3);
+  overflow: hidden;
+}
+.jira-team-row + .jira-team-row {
+  border-top: 1px solid var(--row-border);
 }
 .jira-team-row.is-on {
-  border-color: var(--accent);
-  background: var(--panel-alt);
+  background: var(--accent-softer);
 }
 .jira-team-head {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  padding: 10px var(--space-4);
+}
+.jira-team-head input[type="checkbox"] {
+  flex: none;
+}
+.jira-team-text {
+  flex: 1;
+  min-width: 0;
 }
 .jira-team-name {
   font-weight: 600;
   cursor: pointer;
 }
+.jira-team-desc {
+  font-size: 12px;
+  margin: 1px 0 0;
+}
+.jira-team-row > .jira-teams-status {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-3);
+}
 .jira-team-body {
-  margin-top: var(--space-3);
+  padding: 0 var(--space-4) var(--space-3) calc(var(--space-4) + 25px);
+}
+.jira-team-body .callout {
+  margin: 0 0 var(--space-3);
 }
 .jira-team-rename {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   margin-bottom: var(--space-3);
-}
-.jira-people {
-  width: 100%;
-  border-collapse: collapse;
   font-size: 13px;
 }
-.jira-people th {
-  text-align: left;
-  font-weight: 600;
+.jira-team-rename label {
   color: var(--muted);
-  padding: 4px 6px;
-  border-bottom: 1px solid var(--row-border);
 }
+.jira-team-rename input {
+  flex: 1;
+  max-width: 320px;
+}
+.jira-team-empty {
+  margin: 0 0 var(--space-2);
+}
+
+.jira-people {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
+.jira-people th,
 .jira-people td {
-  padding: 4px 6px;
-  border-bottom: 1px solid var(--row-border);
-  vertical-align: middle;
+  padding: 6px 10px;
 }
-.jira-people td.num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+.jira-people .jira-people-check {
+  width: 1%;
+  text-align: center;
 }
-.jira-people input[type="text"] {
+.jira-people tr.is-already td {
+  color: var(--muted);
+}
+.jira-person {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.jira-person-note {
+  display: block;
+  font-size: 12px;
+  margin: 1px 0 0 30px;
+}
+.jira-people input.jira-spec-input {
   width: 100%;
   min-width: 120px;
 }
 .jira-twice {
   color: var(--warn-text);
-}
-.jira-team-fallback {
-  background: var(--warn-bg);
-  border: 1px solid var(--warn-border);
-  color: var(--warn-text);
-  border-radius: var(--radius);
-  padding: 8px 12px;
-  font-size: 12px;
-  margin-bottom: var(--space-3);
 }

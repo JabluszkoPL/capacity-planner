@@ -32,7 +32,7 @@ hours:
 1. `GET https://api.github.com/repos/<repo>/releases/latest`. The repository
    comes from the root `package.json` `repository` field, so a fork that changes
    it updates from its own releases.
-2. If that version is newer, the version in the header turns into **Update to
+2. If that version is newer, the version next to **Settings** in the sidebar turns into **Update to
    vX.Y.Z**. The About panel offers **Download and install**.
 3. The `*-universal-mac.zip` is downloaded from this repository's release
    assets only, then checked: byte size, the SHA-256 digest GitHub reports for

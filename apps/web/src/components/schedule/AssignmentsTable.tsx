@@ -1,5 +1,7 @@
 import { type Assignment, colorFor } from "@planner/core";
 
+import { ColorTag } from "../ui/Badge";
+import { Panel } from "../ui/Panel";
 import { formatShortDate } from "./DateGrid";
 
 /** Trim floating-point noise from a day count (buffer padding can produce
@@ -17,38 +19,42 @@ export function AssignmentsTable({ assignments }: AssignmentsTableProps) {
     .slice()
     .sort((a, b) => a.start.localeCompare(b.start));
   return (
-    <div className="table-scroll">
-      <table className="assignments-table">
-        <thead>
-          <tr>
-            <th>Task</th>
-            <th>Epic</th>
-            <th>Assignee</th>
-            <th>Specialization</th>
-            <th title="Estimate → whole working days blocked out (rounded up)">
-              Days
-            </th>
-            <th>Start</th>
-            <th>End</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((a) => {
-            const c = colorFor(a.specialization);
-            return (
+    <Panel
+      className="assignments-panel"
+      title="Assignments"
+      subtitle={`${sorted.length} task${sorted.length === 1 ? "" : "s"}, by start date`}
+      flush
+    >
+      <div className="table-scroll">
+        <table className="data-table assignments-table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Epic</th>
+              <th>Assignee</th>
+              <th>Specialization</th>
+              <th
+                className="num"
+                title="Estimate → whole working days blocked out (rounded up)"
+              >
+                Days
+              </th>
+              <th>Start</th>
+              <th>End</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((a) => (
               <tr key={a.taskId}>
-                <td>{a.taskName}</td>
+                <td className="assignment-task">{a.taskName}</td>
                 <td className="muted">{a.epicName}</td>
                 <td>{a.memberName}</td>
                 <td>
-                  <span
-                    className="spec-badge"
-                    style={{ background: c + "22", color: c }}
-                  >
+                  <ColorTag color={colorFor(a.specialization)}>
                     {a.specialization}
-                  </span>
+                  </ColorTag>
                 </td>
-                <td>
+                <td className="num">
                   {fmtDays(a.estimateDays)}
                   {a.workDays !== a.estimateDays && (
                     <span
@@ -60,13 +66,13 @@ export function AssignmentsTable({ assignments }: AssignmentsTableProps) {
                     </span>
                   )}
                 </td>
-                <td>{formatShortDate(a.start)}</td>
-                <td>{formatShortDate(a.end)}</td>
+                <td className="date-cell">{formatShortDate(a.start)}</td>
+                <td className="date-cell">{formatShortDate(a.end)}</td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
   );
 }

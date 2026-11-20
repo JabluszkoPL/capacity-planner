@@ -160,20 +160,31 @@ describe("AutoSprintPlanner", () => {
 });
 
 describe("SprintSection", () => {
-  it("stays closed until its button opens it", () => {
+  it("shows one planner at a time, automatic first", () => {
     render(
-      <SprintSection>
-        <p>Inside</p>
+      <SprintSection auto={<p>Automatic inside</p>}>
+        <p>Manual inside</p>
       </SprintSection>,
     );
-    expect(screen.queryByText("Inside")).toBeNull();
-    const button = screen.getByRole("button", { name: "Plan sprints" });
-    expect(button).toHaveAttribute("aria-expanded", "false");
-    fireEvent.click(button);
-    expect(screen.getByText("Inside")).toBeInTheDocument();
-    const close = screen.getByRole("button", { name: "Hide sprint planning" });
-    expect(close).toHaveAttribute("aria-expanded", "true");
-    fireEvent.click(close);
-    expect(screen.queryByText("Inside")).toBeNull();
+    expect(screen.getByText("Automatic inside")).toBeInTheDocument();
+    expect(screen.queryByText("Manual inside")).toBeNull();
+    const manual = screen.getByRole("radio", { name: "Manual" });
+    expect(manual).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(manual);
+    expect(screen.getByText("Manual inside")).toBeInTheDocument();
+    expect(screen.queryByText("Automatic inside")).toBeNull();
+    // Arrow keys move between the two, like any radio group.
+    fireEvent.keyDown(manual, { key: "ArrowLeft" });
+    expect(screen.getByText("Automatic inside")).toBeInTheDocument();
+  });
+
+  it("shows only the manual planner when there is no automatic one", () => {
+    render(
+      <SprintSection>
+        <p>Manual inside</p>
+      </SprintSection>,
+    );
+    expect(screen.getByText("Manual inside")).toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup")).toBeNull();
   });
 });

@@ -1,69 +1,102 @@
 /**
- * Design tokens — ported from the POC's visual language.
- * Every component styles against these variables; no raw hex in feature CSS.
+ * Design tokens — "Warm Focus" (v0.2).
+ *
+ * A warm paper background, near-white panels, one deep green accent and a
+ * serif for headings. Every component styles against these variables; no raw
+ * hex in feature CSS. The dark palette below redefines the same names, so a
+ * component styled against tokens is dark-mode ready with no extra rules.
+ * Older names (--accent-soft, --chip-on-*, --warn-*) are kept so feature CSS
+ * written against them picks up the new palette as is.
  */
 :root {
+  color-scheme: light;
   /* --- core palette --- */
-  --bg: #f4f5f7;
-  --panel: #ffffff;
-  --border: #e2e5ea;
-  --text: #1f2430;
-  --muted: #6b7280;
+  --bg: #f6f1e8;
+  --sidebar-bg: #efe8dc;
+  --panel: #fffdf8;
+  --panel-alt: #faf6ee;
+  --border: #e5dccd;
+  --border-strong: #d6cab6;
+  --text: #2b2721;
+  --muted: #716859;
+  --faint: #a59b8c;
 
-  --accent: #4c6ef5;
-  --accent-dark: #3b5bdb;
-  --accent-soft: #eef1ff;
+  --accent: #2f6a3e;
+  --accent-dark: #234f2e;
+  --accent-soft: #e5eedd;
+  --accent-softer: #f0f4ea;
+  --accent-text: #ffffff;
+  --accent-mid: #8fb38a;
+  /* Primary-button hover. */
+  --accent-hover: #234f2e;
+  /* What tinted text (tags, avatars, bars) is mixed toward to stay readable
+     on its own light wash: darker in light mode, lighter in dark mode. */
+  --ink: #000000;
+  /* Timeline bars: how much of the bar's own colour goes into its solid
+     fill, its edge and its text (the rest is panel, or --ink for text). */
+  --bar-fill: 26%;
+  --bar-edge: 50%;
+  --bar-text: 72%;
+  /* Badge "info" tone. */
+  --info-badge-bg: #e7edf5;
+  --info-badge-text: #3e5f86;
+  /* Overlays. */
+  --backdrop: rgba(43, 35, 22, 0.32);
+  --toast-bg: #2f2a22;
+  --toast-text: #ffffff;
 
-  --danger: #e03131;
+  --danger: #ab422e;
+  --danger-bg: #fbe8e1;
+  --danger-soft: #f3cfc3;
   /* Timeline markers (alpha gate, beta gate...): distinct from today's red. */
-  --marker: #7048e8;
-  --danger-bg: #fff0f0;
-  --ok: #12b886;
+  --marker: #7a5aa6;
+  --ok: #3f8a4f;
+  --ok-bg: #e5f0df;
 
-  --warn-bg: #fff9db;
-  --warn-border: #f2c94c;
-  --warn-text: #7a5c00;
-  --warn-mark: #e8a90c;
+  --warn-bg: #fbf0d9;
+  --warn-border: #e6c47c;
+  --warn-text: #7a5410;
+  --warn-mark: #d39a2a;
 
   /* --- info box --- */
-  --info-bg: #f6f7ff;
-  --info-border: #dde1ff;
-  --info-text: #3d4468;
+  --info-bg: #f2efe6;
+  --info-border: #e2d9c7;
+  --info-text: #4a4237;
 
   /* --- "included" chip (green) --- */
-  --chip-on-bg: #e6fcf5;
-  --chip-on-border: #63e6be;
-  --chip-on-text: #0b7a5b;
+  --chip-on-bg: var(--accent-soft);
+  --chip-on-border: #b9d0b0;
+  --chip-on-text: var(--accent-dark);
 
   /* --- surfaces & subtle fills --- */
-  --panel-alt: #fafbfc;
-  --hover: #f8f9fb;
-  --hover-soft: #f1f2f4;
-  --row-border: #f0f1f3;
-  --gridline: #eeeeee;
+  --hover: #f6f0e5;
+  --hover-soft: #f1eadf;
+  --row-border: #efe7da;
+  --gridline: #eee6d8;
 
   /* --- schedule / availability shading --- */
-  --off-day: #ffd8d8;
-  --off-day-weekend: #f3c6c6;
-  --weekend-cell: #f7f7f8;
-  --nonwork: #f0f1f3;
-  --weekend-bar: #ffe3e3;
+  --off-day: #f6d6cb;
+  --off-day-weekend: #ecc6b9;
+  --weekend-cell: #f5efe4;
+  --nonwork: #efe8dc;
+  --weekend-bar: #f6dfd5;
+  --today: #bf4f3a;
 
   /* --- focus --- */
-  --focus-ring: #b6c2ff;
+  --focus-ring: #9cc196;
 
-  /* --- categorical colors for specializations (POC PALETTE) --- */
-  --cat-0: #4c6ef5;
-  --cat-1: #12b886;
-  --cat-2: #f59f00;
-  --cat-3: #e64980;
-  --cat-4: #7048e8;
-  --cat-5: #15aabf;
-  --cat-6: #fa5252;
-  --cat-7: #82c91e;
-  --cat-8: #fd7e14;
-  --cat-9: #1098ad;
-  --cat-fallback: #9aa0ab;
+  /* --- categorical colors for specializations (muted, earthy) --- */
+  --cat-0: #3f7d4e;
+  --cat-1: #5b7fb8;
+  --cat-2: #c98a2e;
+  --cat-3: #b65a6e;
+  --cat-4: #7d68b0;
+  --cat-5: #3b8f8f;
+  --cat-6: #c4553f;
+  --cat-7: #8aa04a;
+  --cat-8: #d07a3a;
+  --cat-9: #4f86a0;
+  --cat-fallback: #a59b8c;
 
   /* --- spacing scale --- */
   --space-1: 4px;
@@ -72,21 +105,199 @@
   --space-4: 16px;
   --space-5: 20px;
   --space-6: 24px;
+  --space-8: 32px;
 
   /* --- radius --- */
-  --radius: 8px;
-  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-sm: 7px;
+  --radius-lg: 14px;
   --radius-pill: 999px;
 
   /* --- shadows --- */
-  --shadow-modal: 0 10px 40px rgba(0, 0, 0, 0.25);
-  --shadow-bar: 0 1px 2px rgba(0, 0, 0, 0.15);
-  --shadow-toast: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 1px 2px rgba(60, 45, 20, 0.05);
+  --shadow-pop: 0 6px 20px rgba(60, 45, 20, 0.12);
+  --shadow-modal: 0 18px 50px rgba(50, 38, 18, 0.25);
+  --shadow-bar: 0 1px 2px rgba(60, 45, 20, 0.15);
+  --shadow-toast: 0 6px 18px rgba(40, 30, 15, 0.28);
 
   /* --- layout --- */
-  --content-max: 1200px;
+  --sidebar-w: 236px;
+  --content-max: 1240px;
   --font-sans:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
+  --font-serif:
+    "Iowan Old Style", "Charter", "Palatino Linotype", Palatino, Georgia,
+    "Times New Roman", serif;
   --font-mono: ui-monospace, Menlo, monospace;
+}
+
+/*
+ * Dark mode. Applied when the device asks for it (prefers-color-scheme) unless
+ * the person picked Light, or always when they picked Dark: lib/theme.ts sets
+ * `data-theme` on <html> for an explicit choice and leaves it off for System.
+ * The two blocks are identical; CSS can't share one body between a media query
+ * and an attribute selector.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #1b1916;
+    --sidebar-bg: #161412;
+    --panel: #23201c;
+    --panel-alt: #1f1c19;
+    --border: #38332c;
+    --border-strong: #4a443a;
+    --text: #ece6db;
+    --muted: #a79e90;
+    --faint: #776e62;
+
+    --accent: #367a48;
+    --accent-dark: #8fcf9c;
+    --accent-soft: #263a2a;
+    --accent-softer: #212c22;
+    --accent-mid: #5d9e6c;
+    --accent-hover: #4b9a5f;
+    --ink: #ffffff;
+    --bar-fill: 42%;
+    --bar-edge: 62%;
+    --bar-text: 38%;
+    --bar-fill: 42%;
+    --bar-edge: 62%;
+    --bar-text: 38%;
+
+    --danger: #e0806b;
+    --danger-bg: #3a231d;
+    --danger-soft: #5c3328;
+    --marker: #a98ad6;
+    --ok: #6cbf7f;
+    --ok-bg: #22321f;
+
+    --warn-bg: #362b17;
+    --warn-border: #6b5424;
+    --warn-text: #e8c27a;
+    --warn-mark: #e0a83c;
+
+    --info-bg: #26231f;
+    --info-border: #3a352e;
+    --info-text: #cfc6b8;
+    --info-badge-bg: #22303f;
+    --info-badge-text: #9fbde0;
+
+    --chip-on-border: #3c5c43;
+
+    --hover: #2a2622;
+    --hover-soft: #2d2924;
+    --row-border: #2e2a25;
+    --gridline: #332e28;
+
+    --off-day: #4a2a22;
+    --off-day-weekend: #55302a;
+    --weekend-cell: #201d1a;
+    --nonwork: #262320;
+    --weekend-bar: #3f2721;
+    --today: #e0806b;
+
+    --focus-ring: #5d9e6c;
+
+    --cat-0: #5f9f6e;
+    --cat-1: #7d9fd6;
+    --cat-2: #dca452;
+    --cat-3: #d27f91;
+    --cat-4: #a08ad0;
+    --cat-5: #5bb0b0;
+    --cat-6: #e07f6a;
+    --cat-7: #a9bf68;
+    --cat-8: #e39a5d;
+    --cat-9: #74a8c2;
+    --cat-fallback: #8a8174;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-pop: 0 6px 20px rgba(0, 0, 0, 0.45);
+    --shadow-modal: 0 18px 50px rgba(0, 0, 0, 0.6);
+    --shadow-bar: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-toast: 0 6px 18px rgba(0, 0, 0, 0.5);
+    --backdrop: rgba(0, 0, 0, 0.55);
+    --toast-bg: #ece6db;
+    --toast-text: #1b1916;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1b1916;
+  --sidebar-bg: #161412;
+  --panel: #23201c;
+  --panel-alt: #1f1c19;
+  --border: #38332c;
+  --border-strong: #4a443a;
+  --text: #ece6db;
+  --muted: #a79e90;
+  --faint: #776e62;
+
+  --accent: #367a48;
+  --accent-dark: #8fcf9c;
+  --accent-soft: #263a2a;
+  --accent-softer: #212c22;
+  --accent-mid: #5d9e6c;
+  --accent-hover: #4b9a5f;
+  --ink: #ffffff;
+  --bar-fill: 42%;
+  --bar-edge: 62%;
+  --bar-text: 38%;
+
+  --danger: #e0806b;
+  --danger-bg: #3a231d;
+  --danger-soft: #5c3328;
+  --marker: #a98ad6;
+  --ok: #6cbf7f;
+  --ok-bg: #22321f;
+
+  --warn-bg: #362b17;
+  --warn-border: #6b5424;
+  --warn-text: #e8c27a;
+  --warn-mark: #e0a83c;
+
+  --info-bg: #26231f;
+  --info-border: #3a352e;
+  --info-text: #cfc6b8;
+  --info-badge-bg: #22303f;
+  --info-badge-text: #9fbde0;
+
+  --chip-on-border: #3c5c43;
+
+  --hover: #2a2622;
+  --hover-soft: #2d2924;
+  --row-border: #2e2a25;
+  --gridline: #332e28;
+
+  --off-day: #4a2a22;
+  --off-day-weekend: #55302a;
+  --weekend-cell: #201d1a;
+  --nonwork: #262320;
+  --weekend-bar: #3f2721;
+  --today: #e0806b;
+
+  --focus-ring: #5d9e6c;
+
+  --cat-0: #5f9f6e;
+  --cat-1: #7d9fd6;
+  --cat-2: #dca452;
+  --cat-3: #d27f91;
+  --cat-4: #a08ad0;
+  --cat-5: #5bb0b0;
+  --cat-6: #e07f6a;
+  --cat-7: #a9bf68;
+  --cat-8: #e39a5d;
+  --cat-9: #74a8c2;
+  --cat-fallback: #8a8174;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-pop: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 18px 50px rgba(0, 0, 0, 0.6);
+  --shadow-bar: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-toast: 0 6px 18px rgba(0, 0, 0, 0.5);
+  --backdrop: rgba(0, 0, 0, 0.55);
+  --toast-bg: #ece6db;
+  --toast-text: #1b1916;
 }

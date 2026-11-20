@@ -2,7 +2,9 @@ import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { type PlanMarker, type Project, planMarkersOf } from "@planner/core";
 import { useAppStore } from "@planner/client-runtime";
 import { Button } from "../ui/Button";
+import { Icon } from "../ui/Icon";
 import { IconButton } from "../ui/IconButton";
+import { Panel } from "../ui/Panel";
 
 interface PlanMarkersEditorProps {
   project: Project;
@@ -11,36 +13,49 @@ interface PlanMarkersEditorProps {
 /**
  * Named dates (an alpha gate, a beta gate, an internal test) drawn as lines
  * on the plan's timelines. Annotations only: the scheduler never reads them.
- * Whether the timelines show them is toggled next to the timelines.
+ * The panel header carries the switch that shows or hides them on the
+ * timelines, present only while there is a marker to show.
  */
 export function PlanMarkersEditor({ project }: PlanMarkersEditorProps) {
   const { actions } = useAppStore();
   const markers = planMarkersOf(project);
 
   return (
-    <div className="markers-editor">
-      <div className="markers-head">
-        <strong>Timeline markers</strong>{" "}
-        <span className="muted">
-          Optional named dates, e.g. an alpha gate, a beta gate or an internal
-          test, drawn as lines on the plan's timelines. They don't change the
-          schedule.
-        </span>
-      </div>
-
-      {markers.length > 0 && (
+    <Panel
+      className="markers-editor"
+      icon={<Icon name="flag" size={17} />}
+      title="Timeline markers"
+      subtitle="Named dates such as an alpha or beta gate, drawn on the timelines. They don't change the schedule."
+      actions={
+        markers.length > 0 && (
+          <label className="markers-toggle">
+            <input
+              type="checkbox"
+              checked={!project.hideMarkers}
+              onChange={(e) =>
+                actions.setMarkersHidden(project.id, !e.target.checked)
+              }
+            />
+            Show timeline markers ({markers.length})
+          </label>
+        )
+      }
+    >
+      {markers.length > 0 ? (
         <ul className="marker-list" aria-label="Timeline markers">
           {markers.map((m) => (
             <MarkerRow key={m.id} projectId={project.id} marker={m} />
           ))}
         </ul>
+      ) : (
+        <p className="marker-empty muted">No markers yet.</p>
       )}
 
       <AddMarkerForm
         defaultDate={project.startDate}
         onAdd={(marker) => actions.addPlanMarker(project.id, marker)}
       />
-    </div>
+    </Panel>
   );
 }
 
@@ -73,7 +88,7 @@ function MarkerRow({
 
   return (
     <li className="marker-row">
-      <span className="marker-swatch" aria-hidden="true" />
+      <Icon name="flag" size={15} className="marker-flag" />
       <input
         type="text"
         aria-label="Marker name"
@@ -100,7 +115,7 @@ function MarkerRow({
         label={`Remove ${marker.name}`}
         onClick={() => actions.deletePlanMarker(projectId, marker.id)}
       >
-        ✕
+        <Icon name="x" size={15} />
       </IconButton>
     </li>
   );
@@ -139,8 +154,8 @@ function AddMarkerForm({
         value={date}
         onChange={(e) => setDate(e.target.value)}
       />
-      <Button small type="submit" disabled={!canAdd}>
-        + Add marker
+      <Button small icon="plus" type="submit" disabled={!canAdd}>
+        Add marker
       </Button>
     </form>
   );

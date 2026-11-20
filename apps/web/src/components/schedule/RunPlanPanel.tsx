@@ -9,7 +9,6 @@ import {
   mergedOffDays,
   buildPlanWorkbook,
   planFilenameStem,
-  planMarkersOf,
   visiblePlanMarkers,
 } from "@planner/core";
 import { useAppStore } from "@planner/client-runtime";
@@ -20,9 +19,13 @@ import {
   pushWorkbookToGoogleSheets,
 } from "../../lib/googleSheets";
 import { Button } from "../ui/Button";
+import { Callout } from "../ui/Callout";
 import { EmptyState } from "../ui/EmptyState";
+import { Icon } from "../ui/Icon";
+import { Panel } from "../ui/Panel";
+import { Segmented } from "../ui/Segmented";
 import { useToast } from "../ui/Toast";
-import { computeGanttRange, formatShortDate } from "./DateGrid";
+import { computeGanttRange, formatLongDate } from "./DateGrid";
 import { GanttByPerson } from "./GanttByPerson";
 import { GanttByTask } from "./GanttByTask";
 import { GanttByEpic } from "./GanttByEpic";
@@ -36,6 +39,8 @@ import "./schedule.css";
 interface RunPlanPanelProps {
   project: Project;
 }
+
+type PlanMode = "balanced" | "smart";
 
 const VIEW_HINTS: Record<PlanViewMode, string> = {
   person: "by person",
@@ -55,10 +60,15 @@ function formatDays(n: number): string {
   return Number(n.toFixed(1)).toString();
 }
 
+/**
+ * The plan view of a project: a settings card (planning mode, look-ahead,
+ * estimate buffer, the Run plan button and what the last run concluded), the
+ * timeline markers beside it, and the run's results below.
+ */
 export function RunPlanPanel({ project }: RunPlanPanelProps) {
   const { state, actions } = useAppStore();
   const plan = project.plan;
-  const mode = project.planMode === "smart" ? "smart" : "balanced";
+  const mode: PlanMode = project.planMode === "smart" ? "smart" : "balanced";
   const lookahead = project.planLookahead ?? 5;
   const buffer = project.buffer ?? 0;
 
@@ -70,126 +80,189 @@ export function RunPlanPanel({ project }: RunPlanPanelProps) {
   };
 
   return (
-    <section className="run-plan-panel">
-      <h2 className="section-title">Run plan</h2>
-      <div className="info-box">
-        {mode === "smart" ? (
-          <>
-            <strong>Smart (days-off aware).</strong> Instead of taking tasks
-            strictly top → bottom, whoever is free earliest picks the
-            best-fitting task among the next {lookahead} in line — preferring
-            work that finishes before their own next break, so a long task isn't
-            handed to someone about to take time off when a colleague could take
-            it instead. Weekends, days off, and dependencies are all respected.
-          </>
-        ) : (
-          <>
-            <strong>Balanced.</strong> Tasks are scheduled in the order shown
-            above (top → bottom, use ▲▼ to reprioritize). Each included task
-            goes to the matching-specialization member who can start it soonest
-            — accounting for weekends and each person's marked days off. Skipped
-            tasks are ignored.
-          </>
-        )}
-      </div>
+    <div className="run-plan-panel">
+      <div className="run-plan-top">
+        <Panel
+          className="run-plan-settings"
+          icon={<Icon name="sliders" size={17} />}
+          title="Run plan"
+          subtitle="How the scheduler assigns the included tasks."
+        >
+          <div className="rp-field">
+            <div className="rp-field-head">
+              <span className="rp-label">Planning mode</span>
+            </div>
+            <Segmented<PlanMode>
+              label="Planning mode"
+              className="rp-mode"
+              value={mode}
+              onChange={(m) => actions.setPlanMode(project.id, m)}
+              options={[
+                { value: "balanced", label: "Balanced" },
+                {
+                  value: "smart",
+                  label: "Smart",
+                  ariaLabel: "Smart (days-off aware)",
+                },
+              ]}
+            />
+            <p className="rp-hint">
+              {mode === "smart" ? (
+                <>
+                  <strong>Smart (days-off aware).</strong> Instead of taking
+                  tasks strictly top → bottom, whoever is free earliest picks
+                  the best-fitting task among the next {lookahead} in line,
+                  preferring work that finishes before their own next break, so
+                  a long task isn't handed to someone about to take time off
+                  when a colleague could take it instead. Weekends, days off,
+                  and dependencies are all respected.
+                </>
+              ) : (
+                <>
+                  <strong>Balanced.</strong> Tasks are scheduled in their
+                  priority order under Epics &amp; tasks (top → bottom). Each
+                  included task goes to the matching-specialization member who
+                  can start it soonest, accounting for weekends and each
+                  person's marked days off. Skipped tasks are ignored.
+                </>
+              )}
+            </p>
+          </div>
 
-      <div className="plan-mode-row">
-        <div className="seg-toggle" role="group" aria-label="Planning mode">
-          <button
-            type="button"
-            className={"seg-btn" + (mode === "balanced" ? " active" : "")}
-            aria-pressed={mode === "balanced"}
-            onClick={() => actions.setPlanMode(project.id, "balanced")}
-          >
-            ⚖️ Balanced
-          </button>
-          <button
-            type="button"
-            className={"seg-btn" + (mode === "smart" ? " active" : "")}
-            aria-pressed={mode === "smart"}
-            onClick={() => actions.setPlanMode(project.id, "smart")}
-          >
-            🧠 Smart (days-off aware)
-          </button>
-        </div>
+          {mode === "smart" && (
+            <label className="rp-field">
+              <span className="rp-field-head">
+                <span className="rp-label">Look-ahead</span>
+                <span className="rp-value">
+                  {lookahead} task{lookahead === 1 ? "" : "s"}
+                </span>
+              </span>
+              <input
+                type="range"
+                min={1}
+                max={15}
+                step={1}
+                value={lookahead}
+                onChange={(e) =>
+                  actions.setPlanMode(
+                    project.id,
+                    "smart",
+                    Number(e.target.value),
+                  )
+                }
+                aria-label="Lookahead window size"
+              />
+              <span className="rp-hint">
+                Smaller = stick closer to your priority order; larger = more
+                freedom to optimize around days off.
+              </span>
+            </label>
+          )}
 
-        {mode === "smart" && (
-          <label className="lookahead-control">
-            <span>
-              Look ahead: <strong>{lookahead}</strong> task
-              {lookahead === 1 ? "" : "s"}
+          <label className="rp-field">
+            <span className="rp-field-head">
+              <span className="rp-label">Estimate buffer</span>
+              <span className="rp-value">{buffer}%</span>
             </span>
             <input
               type="range"
-              min={1}
-              max={15}
-              step={1}
-              value={lookahead}
+              min={0}
+              max={100}
+              step={5}
+              value={buffer}
               onChange={(e) =>
-                actions.setPlanMode(project.id, "smart", Number(e.target.value))
+                actions.setProjectBuffer(project.id, Number(e.target.value))
               }
-              aria-label="Lookahead window size"
+              aria-label="Estimate buffer percentage"
             />
-            <span className="muted lookahead-hint">
-              Smaller = stick closer to your priority order; larger = more
-              freedom to optimize around days off.
+            <span className="rp-hint">
+              Pads every task's estimate before scheduling, to allow for
+              uncertainty without editing individual tasks.
+              {buffer > 0 && (
+                <>
+                  {" "}
+                  A 5-day task plans as {(5 * (1 + buffer / 100)).toFixed(1)}d.
+                </>
+              )}
             </span>
           </label>
-        )}
-      </div>
 
-      <div className="buffer-row">
-        <label className="lookahead-control">
-          <span>
-            Estimate buffer: <strong>{buffer}%</strong>
-            {buffer > 0 && (
-              <span className="muted">
-                {" "}
-                (a 5-day task plans as {(5 * (1 + buffer / 100)).toFixed(1)}d)
+          <div className="rp-run">
+            <Button
+              variant="primary"
+              icon="play"
+              className="run-plan-btn"
+              onClick={handleRun}
+            >
+              Run plan
+            </Button>
+            {plan && (
+              <span className="rp-last-run">
+                Last run {new Date(plan.generatedAt).toLocaleString()}
               </span>
             )}
-          </span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={5}
-            value={buffer}
-            onChange={(e) =>
-              actions.setProjectBuffer(project.id, Number(e.target.value))
-            }
-            aria-label="Estimate buffer percentage"
-          />
-          <span className="muted lookahead-hint">
-            Pads every task's estimate before scheduling — bump the whole plan
-            up for uncertainty without editing individual tasks.
-          </span>
-        </label>
-      </div>
+          </div>
 
-      <PlanMarkersEditor project={project} />
+          {plan && plan.assignments.length > 0 && <PlanSummary plan={plan} />}
+        </Panel>
 
-      <div className="run-row">
-        <Button variant="primary" onClick={handleRun}>
-          ▶ Run Plan
-        </Button>
-        {plan && (
-          <span className="muted">
-            Last run {new Date(plan.generatedAt).toLocaleString()}
-          </span>
-        )}
+        <PlanMarkersEditor project={project} />
       </div>
 
       {!plan ? (
         <EmptyState
           compact
           title="No plan yet"
-          message="Click Run Plan to generate a schedule from the epics above."
+          message="Press Run plan to generate a schedule from the project's tasks."
         />
       ) : (
         <PlanResults project={project} />
       )}
-    </section>
+    </div>
+  );
+}
+
+/**
+ * What the last run concluded: the finish date, and how much slack rounding
+ * partial days up to whole ones built into it.
+ */
+function PlanSummary({ plan }: { plan: NonNullable<Project["plan"]> }) {
+  const { assignments } = plan;
+  const finish = assignments.reduce(
+    (max, a) => (a.end > max ? a.end : max),
+    assignments[0].end,
+  );
+
+  // Rounding buffer as a share of the whole plan: total slack gained divided by
+  // the total whole working days blocked out across every assignment.
+  const roundingBuffer = plan.roundingBufferDays ?? 0;
+  const totalWorkDays = assignments.reduce((sum, a) => sum + a.workDays, 0);
+  const roundingPct =
+    totalWorkDays > 0 ? (roundingBuffer / totalWorkDays) * 100 : 0;
+
+  return (
+    <>
+      <Callout tone="success">
+        <span className="completion-note">
+          Estimated completion: <strong>{formatLongDate(finish)}</strong>
+        </span>
+      </Callout>
+      {roundingBuffer > 0 && (
+        <p className="rounding-note">
+          Rounding buffer:{" "}
+          <strong>
+            +{formatDays(roundingBuffer)} working day
+            {roundingBuffer === 1 ? "" : "s"}
+          </strong>{" "}
+          of built-in slack (<strong>{formatDays(roundingPct)}%</strong> of the{" "}
+          {totalWorkDays} working day{totalWorkDays === 1 ? "" : "s"} planned).
+          Each person's partial-day estimates are rounded up to whole days (e.g.
+          0.5d → 1d, 1.3d → 2d), summed across all {assignments.length}{" "}
+          assignment
+          {assignments.length === 1 ? "" : "s"}.
+        </p>
+      )}
+    </>
   );
 }
 
@@ -225,24 +298,14 @@ function PlanResults({ project }: { project: Project }) {
     );
   }
 
-  // Markers the timelines draw (none while hidden), and how many exist at all
-  // so the show/hide toggle appears only when there is something to toggle.
+  // Markers the timelines draw (none while hidden).
   const markers = visiblePlanMarkers(project);
-  const markerCount = planMarkersOf(project).length;
-  const markersShown = !project.hideMarkers;
 
   // The range comes from the whole plan, so filtering never shifts the dates.
   const range = computeGanttRange(project.startDate, assignments, markers);
   const mode = planViewModeOf(project.planViewMode);
   const q = query.trim().toLowerCase();
   const shown = q ? assignments.filter((a) => matchesQuery(a, q)) : assignments;
-
-  // Rounding buffer as a share of the whole plan: total slack gained divided by
-  // the total whole working days blocked out across every assignment.
-  const roundingBuffer = plan.roundingBufferDays ?? 0;
-  const totalWorkDays = assignments.reduce((sum, a) => sum + a.workDays, 0);
-  const roundingPct =
-    totalWorkDays > 0 ? (roundingBuffer / totalWorkDays) * 100 : 0;
 
   const handleExcel = () => {
     try {
@@ -287,141 +350,143 @@ function PlanResults({ project }: { project: Project }) {
   return (
     <>
       <UnassignedCallout unassigned={unassigned} />
-      <p className="completion-note">
-        Estimated completion: <strong>{formatShortDate(range.rangeEnd)}</strong>
-      </p>
-      {roundingBuffer > 0 && (
-        <p className="completion-note rounding-note">
-          Rounding buffer:{" "}
-          <strong>
-            +{formatDays(roundingBuffer)} working day
-            {roundingBuffer === 1 ? "" : "s"}
-          </strong>{" "}
-          of built-in slack (<strong>{formatDays(roundingPct)}%</strong> of the{" "}
-          {totalWorkDays} working day{totalWorkDays === 1 ? "" : "s"} planned) —
-          each person's partial-day estimates are rounded up to whole days (e.g.
-          0.5d → 1d, 1.3d → 2d), summed across all {assignments.length}{" "}
-          assignment
-          {assignments.length === 1 ? "" : "s"}.
-        </p>
-      )}
 
-      <div className="export-row">
-        <Button small onClick={handleExcel}>
-          ⬇ Export to Excel
-        </Button>
-        <Button
-          small
-          onClick={handleGoogleSheets}
-          disabled={pushingSheets}
-          title={
-            isGoogleConfigured()
-              ? "Create a new Google Sheet from this plan"
-              : "Needs VITE_GOOGLE_CLIENT_ID — see docs/GOOGLE_SHEETS.md"
-          }
-        >
-          {pushingSheets ? "⏳ Sending…" : "📗 Send to Google Sheets"}
-        </Button>
-        <Button small onClick={handleImage}>
-          🖼 Save timeline image
-        </Button>
-        <span className="muted export-hint">
-          Image captures the current view ({VIEW_HINTS[mode]}).
-        </span>
-      </div>
-
-      <div className="plan-search-row">
-        <input
-          type="text"
-          className="plan-search"
-          aria-label="Filter plan by task or epic"
-          placeholder="Filter by task or epic…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        {q && (
-          <span className="muted" aria-live="polite">
-            Showing {shown.length} of {assignments.length} tasks
-          </span>
-        )}
-      </div>
-
-      {markerCount > 0 && (
-        <label className="markers-toggle">
-          <input
-            type="checkbox"
-            checked={markersShown}
-            onChange={(e) =>
-              actions.setMarkersHidden(project.id, !e.target.checked)
-            }
+      <Panel
+        className="plan-timeline-panel"
+        icon={<Icon name="timeline" size={17} />}
+        title="Timeline"
+        subtitle={`Image export captures the current view (${VIEW_HINTS[mode]}).`}
+        actions={
+          <>
+            <Button small icon="download" onClick={handleExcel}>
+              Export to Excel
+            </Button>
+            <Button
+              small
+              icon="external"
+              onClick={handleGoogleSheets}
+              disabled={pushingSheets}
+              title={
+                isGoogleConfigured()
+                  ? "Create a new Google Sheet from this plan"
+                  : "Needs VITE_GOOGLE_CLIENT_ID — see docs/GOOGLE_SHEETS.md"
+              }
+            >
+              {pushingSheets ? "Sending…" : "Send to Google Sheets"}
+            </Button>
+            <Button small icon="image" onClick={handleImage}>
+              Save timeline image
+            </Button>
+          </>
+        }
+      >
+        <div className="plan-toolbar">
+          <Segmented<PlanViewMode>
+            label="Schedule view"
+            size="sm"
+            value={mode}
+            onChange={(m) => actions.setPlanViewMode(project.id, m)}
+            options={[
+              { value: "person", label: "Person", ariaLabel: "By person" },
+              { value: "task", label: "Task", ariaLabel: "By task" },
+              { value: "epic", label: "Epic", ariaLabel: "By epic" },
+            ]}
           />
-          Show timeline markers ({markerCount})
-        </label>
-      )}
+          <div className="plan-search-field">
+            <Icon name="search" size={14} className="plan-search-icon" />
+            <input
+              type="search"
+              className="plan-search"
+              aria-label="Filter plan by task or epic"
+              placeholder="Filter by task or epic…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          {q && (
+            <span className="muted" aria-live="polite">
+              Showing {shown.length} of {assignments.length} tasks
+            </span>
+          )}
+        </div>
 
-      {shown.length > 0 ? (
-        <OverviewTimeline assignments={shown} range={range} markers={markers} />
-      ) : (
-        <p className="muted plan-search-empty">
-          No tasks or epics match “{query.trim()}”.
-        </p>
-      )}
+        {shown.length > 0 ? (
+          <>
+            <OverviewTimeline
+              assignments={shown}
+              range={range}
+              markers={markers}
+            />
+            {mode === "person" ? (
+              <GanttByPerson
+                assignments={shown}
+                team={team}
+                range={range}
+                markers={markers}
+              />
+            ) : mode === "epic" ? (
+              <GanttByEpic
+                assignments={shown}
+                epics={project.epics}
+                unassigned={unassigned}
+                range={range}
+                markers={markers}
+              />
+            ) : (
+              <GanttByTask
+                assignments={shown}
+                epics={project.epics}
+                offDays={team.offDays}
+                range={range}
+                markers={markers}
+              />
+            )}
+            <GanttLegend
+              offDays={mode !== "epic"}
+              markers={markers.length > 0}
+            />
+          </>
+        ) : (
+          <p className="muted plan-search-empty">
+            No tasks or epics match “{query.trim()}”.
+          </p>
+        )}
+      </Panel>
 
-      <div className="seg-toggle" role="group" aria-label="Schedule view">
-        <button
-          type="button"
-          className={"seg-btn" + (mode === "person" ? " active" : "")}
-          aria-pressed={mode === "person"}
-          onClick={() => actions.setPlanViewMode(project.id, "person")}
-        >
-          📅 Grid by Person
-        </button>
-        <button
-          type="button"
-          className={"seg-btn" + (mode === "task" ? " active" : "")}
-          aria-pressed={mode === "task"}
-          onClick={() => actions.setPlanViewMode(project.id, "task")}
-        >
-          📋 Grid by Task
-        </button>
-        <button
-          type="button"
-          className={"seg-btn" + (mode === "epic" ? " active" : "")}
-          aria-pressed={mode === "epic"}
-          onClick={() => actions.setPlanViewMode(project.id, "epic")}
-        >
-          🗂 Grid by Epic
-        </button>
+      <div className="plan-tables">
+        <TeamBreakdown assignments={assignments} teams={state.teams} />
+        {shown.length > 0 && <AssignmentsTable assignments={shown} />}
       </div>
-
-      {shown.length === 0 ? null : mode === "person" ? (
-        <GanttByPerson
-          assignments={shown}
-          team={team}
-          range={range}
-          markers={markers}
-        />
-      ) : mode === "epic" ? (
-        <GanttByEpic
-          assignments={shown}
-          epics={project.epics}
-          unassigned={unassigned}
-          range={range}
-          markers={markers}
-        />
-      ) : (
-        <GanttByTask
-          assignments={shown}
-          epics={project.epics}
-          offDays={team.offDays}
-          range={range}
-          markers={markers}
-        />
-      )}
-
-      <TeamBreakdown assignments={assignments} teams={state.teams} />
-
-      {shown.length > 0 && <AssignmentsTable assignments={shown} />}
     </>
+  );
+}
+
+/** Key to the shading and lines every gantt view draws. */
+function GanttLegend({
+  offDays,
+  markers,
+}: {
+  offDays: boolean;
+  markers: boolean;
+}) {
+  return (
+    <ul className="gantt-legend" aria-label="Timeline legend">
+      <li>
+        <span className="legend-swatch weekend" aria-hidden="true" /> Weekend
+      </li>
+      {offDays && (
+        <li>
+          <span className="legend-swatch nonwork" aria-hidden="true" /> Day off
+        </li>
+      )}
+      <li>
+        <span className="legend-line today" aria-hidden="true" /> Today
+      </li>
+      {markers && (
+        <li>
+          <span className="legend-diamond" aria-hidden="true" /> Marker
+        </li>
+      )}
+    </ul>
   );
 }

@@ -62,7 +62,7 @@ describe("TeamPage roster", () => {
     fireEvent.change(screen.getByLabelText("Specialization"), {
       target: { value: "Backend" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "+ Add member" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add person" }));
     expect(screen.getByDisplayValue("Ben Osei")).toBeInTheDocument();
   });
 
@@ -79,7 +79,7 @@ describe("TeamPage roster", () => {
     fireEvent.change(screen.getByLabelText("Specialization"), {
       target: { value: "Backend" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "+ Add member" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add person" }));
     expect(datalistValues(container).sort()).toEqual(["Backend", "Frontend"]);
   });
 });

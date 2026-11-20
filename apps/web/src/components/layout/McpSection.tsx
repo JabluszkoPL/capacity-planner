@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { Button } from "../ui/Button";
+import { Badge, type Tone } from "../ui/Badge";
 import { useToast } from "../ui/Toast";
 import {
   hostBridge,
@@ -11,6 +12,17 @@ import {
   codexCommands,
   mcpJsonConfig,
 } from "../../mcp/installCommands";
+import { SettingsGroup, SettingsRow } from "./SettingsRows";
+
+const STATUS_BADGE: Record<
+  McpHostState["status"],
+  { text: string; tone: Tone }
+> = {
+  listening: { text: "On", tone: "success" },
+  starting: { text: "Starting", tone: "info" },
+  error: { text: "Not running", tone: "danger" },
+  off: { text: "Off", tone: "neutral" },
+};
 
 function statusLine(s: McpHostState): string {
   switch (s.status) {
@@ -101,66 +113,98 @@ function McpSettings({ mcp }: { mcp: PlannerMcpBridge }) {
   }
 
   const on = state.enabled;
+  const badge = STATUS_BADGE[state.status];
 
   return (
-    <section className="about-section" aria-labelledby={`${id}-heading`}>
-      <h4 id={`${id}-heading`}>AI assistants (MCP)</h4>
-      <p className="about-status">
-        Let Claude Code, Codex and other MCP clients on this Mac read your
-        projects, plans, teams and Jira trackers while Planner is open, and open
-        things in this window. Your Jira connection is never shared.
-      </p>
-
-      <label className="about-check">
-        <input
-          type="checkbox"
-          checked={on}
-          disabled={busy}
-          onChange={(e) => void update({ enabled: e.target.checked })}
-          aria-describedby={`${id}-status`}
-        />
-        <span>Allow AI clients to connect</span>
-      </label>
-      <label className="about-check">
-        <input
-          type="checkbox"
-          checked={state.allowWrites}
-          disabled={busy || !on}
-          onChange={(e) => void update({ allowWrites: e.target.checked })}
-          aria-describedby={`${id}-writes-hint`}
-        />
-        <span>Allow changes to projects, teams and days off</span>
-      </label>
-      <p className="modal-hint" id={`${id}-writes-hint`}>
-        {state.allowWrites ? (
-          <span className="about-warning">
-            Clients can edit plans and people, and the edits sync to your other
-            devices. There is no undo; nothing can be deleted.
-          </span>
-        ) : (
-          "Off: clients can read and open things, but not change them."
-        )}
-      </p>
-      <p
-        className={`modal-hint${state.status === "error" ? " about-warning" : ""}`}
-        id={`${id}-status`}
-        role="status"
+    <>
+      <SettingsGroup
+        title="AI assistants (MCP)"
+        icon="sparkle"
+        status={
+          <Badge tone={badge.tone} dot>
+            {badge.text}
+          </Badge>
+        }
+        description={
+          <p>
+            Let Claude Code, Codex and other MCP clients on this Mac read your
+            projects, plans, teams and Jira trackers while Planner is open, and
+            open things in this window. Your Jira connection is never shared.
+          </p>
+        }
       >
-        {statusLine(state)}
-      </p>
+        <SettingsRow
+          label="Allow AI clients to connect"
+          htmlFor={`${id}-connect`}
+          hint={
+            <p
+              className={
+                "settings-hint" +
+                (state.status === "error" ? " about-warning" : "")
+              }
+              id={`${id}-status`}
+              role="status"
+            >
+              {statusLine(state)}
+            </p>
+          }
+        >
+          <input
+            id={`${id}-connect`}
+            type="checkbox"
+            className="settings-switch"
+            checked={on}
+            disabled={busy}
+            onChange={(e) => void update({ enabled: e.target.checked })}
+            aria-describedby={`${id}-status`}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label="Allow changes to projects, teams and days off"
+          htmlFor={`${id}-writes`}
+          hint={
+            <p className="settings-hint" id={`${id}-writes-hint`}>
+              {state.allowWrites ? (
+                <span className="about-warning">
+                  Clients can edit plans and people, and the edits sync to your
+                  other devices. There is no undo; nothing can be deleted.
+                </span>
+              ) : (
+                "Off: clients can read and open things, but not change them."
+              )}
+            </p>
+          }
+        >
+          <input
+            id={`${id}-writes`}
+            type="checkbox"
+            className="settings-switch"
+            checked={state.allowWrites}
+            disabled={busy || !on}
+            onChange={(e) => void update({ allowWrites: e.target.checked })}
+            aria-describedby={`${id}-writes-hint`}
+          />
+        </SettingsRow>
+      </SettingsGroup>
 
       {on && (
-        <>
-          <p className="about-status">
-            To connect a client, copy its setup and run it in Terminal (or paste
-            the JSON into the client's MCP settings).
-          </p>
+        <SettingsGroup
+          title="Connect a client"
+          icon="plug"
+          description={
+            <p>
+              Copy a client's setup and run it in Terminal (or paste the JSON
+              into the client's MCP settings).
+            </p>
+          }
+        >
           <div
-            className="about-actions about-wrap"
+            className="settings-actions"
             role="group"
             aria-label="Copy client setup"
           >
             <Button
+              icon="copy"
               onClick={() =>
                 void copy(
                   "Claude Code command",
@@ -171,6 +215,7 @@ function McpSettings({ mcp }: { mcp: PlannerMcpBridge }) {
               Copy for Claude Code
             </Button>
             <Button
+              icon="copy"
               onClick={() =>
                 void copy(
                   "Codex commands",
@@ -181,6 +226,7 @@ function McpSettings({ mcp }: { mcp: PlannerMcpBridge }) {
               Copy for Codex
             </Button>
             <Button
+              icon="copy"
               onClick={() =>
                 void copy("JSON config", mcpJsonConfig(state.url, state.token))
               }
@@ -188,21 +234,31 @@ function McpSettings({ mcp }: { mcp: PlannerMcpBridge }) {
               Copy JSON config
             </Button>
           </div>
-          <p className="modal-hint" role="status" aria-live="polite">
+          <p className="settings-hint" role="status" aria-live="polite">
             {copied ?? ""}
           </p>
-          <div className="about-actions">
-            <Button onClick={() => void regenerate()} disabled={busy}>
+          <SettingsRow
+            label="Access token"
+            hint={
+              <p className="settings-hint">
+                A new token locks out every client set up with the old one.
+              </p>
+            }
+          >
+            <Button
+              icon="refresh"
+              onClick={() => void regenerate()}
+              disabled={busy}
+            >
               New token
             </Button>
-          </div>
-          <p className="modal-hint">
-            A new token locks out every client set up with the old one. ChatGPT
-            connectors run on OpenAI's servers, so they can't reach an app on
-            your Mac.
+          </SettingsRow>
+          <p className="settings-footnote">
+            ChatGPT connectors run on OpenAI's servers, so they can't reach an
+            app on your Mac.
           </p>
-        </>
+        </SettingsGroup>
       )}
-    </section>
+    </>
   );
 }

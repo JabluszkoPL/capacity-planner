@@ -5,6 +5,7 @@ import { applyDates, basicAuth, dateChanges } from "@planner/jira";
 import type { WriteResult, WriteSpan } from "@planner/jira";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
+import { Badge } from "../ui/Badge";
 import { useToast } from "../ui/Toast";
 import type { JiraSettings } from "../../lib/jiraSettings";
 import type { AppJiraTransport } from "../../lib/jiraTransport";
@@ -30,6 +31,17 @@ interface WritebackModalProps {
 /** An unset Jira date, shown as an em dash rather than an empty cell. */
 function dateCell(value: string | undefined): string {
   return value && value.length > 0 ? value : "—";
+}
+
+/** How far the due date moves, in calendar days: "+3 d", or "new" if unset. */
+function dueShift(from: string | undefined, to: string): string {
+  if (!from) return "new";
+  const a = Date.parse(from.slice(0, 10));
+  const b = Date.parse(to.slice(0, 10));
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return "changed";
+  const n = Math.round((b - a) / 86_400_000);
+  if (n === 0) return "same due";
+  return `${n > 0 ? "+" : "−"}${Math.abs(n)} d`;
 }
 
 function countLine(n: number): string {
@@ -130,7 +142,13 @@ export function WritebackModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Apply dates to Jira">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Apply dates to Jira"
+      subtitle={results === null ? "Review and confirm" : "Done"}
+      className="tracking-dialog"
+    >
       <div className="writeback">
         {results === null ? (
           <>
@@ -138,13 +156,16 @@ export function WritebackModal({
 
             {changes.length > 0 && (
               <div className="writeback-scroll">
-                <table className="writeback-table">
+                <table className="data-table writeback-table">
                   <thead>
                     <tr>
                       <th scope="col">Issue</th>
                       <th scope="col">Summary</th>
                       <th scope="col">Start</th>
                       <th scope="col">Due</th>
+                      <th scope="col" className="num">
+                        Change
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -163,6 +184,18 @@ export function WritebackModal({
                             {dateCell(c.currentDue)}
                           </span>{" "}
                           → {c.nextDue}
+                        </td>
+                        <td className="num">
+                          <Badge
+                            tone={
+                              !c.currentDue ||
+                              Date.parse(c.nextDue) <= Date.parse(c.currentDue)
+                                ? "success"
+                                : "warning"
+                            }
+                          >
+                            {dueShift(c.currentDue, c.nextDue)}
+                          </Badge>
                         </td>
                       </tr>
                     ))}

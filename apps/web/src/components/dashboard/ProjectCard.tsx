@@ -7,8 +7,11 @@ import {
   includedTeams,
   visiblePlanMarkers,
 } from "@planner/core";
+import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { Icon } from "../ui/Icon";
 import { IconButton } from "../ui/IconButton";
+import { IconTile } from "../ui/IconTile";
 import { computeGanttRange } from "../schedule/DateGrid";
 import { OverviewTimeline } from "../schedule/OverviewTimeline";
 
@@ -30,6 +33,15 @@ const MONTHS = [
 function formatDate(iso: string): string {
   const d = fromISO(iso);
   return MONTHS[d.getMonth()] + " " + d.getDate();
+}
+
+/** "Dec 18, 2026": the finish date reads better with its year. */
+function formatLongDate(iso: string): string {
+  return formatDate(iso) + ", " + fromISO(iso).getFullYear();
+}
+
+function plural(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
 }
 
 export interface ProjectStats {
@@ -160,6 +172,8 @@ interface ProjectCardProps {
   teams?: Team[];
   onOpen: (id: string) => void;
   onCopy: (id: string) => void;
+  /** Download just this project as JSON; the button is hidden without it. */
+  onExport?: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
@@ -168,124 +182,167 @@ export function ProjectCard({
   teams = [],
   onOpen,
   onCopy,
+  onExport,
   onDelete,
 }: ProjectCardProps) {
   const stats = projectStats(project);
   const completes = completesOn(project);
   const assignments = project.plan?.assignments ?? [];
   const summary = planSummary(project, teams);
+  const markers = visiblePlanMarkers(project);
 
   return (
-    <div className="project-card">
-      <h3
-        className="project-card-title"
-        role="button"
-        tabIndex={0}
-        onClick={() => onOpen(project.id)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onOpen(project.id);
-          }
-        }}
-        style={project.titleColor ? { color: project.titleColor } : undefined}
-      >
-        {project.name}
-      </h3>
-      {project.note ? (
-        <p className="project-card-note">{project.note}</p>
-      ) : null}
-      <div className="stat-line">
-        <span>{stats.epics} epics</span>
-        <span>{stats.tasks} tasks</span>
-        <span>{stats.activeDays}d planned</span>
-      </div>
-
-      {summary.teams.length > 0 && (
-        <div className="card-meta-line" title="Teams working this project">
-          <span className="card-meta-icon" aria-hidden>
-            👥
-          </span>
-          <span className="card-meta-text">
-            {summary.teams.map((t, i) => (
-              <span key={t.id}>
-                {i > 0 && ", "}
-                {t.name}
-                {t.startsLate && (
-                  <span className="muted">
-                    {" "}
-                    (from {formatDate(t.startsLate)})
-                  </span>
-                )}
-              </span>
-            ))}
-          </span>
-        </div>
-      )}
-
-      {summary.helpers.length > 0 && (
-        <div
-          className="card-meta-line"
-          title="Additional support (helpers), by specialization"
-        >
-          <span className="card-meta-icon" aria-hidden>
-            ➕
-          </span>
-          <span className="card-meta-text">
-            {summary.helpers.map((h, i) => (
-              <span key={i}>
-                {i > 0 && ", "}
-                {h.count} {h.specialization}
-                <span className="muted">
-                  {" "}
-                  (avg start {formatDate(h.avgStart)})
+    <article
+      className="project-card"
+      style={
+        project.titleColor
+          ? { ["--project-tint" as string]: project.titleColor }
+          : undefined
+      }
+    >
+      <div className="project-card-head">
+        <IconTile icon="folder" color={project.titleColor} />
+        <div className="project-card-heading">
+          <h3
+            className="project-card-title"
+            role="button"
+            tabIndex={0}
+            onClick={() => onOpen(project.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpen(project.id);
+              }
+            }}
+          >
+            {project.name}
+          </h3>
+          <div
+            className="project-card-teams"
+            title="Teams working this project"
+          >
+            {summary.teams.length === 0 ? (
+              <span className="muted">No teams yet</span>
+            ) : (
+              summary.teams.map((t, i) => (
+                <span key={t.id}>
+                  {i > 0 && ", "}
+                  {t.name}
+                  {t.startsLate && (
+                    <span className="muted">
+                      {" "}
+                      (from {formatDate(t.startsLate)})
+                    </span>
+                  )}
                 </span>
-              </span>
-            ))}
-          </span>
+              ))
+            )}
+          </div>
         </div>
-      )}
-
-      <div className="card-badges">
-        <span
-          className="badge badge-buffer"
+        <Badge
+          tone={summary.buffer > 0 ? "warning" : "neutral"}
+          className="badge-buffer"
           title="Estimate buffer padding applied to every task in this plan"
         >
           Buffer {summary.buffer}%
-        </span>
-        {completes ? (
-          <span className="badge">Completes {formatDate(completes)}</span>
-        ) : (
-          <span className="muted not-planned">Not planned yet</span>
-        )}
+        </Badge>
       </div>
-      {assignments.length > 0 && (
-        <OverviewTimeline
-          assignments={assignments}
-          range={computeGanttRange(
-            project.startDate,
-            assignments,
-            visiblePlanMarkers(project),
-          )}
-          markers={visiblePlanMarkers(project)}
-        />
-      )}
-      <div className="row card-actions">
+
+      <div className="project-card-body">
+        <dl className="project-card-stats">
+          <div>
+            <dt>Epics</dt>
+            <dd>{stats.epics}</dd>
+          </div>
+          <div>
+            <dt>Tasks</dt>
+            <dd>{stats.tasks}</dd>
+          </div>
+          <div>
+            <dt>Estimate</dt>
+            <dd>{plural(stats.activeDays, "day", "days")}</dd>
+          </div>
+          <div>
+            <dt>Planned finish</dt>
+            <dd>
+              {completes ? (
+                formatLongDate(completes)
+              ) : (
+                <span className="muted not-planned">Not planned yet</span>
+              )}
+            </dd>
+          </div>
+        </dl>
+
+        {summary.helpers.length > 0 && (
+          <div
+            className="project-card-line"
+            title="Additional support (helpers), by specialization"
+          >
+            <Icon name="users" size={14} />
+            <span>
+              {summary.helpers.map((h, i) => (
+                <span key={i}>
+                  {i > 0 && ", "}
+                  {h.count} {h.specialization}
+                  <span className="muted">
+                    {" "}
+                    (avg start {formatDate(h.avgStart)})
+                  </span>
+                </span>
+              ))}
+            </span>
+          </div>
+        )}
+
+        {assignments.length > 0 && (
+          <OverviewTimeline
+            assignments={assignments}
+            range={computeGanttRange(project.startDate, assignments, markers)}
+            markers={markers}
+          />
+        )}
+
+        {project.note ? (
+          <p
+            className="project-card-line project-card-note"
+            title={project.note}
+          >
+            <Icon name="info" size={14} />
+            <span>{project.note}</span>
+          </p>
+        ) : null}
+      </div>
+
+      <div className="project-card-actions">
         <Button small onClick={() => onOpen(project.id)}>
           Open
         </Button>
-        <Button small onClick={() => onCopy(project.id)}>
+        <Button
+          small
+          variant="ghost"
+          icon="copy"
+          onClick={() => onCopy(project.id)}
+        >
           Copy
         </Button>
         <span className="spacer" />
+        {onExport && (
+          <IconButton
+            label={`Export ${project.name}`}
+            onClick={() => onExport(project.id)}
+          >
+            <Icon name="download" size={15} />
+          </IconButton>
+        )}
         <IconButton
           danger
           label={`Delete ${project.name}`}
           onClick={() => onDelete(project.id)}
         >
-          ✕
+          <Icon name="trash" size={15} />
         </IconButton>
       </div>
-    </div>
+    </article>
   );
 }

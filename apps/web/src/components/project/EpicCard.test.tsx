@@ -81,13 +81,22 @@ describe("EpicCard", () => {
   it("shows active task count and day total that exclude skipped tasks", () => {
     renderCard();
     // Only T1 (2d) is active; T2 (5d) is skipped.
-    expect(screen.getByText("1 tasks · 2d")).toBeInTheDocument();
+    expect(screen.getByText("1 task · 1 skipped")).toBeInTheDocument();
+    expect(screen.getByText("2 days")).toBeInTheDocument();
   });
 
-  it("adds a task via '+ Task'", () => {
+  it("adds a task from the epic header", () => {
     renderCard();
     expect(screen.getAllByLabelText("Task name")).toHaveLength(2);
-    fireEvent.click(screen.getByRole("button", { name: "+ Task" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add task to Epic One" }),
+    );
+    expect(screen.getAllByLabelText("Task name")).toHaveLength(3);
+  });
+
+  it("adds a task from the row under the table", () => {
+    renderCard();
+    fireEvent.click(screen.getByRole("button", { name: "Add task" }));
     expect(screen.getAllByLabelText("Task name")).toHaveLength(3);
   });
 

@@ -421,10 +421,13 @@ export function TasksTable({
   );
 
   return (
-    <section className="tasks-section" aria-label="Task comparison">
+    <section
+      className="panel tracking-panel tasks-section"
+      aria-label="Task comparison"
+    >
       <div className="epics-head">
         <div>
-          <h2 className="section-title">Task comparison</h2>
+          <h2 className="panel-title">Task comparison</h2>
           <p className="muted">
             Jira tasks are matched to planned tasks by name. A Jira task with no
             match is added scope: work taken on after planning, sized by

@@ -4,11 +4,16 @@ import {
   allMembers,
   includedMembers,
   colorFor,
+  findMemberTeam,
 } from "@planner/core";
 import { useAppStore } from "@planner/client-runtime";
 
 import { IconButton } from "../ui/IconButton";
 import { EmptyState } from "../ui/EmptyState";
+import { Panel } from "../ui/Panel";
+import { Icon } from "../ui/Icon";
+import { Avatar } from "../ui/IconTile";
+import { ColorTag } from "../ui/Badge";
 
 import "./helpers.css";
 
@@ -33,8 +38,15 @@ export function MemberStartPanel({ project }: MemberStartPanelProps) {
   const [collapsed, setCollapsed] = useState(true);
 
   return (
-    <section className="helpers-panel">
-      <div className="section-head">
+    <Panel
+      className={"member-start-panel" + (collapsed ? " is-collapsed" : "")}
+      title="Team start dates"
+      subtitle={
+        overrideCount > 0
+          ? `${overrideCount} override${overrideCount === 1 ? "" : "s"}`
+          : "Everyone starts with the project"
+      }
+      actions={
         <IconButton
           label={
             collapsed ? "Expand team start dates" : "Collapse team start dates"
@@ -42,21 +54,16 @@ export function MemberStartPanel({ project }: MemberStartPanelProps) {
           aria-expanded={!collapsed}
           onClick={() => setCollapsed((c) => !c)}
         >
-          {collapsed ? "▸" : "▾"}
+          <Icon name={collapsed ? "chevronRight" : "chevronDown"} size={16} />
         </IconButton>
-        <h2 className="section-title">Team start dates</h2>
-        {overrideCount > 0 && (
-          <span className="muted">
-            {overrideCount} override{overrideCount === 1 ? "" : "s"}
-          </span>
-        )}
-      </div>
-
-      {!collapsed && (
+      }
+      flush={!collapsed && members.length > 0}
+    >
+      {collapsed ? null : (
         <>
           <p className="muted helpers-intro">
             Everyone starts on the project start date ({project.startDate})
-            unless you set a later date here — useful when someone only joins
+            unless you set a later date here. Useful when someone only joins
             this project part-way through.
           </p>
 
@@ -75,54 +82,81 @@ export function MemberStartPanel({ project }: MemberStartPanelProps) {
               />
             )
           ) : (
-            <div className="member-start-list">
-              {members.map((m) => {
-                const value = starts[m.id] ?? "";
-                return (
-                  <div className="member-start-row" key={m.id}>
-                    <span className="member-start-name">
-                      <span
-                        className="swatch"
-                        style={{ background: colorFor(m.specialization) }}
-                        aria-hidden="true"
-                      />
-                      {m.name}
-                      <span className="spec-tag">
-                        {m.specialization || "—"}
-                      </span>
-                    </span>
-                    <input
-                      type="date"
-                      aria-label={`Start date for ${m.name}`}
-                      min={project.startDate}
-                      value={value}
-                      onChange={(e) =>
-                        actions.setMemberStart(
-                          project.id,
-                          m.id,
-                          e.target.value || null,
-                        )
-                      }
-                    />
-                    {value ? (
-                      <IconButton
-                        label={`Clear start date for ${m.name}`}
-                        onClick={() =>
-                          actions.setMemberStart(project.id, m.id, null)
-                        }
-                      >
-                        ✕
-                      </IconButton>
-                    ) : (
-                      <span className="member-start-default">from start</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <table className="data-table member-start-table">
+              <thead>
+                <tr>
+                  <th>Person</th>
+                  <th>Team</th>
+                  <th>Specialization</th>
+                  <th>Starts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((m) => {
+                  const value = starts[m.id] ?? "";
+                  return (
+                    <tr key={m.id}>
+                      <td>
+                        <span className="member-start-name">
+                          <Avatar
+                            name={m.name}
+                            color={colorFor(m.specialization)}
+                            size="sm"
+                          />
+                          {m.name}
+                        </span>
+                      </td>
+                      <td className="muted">
+                        {findMemberTeam(state.teams, m.id)?.name ?? ""}
+                      </td>
+                      <td>
+                        {m.specialization ? (
+                          <ColorTag color={colorFor(m.specialization)}>
+                            {m.specialization}
+                          </ColorTag>
+                        ) : (
+                          <span className="muted">-</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className="member-start-date">
+                          <input
+                            type="date"
+                            aria-label={`Start date for ${m.name}`}
+                            min={project.startDate}
+                            value={value}
+                            onChange={(e) =>
+                              actions.setMemberStart(
+                                project.id,
+                                m.id,
+                                e.target.value || null,
+                              )
+                            }
+                          />
+                          {value ? (
+                            <IconButton
+                              label={`Clear start date for ${m.name}`}
+                              onClick={() =>
+                                actions.setMemberStart(project.id, m.id, null)
+                              }
+                            >
+                              <Icon name="x" size={14} />
+                            </IconButton>
+                          ) : (
+                            <span className="member-start-default">
+                              from start
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </>
       )}
-    </section>
+    </Panel>
   );
 }

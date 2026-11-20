@@ -8,8 +8,8 @@ Planner is open.
 
 ## Turning it on
 
-1. Open **About** (the version number in the header).
-2. Under **AI assistants (MCP)**, tick **Allow AI clients to connect**. The
+1. Open **Settings** (bottom of the sidebar, next to the version number).
+2. Open the **AI assistants** section and, under **AI assistants (MCP)**, tick **Allow AI clients to connect**. The
    status line should say it is listening at `http://127.0.0.1:5192/mcp`.
 3. Optionally tick **Allow changes to projects, teams and days off**. Off by
    default; without it clients can read and open things but not edit.

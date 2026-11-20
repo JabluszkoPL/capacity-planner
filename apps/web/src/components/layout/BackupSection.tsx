@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useAppStore } from "@planner/client-runtime";
 import { mergeImportedState, type MergeReport } from "@planner/core";
 import { Button } from "../ui/Button";
+import { Icon } from "../ui/Icon";
 import { useToast } from "../ui/Toast";
 import { downloadBlob, readTextFile } from "../../lib/download";
 import {
@@ -13,6 +14,7 @@ import {
 } from "../../lib/backup";
 import { isJiraConfigured } from "../../lib/jiraSettings";
 import { useJiraSettings } from "../../lib/useJiraSettings";
+import { SettingsGroup, SettingsRow } from "./SettingsRows";
 
 function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
@@ -168,39 +170,67 @@ export function BackupSection() {
     : "";
 
   return (
-    <section className="about-section" aria-labelledby={`${id}-heading`}>
-      <h4 id={`${id}-heading`}>Backup and transfer</h4>
-      <p className="about-status">
-        Save everything on this device to one file: projects, teams, Jira
-        trackers with their history, and the Jira connection. Import it in the
-        Mac app or another browser to move your work there.
-      </p>
+    <SettingsGroup
+      title="Backup and transfer"
+      icon="box"
+      description={
+        <p>
+          Save everything on this device to one file: projects, teams, Jira
+          trackers with their history, and the Jira connection. Import it in the
+          Mac app or another browser to move your work there.
+        </p>
+      }
+    >
+      <SettingsRow
+        label="Export"
+        hint={
+          <p className="settings-hint">
+            One JSON file with everything on this device.
+          </p>
+        }
+      >
+        <Button icon="download" onClick={exportAll}>
+          Export everything
+        </Button>
+      </SettingsRow>
 
-      <label className="about-check">
+      <SettingsRow
+        label="Include the Jira API token"
+        htmlFor={`${id}-token`}
+        hint={
+          <p className="settings-hint" id={`${id}-token-hint`}>
+            {!jiraHere ? (
+              "Jira isn't connected on this device."
+            ) : includeToken ? (
+              <span className="about-warning">
+                Anyone with the file can use Jira as {jira.email}. Delete it
+                once it's imported.
+              </span>
+            ) : (
+              "Without it, the Jira site and email still come along; you type the token once on the new device."
+            )}
+          </p>
+        }
+      >
         <input
+          id={`${id}-token`}
           type="checkbox"
+          className="settings-switch"
           checked={includeToken && jiraHere}
           disabled={!jiraHere}
           onChange={(e) => setIncludeToken(e.target.checked)}
           aria-describedby={`${id}-token-hint`}
         />
-        <span>Include the Jira API token</span>
-      </label>
-      <p className="modal-hint" id={`${id}-token-hint`}>
-        {!jiraHere ? (
-          "Jira isn't connected on this device."
-        ) : includeToken ? (
-          <span className="about-warning">
-            Anyone with the file can use Jira as {jira.email}. Delete it once
-            it's imported.
-          </span>
-        ) : (
-          "Without it, the Jira site and email still come along; you type the token once on the new device."
-        )}
-      </p>
+      </SettingsRow>
 
-      <div className="about-actions">
-        <Button onClick={exportAll}>Export everything</Button>
+      <SettingsRow
+        label="Import"
+        hint={
+          <p className="settings-hint">
+            Shows what the file holds before anything changes.
+          </p>
+        }
+      >
         <input
           ref={inputRef}
           type="file"
@@ -218,11 +248,12 @@ export function BackupSection() {
           onClick={() => inputRef.current?.click()}
           disabled={busy}
         >
+          <Icon name="upload" size={15} />
           {busy ? "Reading…" : "Import backup…"}
         </button>
-      </div>
+      </SettingsRow>
       {error && (
-        <p className="modal-hint about-warning" role="alert">
+        <p className="settings-note about-warning" role="alert">
           {error}
         </p>
       )}
@@ -235,7 +266,7 @@ export function BackupSection() {
           role="group"
           aria-label={`Import ${pending.fileName}`}
         >
-          <p className="about-status">
+          <p className="backup-preview-summary">
             <strong>{pending.fileName}</strong> holds {fileTotals}.{" "}
             {previewNew.length > 0
               ? `${countList(previewNew)} will be added; nothing here is replaced.`
@@ -259,7 +290,7 @@ export function BackupSection() {
                     : ""}
                 </span>
               </label>
-              <p className="modal-hint">
+              <p className="settings-hint">
                 {incomingJira.apiToken
                   ? "The file includes an API token."
                   : "The file has no API token; add it in Jira settings afterwards."}{" "}
@@ -267,10 +298,11 @@ export function BackupSection() {
               </p>
             </>
           )}
-          <div className="about-actions">
+          <div className="settings-actions">
             <Button onClick={cancel}>Cancel</Button>
             <Button
               variant="primary"
+              icon="check"
               onClick={confirmImport}
               disabled={
                 previewNew.length === 0 &&
@@ -283,6 +315,6 @@ export function BackupSection() {
           </div>
         </div>
       )}
-    </section>
+    </SettingsGroup>
   );
 }

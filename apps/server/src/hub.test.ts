@@ -135,6 +135,83 @@ describe("push", () => {
   });
 });
 
+describe("a bad op in a batch", () => {
+  it("accepts a delete for an epic the server never saw", () => {
+    // What a client queues when it creates and deletes an epic before
+    // pushing: the outbox keeps only the tombstone. This used to fail with
+    // "NOT NULL constraint failed: epics.project_id" and sink the batch.
+    const a = testPeer("a");
+    hub.connect(a.peer);
+    hub.handle(a.peer, {
+      t: "push",
+      ops: [
+        {
+          entity: "epic",
+          id: "e-never-pushed",
+          hlc: clock.tick(),
+          deleted: true,
+          data: null,
+        },
+        teamOp("t1", "Core", clock.tick()),
+      ],
+    });
+    expect(a.last()).toMatchObject({ t: "ack", applied: 2, rejected: 0 });
+    expect(readAppState(db).teams.map((t) => t.name)).toEqual(["Core"]);
+  });
+
+  it("rejects only the op the store throws on, and acks the rest", () => {
+    // A store that refuses one particular row, standing in for any op the
+    // database cannot take.
+    const failing: SqliteDriver = {
+      ...db,
+      exec: (sql) => db.exec(sql),
+      all: (sql, params) => db.all(sql, params),
+      get: (sql, params) => db.get(sql, params),
+      transaction: (fn) => db.transaction(fn),
+      close: () => db.close(),
+      run(sql, params) {
+        if (Array.isArray(params) && params.includes("poison")) {
+          throw new Error("NOT NULL constraint failed: teams.name");
+        }
+        db.run(sql, params);
+      },
+    };
+    const lines: string[] = [];
+    const strict = new Hub(failing, {
+      serverId: "srv-test",
+      log: (line) => void lines.push(line),
+    });
+    const a = testPeer("a");
+    const b = testPeer("b");
+    strict.connect(a.peer);
+    strict.connect(b.peer);
+
+    strict.handle(a.peer, {
+      t: "push",
+      ops: [
+        teamOp("t1", "Core", clock.tick()),
+        teamOp("poison", "Bad", clock.tick()),
+        teamOp("t2", "Platform", clock.tick()),
+      ],
+    });
+
+    expect(a.last()).toMatchObject({ t: "ack", applied: 2, rejected: 1 });
+    expect(readAppState(db).teams.map((t) => t.name)).toEqual([
+      "Core",
+      "Platform",
+    ]);
+    // Nothing of the bad op is left behind: no row, no log entry, no fan-out.
+    expect(db.get("SELECT id FROM teams WHERE id = 'poison'")).toBeUndefined();
+    expect(strict.head()).toBe(2);
+    expect(b.ofType("ops").flatMap((m) => m.ops.map((o) => o.id))).toEqual([
+      "t1",
+      "t2",
+    ]);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("team poison");
+  });
+});
+
 describe("fan-out", () => {
   it("broadcasts to other peers but not back to the sender", () => {
     const a = testPeer("a");

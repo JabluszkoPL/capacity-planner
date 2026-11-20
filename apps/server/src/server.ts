@@ -77,7 +77,7 @@ export function createSyncServer(
   serverId: string,
   options: SyncServerOptions = {},
 ): { http: Server; hub: Hub; closeSockets: () => void } {
-  const hub = new Hub(db, { serverId });
+  const hub = new Hub(db, { serverId, log });
   const access = options.access ?? accessOptionsFromEnv();
   const serveStatic = options.webDir
     ? createStaticHandler(options.webDir)

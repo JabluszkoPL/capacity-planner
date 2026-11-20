@@ -7,7 +7,12 @@
  * the hardest to notice. So the merge contract is specified once, here, and
  * each implementation is required to satisfy it.
  */
-import { Clock, type Op, type StampedOp } from "@planner/contracts";
+import {
+  Clock,
+  ENTITY_KINDS,
+  type Op,
+  type StampedOp,
+} from "@planner/contracts";
 import { canonicalState, diffStates, snapshotOps } from "@planner/db";
 import {
   seedState,
@@ -360,6 +365,40 @@ export function describeLocalStoreContract(
 
       expect(await store.applyRemote([stamped(created, 3)], 3)).toBe(false);
       expect((await store.read()).teams).toHaveLength(0);
+      await store.close();
+    });
+
+    // A device that creates a row and deletes it before pushing queues only
+    // the tombstone, so peers routinely see a delete for a row they never
+    // had. The SQLite store used to throw on this for every kind with a
+    // NOT NULL parent column (an epic's project, a task's epic, ...).
+    it("accepts a remote tombstone for a row it never saw, of every kind", async () => {
+      const store = await createStore();
+      const clock = new Clock("dev-remote");
+      const tombstones = ENTITY_KINDS.map((entity, i) =>
+        stamped(
+          {
+            entity,
+            id: `ghost-${entity}`,
+            hlc: clock.tick(),
+            deleted: true,
+            data: null,
+          },
+          i + 1,
+        ),
+      );
+      expect(await store.applyRemote(tombstones, tombstones.length)).toBe(true);
+      expect(await store.read()).toEqual(EMPTY);
+      expect(await store.cursor()).toBe(tombstones.length);
+
+      // The tombstone still guards the id against a stale create.
+      const staleTeam = teamOp(
+        "ghost-team",
+        "Zombie",
+        "000000000001-0000-dev-z",
+      );
+      expect(await store.applyRemote([stamped(staleTeam, 99)], 99)).toBe(false);
+      expect(await store.read()).toEqual(EMPTY);
       await store.close();
     });
 

@@ -36,6 +36,8 @@ export interface Peer {
 export interface HubOptions {
   serverId: string;
   pageSize?: number;
+  /** Where to report an op the store refused. Silent when absent. */
+  log?: (line: string) => void;
 }
 
 export class Hub {
@@ -118,15 +120,34 @@ export class Hub {
    * Ops that lose the merge (an older stamp than the row already carries) are
    * counted as rejected and never reach the log — otherwise every reconnect
    * would grow the stream with ops that change nothing.
+   *
+   * An op the store throws on is rejected the same way, on its own. Each op
+   * runs in a savepoint, so its half-written row and log entry roll back
+   * while the rest of the batch commits and is acked. Failing the whole batch
+   * instead would leave the client with no ack, resending the same batch on
+   * every reconnect, and none of its edits — good or bad — would ever land.
+   * The client drops a rejected op from its outbox just like a stale one (an
+   * ack clears the whole batch), so one bad op can never stall a device.
    */
   private push(peer: Peer, ops: Op[]): void {
     const accepted: StampedOp[] = [];
 
     this.db.transaction(() => {
       for (const op of ops) {
-        if (!applyRemoteOp(this.db, op)) continue;
-        const seq = appendToLog(this.db, op, peer.id);
-        accepted.push({ ...op, seq });
+        this.db.exec("SAVEPOINT push_op");
+        try {
+          if (applyRemoteOp(this.db, op)) {
+            const seq = appendToLog(this.db, op, peer.id);
+            accepted.push({ ...op, seq });
+          }
+          this.db.exec("RELEASE push_op");
+        } catch (err) {
+          this.db.exec("ROLLBACK TO push_op");
+          this.db.exec("RELEASE push_op");
+          this.options.log?.(
+            `! ${peer.id} rejected ${op.entity} ${op.id}${op.deleted ? " (delete)" : ""}: ${(err as Error).message}`,
+          );
+        }
       }
     });
 

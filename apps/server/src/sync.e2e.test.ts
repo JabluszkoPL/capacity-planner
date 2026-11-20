@@ -352,6 +352,42 @@ describe("deletes", () => {
     expect(readAppState(serverDb).projects).toEqual([]);
   });
 
+  it("syncs an epic created and deleted while offline, and the edits around it", async () => {
+    const a = await makeDevice(hub, "dev-a");
+    const b = await makeDevice(hub, "dev-b");
+    b.client.start();
+    await settle();
+
+    // A is offline. It adds an epic and deletes it again before ever pushing,
+    // so its outbox holds a tombstone for an epic the server has never seen.
+    const state = seedState();
+    const project = state.projects[0];
+    await a.edit({
+      ...state,
+      projects: [
+        {
+          ...project,
+          epics: [
+            ...project.epics,
+            { id: "e-brief", name: "Brief", tasks: [] },
+          ],
+        },
+      ],
+    });
+    await a.edit(state);
+    expect(
+      (await a.store.pending()).filter((o) => o.id === "e-brief"),
+    ).toMatchObject([{ entity: "epic", deleted: true }]);
+
+    a.client.start();
+    await settle();
+
+    expect(await a.store.pending()).toEqual([]);
+    expect(a.client.getStatus()).toBe("live");
+    expect(await b.state()).toEqual(canonicalState(state));
+    expect(readAppState(serverDb)).toEqual(canonicalState(state));
+  });
+
   it("a delete on one device beats a concurrent stale edit on the other", async () => {
     const a = await makeDevice(hub, "dev-a");
     const b = await makeDevice(hub, "dev-b");

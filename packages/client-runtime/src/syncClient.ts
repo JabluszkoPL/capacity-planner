@@ -234,6 +234,9 @@ export class SyncClient {
       }
 
       case "ack": {
+        // The ack covers the whole batch, rejected ops included: one that lost
+        // the merge is already superseded, and one the server refused would
+        // only be refused again, stalling every edit queued behind it.
         if (this.inFlightThrough > 0) {
           await this.options.store.ackThrough(this.inFlightThrough);
           this.inFlightThrough = 0;

@@ -47,9 +47,19 @@ function upsert(db: SqliteDriver, op: Op, mode: WriteMode): boolean {
     } else {
       // A tombstone for a row we never saw: record it so we don't later accept
       // a stale create for the same id.
+      //
+      // Every data column is written, from an empty payload, because some
+      // tables have NOT NULL parent columns with no default (epics.project_id,
+      // tasks.epic_id, members.team_id, ...). Inserting only id/hlc used to
+      // throw for those, and a client produces exactly this op whenever it
+      // creates and deletes a row before pushing: the outbox keeps only the
+      // tombstone. The values are never read — tombstones are filtered out.
+      const blank = d.toRow({});
+      const cols = d.columns;
       db.run(
-        `INSERT INTO ${d.table} (id, hlc, deleted, dirty) VALUES (?, ?, 1, ?)`,
-        [op.id, op.hlc, dirty],
+        `INSERT INTO ${d.table} (id, ${cols.join(", ")}, hlc, deleted, dirty)
+         VALUES (?, ${cols.map(() => "?").join(", ")}, ?, 1, ?)`,
+        [op.id, ...cols.map((c) => blank[c] ?? null), op.hlc, dirty],
       );
     }
     return true;

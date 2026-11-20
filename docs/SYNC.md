@@ -106,6 +106,11 @@ Deleting a row writes a tombstone, not a `DELETE`. The row stays with
 offline for a week must be able to learn that a project it still holds is gone.
 A stale re-create for the same id loses to the tombstone and is discarded.
 
+Peers often receive a tombstone for a row they never had: a device that creates
+a row and deletes it before pushing keeps only the delete in its compacted
+outbox (see below). That delete is stored like any other, with blank values in
+the row's data columns, which are never read.
+
 ## The protocol
 
 One WebSocket, JSON frames, discriminated on `t`.
@@ -120,6 +125,14 @@ One WebSocket, JSON frames, discriminated on `t`.
 The server never merges or rewrites. It assigns each accepted op a global `seq`,
 stores it, and fans it out to every peer _except_ the sender — which already
 applied the change locally and is waiting only for the ack.
+
+An op is rejected when it loses the merge, or when the server's database throws
+on it. Each op is applied on its own savepoint, so a rejected op never takes the
+rest of its batch down with it: the others commit, fan out and are acked. The
+client treats the ack as covering the whole batch and drops rejected ops from
+its outbox too — resending an op the server refused would only stall every edit
+queued behind it. The server logs each op it refused for a reason other than
+the merge.
 
 Two sequence numbers are in play and they are not the same thing. The **outbox
 seq** is local and only means "these queued ops are now acked, drop them". The

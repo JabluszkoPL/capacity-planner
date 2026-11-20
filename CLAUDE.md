@@ -67,7 +67,7 @@ Native app a UI-only job.
 **`packages/core` is the domain and must stay pure.** No React, no DOM, no Node
 built-ins. `src/types.ts` is the single source of truth for every shared shape;
 read its doc comments before changing a model. `src/scheduling.ts` is the heart
-of the app — read its module docstring before touching it, and expect the 63
+of the app — read its module docstring before touching it, and expect the 68
 tests in `scheduling.test.ts` to be the real specification. A test asserts the
 scheduler imports neither React nor the DOM.
 

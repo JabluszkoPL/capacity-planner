@@ -18,13 +18,14 @@ import { Button } from "../components/ui/Button";
 import { useConfirm } from "../components/ui/ConfirmDialog";
 import { useToast } from "../components/ui/Toast";
 import { DeadlinesPanel } from "../components/tracking/DeadlinesPanel";
-import { EpicsTable } from "../components/tracking/EpicsTable";
 import { EstimateUpdateModal } from "../components/tracking/EstimateUpdateModal";
 import { HistoryPanel } from "../components/tracking/HistoryPanel";
 import { JiraImportModal } from "../components/tracking/JiraImportModal";
 import { JiraSettingsPanel } from "../components/tracking/JiraSettingsPanel";
 import { RemainingWorkPanel } from "../components/tracking/RemainingWorkPanel";
 import { SprintPlanner } from "../components/tracking/SprintPlanner";
+import { SprintSection } from "../components/tracking/SprintSection";
+import { AutoSprintPlanner } from "../components/tracking/AutoSprintPlanner";
 import { StatusPanel, days } from "../components/tracking/StatusPanel";
 import { TeamSelector } from "../components/tracking/TeamSelector";
 import { TasksTable } from "../components/tracking/TasksTable";
@@ -440,31 +441,8 @@ export function TrackerDetail() {
         />
       )}
 
-      {snapshot && (
-        <EpicsTable
-          snapshot={snapshot}
-          baseUrl={tracker.baseUrl}
-          hoursPerDay={hoursPerDay}
-          epicMap={undefined}
-        />
-      )}
-
       {tracker.samples && tracker.samples.length > 0 && (
         <HistoryPanel samples={tracker.samples} />
-      )}
-
-      {snapshot && (
-        <SprintPlanner
-          tracker={tracker}
-          snapshot={snapshot}
-          project={project}
-          teams={state.teams}
-          hoursPerDay={hoursPerDay}
-          onChange={(draft) => actions.setTrackerSprintDraft(tracker.id, draft)}
-          onApplied={(applied) =>
-            actions.markSprintItemsApplied(tracker.id, applied)
-          }
-        />
       )}
 
       {snapshot && project && (
@@ -475,6 +453,32 @@ export function TrackerDetail() {
           today={today}
           status={status}
         />
+      )}
+
+      {snapshot && (
+        <SprintSection>
+          {project && (
+            <AutoSprintPlanner
+              tracker={tracker}
+              project={project}
+              teams={state.teams}
+              today={today}
+            />
+          )}
+          <SprintPlanner
+            tracker={tracker}
+            snapshot={snapshot}
+            project={project}
+            teams={state.teams}
+            hoursPerDay={hoursPerDay}
+            onChange={(draft) =>
+              actions.setTrackerSprintDraft(tracker.id, draft)
+            }
+            onApplied={(applied) =>
+              actions.markSprintItemsApplied(tracker.id, applied)
+            }
+          />
+        </SprintSection>
       )}
 
       {!snapshot && connected && (

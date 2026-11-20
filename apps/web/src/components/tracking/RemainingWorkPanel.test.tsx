@@ -170,6 +170,95 @@ describe("RemainingWorkPanel", () => {
     ).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("warns beside the chart that tasks with no estimate are not on it", () => {
+    renderPanel();
+    const note = screen.getByRole("note");
+    expect(note).toHaveTextContent(
+      "1 task has no estimate (J-3) and is not on the chart, so the work may take longer than shown.",
+    );
+    const zoom = screen.getByRole("group", { name: "Zoom" });
+    expect(note.closest(".forecast-toolbar")).toBe(
+      zoom.closest(".forecast-toolbar"),
+    );
+  });
+
+  it("can plan the tasks with no estimate at the days typed in", () => {
+    renderPanel();
+    expect(screen.queryByTitle(/no estimate, assumed/)).toBeNull();
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: "Also plan tasks with no estimate, at",
+      }),
+    );
+    expect(
+      screen.getByTitle(/Task t3 .*1 d \(no estimate, assumed\)/s),
+    ).toHaveClass("assumed");
+    expect(screen.getByRole("note")).toHaveTextContent(
+      "1 task with no estimate is planned at 1 d each (dotted outline), so the real finish may differ.",
+    );
+    fireEvent.change(
+      screen.getByRole("spinbutton", {
+        name: "Days for each task with no estimate",
+      }),
+      { target: { value: "2.5" } },
+    );
+    expect(
+      screen.getByTitle(/Task t3 .*2\.5 d \(no estimate, assumed\)/s),
+    ).toBeInTheDocument();
+    const section = screen.getByRole("region", {
+      name: "Work left, by person",
+    });
+    expect(section).not.toHaveTextContent("without an estimate");
+  });
+
+  it("sets bugs apart on the chart, and names their priority", () => {
+    const epic = TRACKER.snapshot!.epics[0];
+    const tracker: Tracker = {
+      ...TRACKER,
+      snapshot: {
+        ...TRACKER.snapshot!,
+        epics: [
+          {
+            ...epic,
+            children: epic.children.map((c) =>
+              c.key === "J-2"
+                ? { ...c, issueType: "Bug", priority: "High" }
+                : c,
+            ),
+          },
+        ],
+      },
+    };
+    render(
+      <RemainingWorkPanel
+        tracker={tracker}
+        project={PROJECT}
+        teams={TEAMS}
+        today="2026-11-19"
+      />,
+    );
+    const bar = screen.getByTitle(/^J-2 Task t2/);
+    expect(bar).toHaveClass("bug");
+    expect(bar.title).toContain("Bug · High priority");
+    expect(screen.getByTitle(/^J-1 Task t1/)).not.toHaveClass("bug");
+  });
+
+  it("puts the plan options beside the chart and the list under it", () => {
+    renderPanel();
+    const box = screen.getByRole("checkbox", {
+      name: "Also plan tasks in review or ready to deploy (as the status counts them)",
+    });
+    const zoom = screen.getByRole("group", { name: "Zoom" });
+    expect(box.closest(".forecast-toolbar")).toBe(
+      zoom.closest(".forecast-toolbar"),
+    );
+    const chart = zoom.closest(".forecast-gantt")!;
+    const table = screen.getByRole("columnheader", { name: "Person" });
+    expect(
+      chart.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("can plan the tasks in review too, as the status counts them", () => {
     renderPanel();
     fireEvent.click(

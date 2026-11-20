@@ -26,4 +26,5 @@ export * from "./planExcel";
 export * from "./tracking";
 export * from "./sprintDraft";
 export * from "./forecast";
+export * from "./sprintForecast";
 export * from "./releases";

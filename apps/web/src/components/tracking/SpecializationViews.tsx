@@ -94,29 +94,35 @@ export function useSpecView(): [SpecView, (v: SpecView) => void] {
 export function SpecViewSwitch({
   value,
   onChange,
+  children,
 }: {
   value: SpecView;
   onChange: (v: SpecView) => void;
+  /** Shown on the same row as the tabs, after them. */
+  children?: React.ReactNode;
 }) {
   const name = useId();
   const about = SPEC_VIEWS.find((v) => v.id === value)?.about;
   return (
     <div className="spec-view-bar">
-      <fieldset className="spec-view-switch">
-        <legend className="sr-only">Show specializations as</legend>
-        {SPEC_VIEWS.map((v) => (
-          <label key={v.id} className={value === v.id ? "on" : undefined}>
-            <input
-              type="radio"
-              name={name}
-              value={v.id}
-              checked={value === v.id}
-              onChange={() => onChange(v.id)}
-            />
-            {v.label}
-          </label>
-        ))}
-      </fieldset>
+      <div className="spec-view-row">
+        <fieldset className="spec-view-switch">
+          <legend className="sr-only">Show specializations as</legend>
+          {SPEC_VIEWS.map((v) => (
+            <label key={v.id} className={value === v.id ? "on" : undefined}>
+              <input
+                type="radio"
+                name={name}
+                value={v.id}
+                checked={value === v.id}
+                onChange={() => onChange(v.id)}
+              />
+              {v.label}
+            </label>
+          ))}
+        </fieldset>
+        {children}
+      </div>
       {about && <p className="muted spec-view-about">{about}</p>}
     </div>
   );

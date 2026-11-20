@@ -1,10 +1,5 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
-  addDays,
-  diffDays,
-  fromISO,
-  mergedOffDays,
-  personRows,
   remainingWork,
   type ForecastItem,
   type ForecastPerson,
@@ -14,12 +9,7 @@ import {
   type TrackerStatus,
   type RemainingWork,
 } from "@planner/core";
-import {
-  DateGrid,
-  GanttBar,
-  type GanttRange,
-  type GanttRow,
-} from "../schedule/DateGrid";
+import { ForecastTimeline } from "./ForecastTimeline";
 import { days } from "./StatusPanel";
 import "../schedule/schedule.css";
 
@@ -31,15 +21,6 @@ interface RemainingWorkPanelProps {
   /** The tracker's status, to set this forecast's dates beside its own. */
   status?: TrackerStatus;
 }
-
-/** Width of the person column in the timeline. */
-const LABEL_WIDTH = 130;
-/** Day widths the zoom buttons step through, in pixels. */
-const ZOOM_STEPS = [12, 18, 24, 32, 44, 60, 80, 110];
-/** Fit never squeezes a day narrower than this; the chart scrolls instead. */
-const MIN_FIT = 12;
-/** Columns at least this wide get a label for every day. */
-const DAY_LABELS_FROM = 22;
 
 function plural(n: number, word: string, many = `${word}s`): string {
   return `${n} ${n === 1 ? word : many}`;
@@ -180,35 +161,6 @@ function Next({
       </div>
     </>
   );
-}
-
-/** Today to a couple of days past the last finish: no empty weeks after it. */
-function forecastRange(from: string, finish: string): GanttRange {
-  const rangeStart = fromISO(from);
-  const totalDays = Math.max(diffDays(rangeStart, fromISO(finish)) + 3, 10);
-  return {
-    rangeStart,
-    rangeEnd: finish,
-    totalDays,
-    dates: Array.from({ length: totalDays }, (_, i) => addDays(rangeStart, i)),
-    todayIndex: 0,
-  };
-}
-
-/** The width of an element, kept current as the window resizes. */
-function useWidth() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    setWidth(el.clientWidth);
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => setWidth(el.clientWidth));
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-  return [ref, width] as const;
 }
 
 const specKey = (s: string) => s.trim().toLowerCase();
@@ -374,18 +326,30 @@ export function RemainingWorkPanel({
   // lays out the nice-to-have epics on top.
   const [includeNiceToHave, setIncludeNiceToHave] = useState(false);
   const hasNiceToHave = (tracker.niceToHaveEpics ?? []).length > 0;
+  // Left out by default, since nobody has said how long they take; ticking
+  // the box plans each at the days typed beside it, to see roughly where
+  // they land.
+  const [assumeEstimate, setAssumeEstimate] = useState(false);
+  const [assumedDays, setAssumedDays] = useState(1);
+  const unestimatedDays =
+    assumeEstimate && assumedDays > 0 ? assumedDays : undefined;
   const work = useMemo(
     () =>
       remainingWork(tracker, project, teams, today, {
         countWaiting,
         includeNiceToHave,
+        unestimatedDays,
       }),
-    [tracker, project, teams, today, countWaiting, includeNiceToHave],
+    [
+      tracker,
+      project,
+      teams,
+      today,
+      countWaiting,
+      includeNiceToHave,
+      unestimatedDays,
+    ],
   );
-  const offDays = useMemo(() => mergedOffDays(teams), [teams]);
-  // "fit" spreads the days over the width; a number is a fixed day width.
-  const [zoom, setZoom] = useState<"fit" | number>("fit");
-  const [chartRef, chartWidth] = useWidth();
   if (!work) return null;
 
   const planned = work.items.reduce((sum, a) => sum + a.estimateDays, 0);
@@ -430,76 +394,73 @@ export function RemainingWorkPanel({
       `${plural(work.noSpecialization.length, "Jira task")} not in the plan with no way to tell whose work it is (${work.noSpecialization.map((t) => t.key).join(", ")}) — give it a label naming a specialization, or an assignee`,
   ].filter(Boolean);
 
-  const range =
-    work.items.length > 0 && work.finish
-      ? forecastRange(work.from, work.finish)
-      : null;
-  const fitWidth = range
-    ? Math.max(
-        MIN_FIT,
-        Math.floor((chartWidth - LABEL_WIDTH - 4) / range.totalDays),
-      )
-    : MIN_FIT;
-  const colWidth = zoom === "fit" ? fitWidth : zoom;
-  const zoomIn = ZOOM_STEPS.find((w) => w > colWidth);
-  const zoomOut = [...ZOOM_STEPS].reverse().find((w) => w < colWidth);
+  // Beside the chart, so a change shows on it at once.
+  const hasUnestimated = work.unestimated > 0 || work.assumed > 0;
+  const options =
+    work.waitingToClose.tasks > 0 || hasNiceToHave || hasUnestimated ? (
+      <>
+        {work.waitingToClose.tasks > 0 && (
+          <label className="forecast-option">
+            <input
+              type="checkbox"
+              checked={countWaiting}
+              onChange={(e) => setCountWaiting(e.target.checked)}
+            />{" "}
+            Also plan tasks in review or ready to deploy (as the status counts
+            them)
+          </label>
+        )}
+        {hasNiceToHave && (
+          <label className="forecast-option">
+            <input
+              type="checkbox"
+              checked={includeNiceToHave}
+              onChange={(e) => setIncludeNiceToHave(e.target.checked)}
+            />{" "}
+            Also plan nice-to-have work (on top of the plan; the status leaves
+            it out)
+          </label>
+        )}
+        {hasUnestimated && (
+          <span className="forecast-option">
+            <label className="forecast-option-inline">
+              <input
+                type="checkbox"
+                checked={assumeEstimate}
+                onChange={(e) => setAssumeEstimate(e.target.checked)}
+              />{" "}
+              Also plan tasks with no estimate, at
+            </label>
+            <input
+              type="number"
+              className="forecast-days-input"
+              aria-label="Days for each task with no estimate"
+              min={0.5}
+              step={0.5}
+              value={assumedDays}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (Number.isFinite(v) && v > 0) setAssumedDays(v);
+              }}
+            />{" "}
+            d each
+          </span>
+        )}
+      </>
+    ) : null;
 
-  // Lanes in the table's order: whoever finishes last on top.
-  const order = new Map(work.people.map((p, i) => [p.memberId, i]));
-  const lanes = personRows(work.items, offDays).sort(
-    (a, b) => (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0),
-  );
-  const byTask = new Map(work.items.map((a) => [a.taskId, a]));
-  const rows: GanttRow[] = range
-    ? lanes.map((lane) => {
-        const index = order.get(lane.key) ?? 0;
-        const person = work.people[index];
-        const previous = lanes[lanes.indexOf(lane) - 1];
-        const previousPerson = previous
-          ? work.people[order.get(previous.key) ?? 0]
-          : undefined;
-        return {
-          key: lane.key,
-          className:
-            previousPerson &&
-            specKey(previousPerson.specialization) !==
-              specKey(person.specialization)
-              ? "group-start"
-              : undefined,
-          labelBorderColor: lane.borderColor,
-          offDays: lane.offDays,
-          label: (
-            <span className="lbl-title" title={`done by ${person.finish}`}>
-              {lane.title}
-            </span>
-          ),
-          bars: lane.bars.map((bar) => {
-            const item = byTask.get(bar.taskId);
-            const started = item?.inProgress ?? false;
-            const keys = item?.jiraKeys.join(", ");
-            const how =
-              item?.assignedBy === "planner"
-                ? "suggested by the planner"
-                : "assigned in Jira";
-            return (
-              <GanttBar
-                key={bar.taskId}
-                bar={bar}
-                rangeStart={range.rangeStart}
-                colWidth={colWidth}
-                className={
-                  item?.assignedBy === "planner" ? "suggested" : undefined
-                }
-                label={
-                  (started ? "▶ " : item?.waiting ? "⏸ " : "") + bar.taskName
-                }
-                title={`${keys ? keys + " " : ""}${bar.taskName} (${bar.epicName})\n${bar.memberName} · ${bar.start} → ${bar.end} · ${days(bar.estimateDays)} d${started ? " left · in progress" : ""}${item?.waiting ? " · waiting to be closed, counted at its whole estimate" : ""}\n${how}${item && !item.inPlan ? " · not in the plan, Jira's estimate" : ""}`}
-              />
-            );
-          }),
-        };
-      })
-    : [];
+  // Not on the chart, so it can only run later than drawn: said beside it.
+  const unestimatedKeys = work.unestimatedTasks
+    .map((u) => u.key)
+    .filter((k): k is string => !!k);
+  const unestimatedNote =
+    work.assumed > 0
+      ? `${plural(work.assumed, "task")} with no estimate ${work.assumed === 1 ? "is" : "are"} planned at ${days(assumedDays)} d each (dotted outline), so the real finish may differ.`
+      : work.unestimated > 0
+        ? `${plural(work.unestimated, "task")} ${work.unestimated === 1 ? "has" : "have"} no estimate${
+            unestimatedKeys.length > 0 ? ` (${keyList(unestimatedKeys)})` : ""
+          } and ${work.unestimated === 1 ? "is" : "are"} not on the chart, so the work may take longer than shown.`
+        : null;
 
   return (
     <section className="remaining-work" aria-labelledby="remaining-work-title">
@@ -510,8 +471,12 @@ export function RemainingWorkPanel({
         <p className="muted">No estimated work left to plan.</p>
       ) : (
         <p>
-          {plural(work.items.length, "estimated task")} still open (
-          {days(planned)} plan days), laid out from today without buffer.{" "}
+          {plural(
+            work.items.length,
+            work.assumed > 0 ? "task" : "estimated task",
+          )}{" "}
+          still open ({days(planned)} plan days), laid out from today without
+          buffer.{" "}
           {endFinish && devFinish ? (
             <>
               Development is done by <strong>{devFinish}</strong>, end-phase
@@ -537,36 +502,22 @@ export function RemainingWorkPanel({
       )}
       <p className="muted">
         Only tasks in To Do or In Progress are planned. Work in progress (▶)
-        stays with whoever has it, for what Jira says is left of it, and a task
-        assigned in Jira waits for its assignee.
+        stays with whoever has it, for what Jira says is left of it. Of the
+        rest, what Jira already has on someone goes to them first, then the rest
+        by Jira priority: low-priority work comes last.
         {work.countWaiting &&
           work.waitingToClose.tasks > 0 &&
           ` ${plural(work.waitingToClose.tasks, "task")} waiting to be closed (⏸, ${days(work.waitingToClose.days)} d) ${work.waitingToClose.tasks === 1 ? "still counts" : "still count"} as work at ${work.waitingToClose.tasks === 1 ? "its" : "their"} whole estimate, as in the status.`}
         {leftOut.length > 0 && ` Left out: ${leftOut.join(" · ")}.`}
       </p>
-      {work.waitingToClose.tasks > 0 && (
-        <label className="forecast-option">
-          <input
-            type="checkbox"
-            checked={countWaiting}
-            onChange={(e) => setCountWaiting(e.target.checked)}
-          />{" "}
-          Also plan tasks in review or ready to deploy (as the status counts
-          them)
-        </label>
-      )}
-      {hasNiceToHave && (
-        <label className="forecast-option">
-          <input
-            type="checkbox"
-            checked={includeNiceToHave}
-            onChange={(e) => setIncludeNiceToHave(e.target.checked)}
-          />{" "}
-          Also plan nice-to-have work (on top of the plan; the status leaves it
-          out)
-        </label>
-      )}
       <Comparison rows={comparison} />
+
+      <ForecastTimeline
+        work={work}
+        teams={teams}
+        controls={options}
+        note={unestimatedNote}
+      />
 
       <div className="table-scroll">
         <table className="history-table forecast-table">
@@ -619,54 +570,6 @@ export function RemainingWorkPanel({
             ))}
           </tbody>
         </table>
-      </div>
-
-      <div className="forecast-gantt" ref={chartRef}>
-        {range && (
-          <>
-            <div className="forecast-toolbar">
-              <span className="muted">
-                <span className="forecast-swatch" /> assigned in Jira{" "}
-                <span className="forecast-swatch suggested" /> suggested
-              </span>
-              <div className="seg-toggle" role="group" aria-label="Zoom">
-                <button
-                  type="button"
-                  className="seg-btn"
-                  onClick={() => zoomOut && setZoom(zoomOut)}
-                  disabled={!zoomOut}
-                  aria-label="Zoom out"
-                >
-                  −
-                </button>
-                <button
-                  type="button"
-                  className={"seg-btn" + (zoom === "fit" ? " active" : "")}
-                  aria-pressed={zoom === "fit"}
-                  onClick={() => setZoom("fit")}
-                >
-                  Fit to width
-                </button>
-                <button
-                  type="button"
-                  className="seg-btn"
-                  onClick={() => zoomIn && setZoom(zoomIn)}
-                  disabled={!zoomIn}
-                  aria-label="Zoom in"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-            <DateGrid
-              range={range}
-              colWidth={colWidth}
-              labelWidth={LABEL_WIDTH}
-              dayLabels={colWidth >= DAY_LABELS_FROM}
-              rows={rows}
-            />
-          </>
-        )}
       </div>
     </section>
   );

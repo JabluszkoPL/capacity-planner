@@ -5,7 +5,6 @@ import {
   StatusPanel,
   peopleLateSum,
   peopleLateText,
-  bufferExplanation,
   specializationLabel,
   statusLabel,
   suspiciousLead,
@@ -178,58 +177,6 @@ describe("StatusPanel", () => {
   });
 });
 
-describe("bufferExplanation", () => {
-  it("says an ahead reading excludes the buffer, and adds them up", () => {
-    // U 2026-11-27, B 2026-12-25 (20 workdays later); 27 ahead of U.
-    const text = bufferExplanation(
-      status({
-        kind: "ahead",
-        varianceDays: 27,
-        projectedFinish: "2026-10-21",
-        marginDays: 47,
-      }),
-    );
-    expect(text).toContain("27 working days ahead");
-    expect(text).toContain("does not include the buffer (20 working days)");
-    expect(text).toContain("47 working days of margin");
-    expect(text).toContain("2026-12-25");
-  });
-
-  it("explains a behind reading in terms of the buffer spent", () => {
-    const text = bufferExplanation(
-      status({
-        kind: "using-buffer",
-        varianceDays: -5,
-        bufferUsedDays: 5,
-        projectedFinish: "2026-12-04",
-        marginDays: 15,
-      }),
-    );
-    expect(text).toContain("5 working days behind");
-    expect(text).toContain("taken out of the buffer (20 working days)");
-    expect(text).toContain("15 working days of margin");
-  });
-
-  it("says how far past the promise an overrun lands", () => {
-    const text = bufferExplanation(
-      status({
-        kind: "over-buffer",
-        varianceDays: -23,
-        bufferUsedDays: 20,
-        overrunDays: 3,
-        projectedFinish: "2026-12-30",
-        marginDays: -3,
-      }),
-    );
-    expect(text).toContain("all of the buffer (20 working days) and 3 days");
-    expect(text).toContain("3 working days after the end date");
-  });
-
-  it("says nothing without a baseline", () => {
-    expect(bufferExplanation(status({ kind: "no-baseline" }))).toBeNull();
-  });
-});
-
 describe("suspiciousLead", () => {
   it("flags a lead built on far more earned than planned", () => {
     expect(
@@ -261,7 +208,6 @@ describe("suspiciousLead", () => {
       />,
     );
     expect(screen.getByText(/expected only 4 by today/)).toBeInTheDocument();
-    expect(screen.getByText(/does not include the buffer/)).toBeInTheDocument();
   });
 });
 
@@ -420,7 +366,6 @@ describe("with an end of development", () => {
     expect(label.endDate).toBe(
       "Development ends 2026-12-11 · projected 2 days late (2026-12-15)",
     );
-    expect(bufferExplanation(s)).toContain("Development only — QA is counted");
   });
 
   it("schedules QA back from the end date, in your example's terms", () => {
@@ -580,9 +525,6 @@ describe("re-timed to custom dates", () => {
       scope: "development",
       window: { from: "2026-09-07", to: "2027-02-05", bufferPct: 20 },
     });
-    expect(bufferExplanation(s)).toContain(
-      "Re-timed to your dates: development has 2026-09-07 → 2027-02-05, 20% buffer included, so the finish without buffer is 2027-01-12",
-    );
     render(<StatusPanel status={s} />);
     expect(
       screen.getByText("Development finish without buffer (your dates)"),
@@ -607,7 +549,7 @@ describe("the specialization that finishes last", () => {
     ...over,
   });
 
-  it("is named in the explanation and the variance, and sets the headline", () => {
+  it("is named in the variance, and sets the headline", () => {
     const s = status({
       kind: "over-buffer",
       varianceDays: -18,
@@ -633,13 +575,29 @@ describe("the specialization that finishes last", () => {
     expect(statusLabel(s).text).toBe(
       "Buffer used up · 3 days late for the end of development",
     );
-    expect(bufferExplanation(s)).toContain(
-      "Client finishes last, so the verdict here is its own reading",
-    );
     render(<StatusPanel status={s} />);
     expect(
       screen.getByText("Variance (Client, vs. finish without buffer)"),
     ).toBeInTheDocument();
+  });
+
+  it("puts the past-In-Progress option beside the view tabs", () => {
+    const s = status({
+      bySpecialization: [spec({}), spec({ specialization: "Backend" })],
+    });
+    render(
+      <StatusPanel
+        status={s}
+        pastInProgress={{ checked: false, onChange: vi.fn() }}
+      />,
+    );
+    const views = screen.getByRole("region", { name: "By specialization" });
+    expect(
+      within(views).getByRole("checkbox", {
+        name: /Count tasks past To Do and In Progress as done/,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(1);
   });
 
   it("is not named when it is the only one", () => {
@@ -648,7 +606,10 @@ describe("the specialization that finishes last", () => {
       critical: "Client",
       bySpecialization: [spec({})],
     });
-    expect(bufferExplanation(s)).not.toContain("finishes last");
+    render(<StatusPanel status={s} />);
+    expect(
+      screen.getByText("Variance (vs. finish without buffer)"),
+    ).toBeInTheDocument();
   });
 });
 

@@ -451,6 +451,13 @@ export interface JiraIssue {
    * snapshots saved before the field was fetched.
    */
   team?: string;
+  /**
+   * Jira's priority, by name ("Highest", "High", "Medium", "Low", "Lowest",
+   * or a site's own scheme). The forecast of the work left does low-priority
+   * work later. Absent when unset, and in snapshots saved before the field
+   * was fetched.
+   */
+  priority?: string;
   updated: string; // ISO datetime
 }
 

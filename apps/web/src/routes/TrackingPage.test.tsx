@@ -243,7 +243,7 @@ describe("Tracking tab", () => {
 
     await user.click(screen.getByRole("button", { name: "Refresh" }));
     await waitFor(() =>
-      expect(screen.getByRole("link", { name: "ACME-10" })).toBeInTheDocument(),
+      expect(screen.getByText(/^Snapshot \d{4}-/)).toBeInTheDocument(),
     );
 
     // Epic names are irrelevant: the child task is matched by its own name.
@@ -336,8 +336,9 @@ describe("Tracking tab", () => {
     await waitFor(() => screen.getByRole("button", { name: "Refresh" }));
     await user.click(screen.getByRole("button", { name: "Refresh" }));
     await waitFor(() =>
-      expect(screen.getByRole("link", { name: "ACME-10" })).toBeInTheDocument(),
+      expect(screen.getByText(/^Snapshot \d{4}-/)).toBeInTheDocument(),
     );
+    const snapshotAt = screen.getByText(/^Snapshot \d{4}-/).textContent;
 
     // Now Jira rejects the token.
     request.mockResolvedValue({
@@ -351,7 +352,7 @@ describe("Tracking tab", () => {
         screen.getByText(/rejected your email and token/i),
       ).toBeInTheDocument(),
     );
-    // The epic table is still there — a stale snapshot beats an empty panel.
-    expect(screen.getByRole("link", { name: "ACME-10" })).toBeInTheDocument();
+    // The snapshot is still there — a stale one beats an empty panel.
+    expect(screen.getByText(snapshotAt!)).toBeInTheDocument();
   });
 });

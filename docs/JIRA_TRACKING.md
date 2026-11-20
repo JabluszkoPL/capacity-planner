@@ -239,8 +239,8 @@ development, buffer included. The finish without buffer is that window minus
 the project's buffer share: a 60-working-day window with a 20% buffer puts it
 50 days in, and the last 10 are the buffer. "Planned so far" is the
 development work at an even pace up to that finish, in team working days. The
-status then says **Re-timed to your dates**. With no custom date set, the
-tracker measures against the scheduler's own plan as before.
+finish without buffer is then labelled **(your dates)**. With no custom date
+set, the tracker measures against the scheduler's own plan as before.
 
 Your dates set the pace, not the team's size. The projected finish is never
 earlier than what the scheduler says the project's real people can do from
@@ -453,11 +453,20 @@ each person runs out of work, and when all of it is done.
 - **Work someone holds stays with them.** A task in progress in Jira (marked ▶)
   stays with its assignee for what Jira says is left of it (never more than its
   estimate). When Jira has nothing left on it, it has overrun its estimate, not
-  finished, so it keeps its whole estimate. A task assigned in Jira but not started waits for its assignee,
-  in its turn. Everything nobody holds goes to whoever would finish it soonest
-  and is marked **suggested** (striped in the timeline). A Jira assignee is
+  finished, so it keeps its whole estimate. A task assigned in Jira but not
+  started goes to its assignee. Everything nobody holds goes to whoever would
+  finish it soonest and is marked **suggested** (striped in the timeline). A Jira assignee is
   matched by Jira account, by full name, or by a short name ("Michał K" for
   "Michał Kowalski") when only one person fits.
+- **Assigned work first, low priority last.** Of the work not started yet,
+  what Jira already has on someone is taken before what nobody holds. Within
+  each, Jira priority decides: Highest (or Blocker, Critical) first, Lowest
+  (or Trivial) last, and a task with no priority counts as Medium. A task
+  mapped to several Jira issues takes its most urgent one's priority. The
+  plan's own order decides between equals, and dependencies still come first.
+- **Bugs stand out.** A task whose open Jira issues include a bug keeps its
+  specialization's colour in the timeline, tinted red with a red left edge.
+  Hovering a bar shows its priority.
 
 **Compared with the status above** sets each specialization's finish here
 beside the status table's projected finish, and says what accounts for any
@@ -472,20 +481,49 @@ someone is free here, so the summary gives development's finish and the end
 phase's apart.
 
 Nothing open drops out of sight. A task with no estimate can't be laid out,
-but the **Left out** line names it by key, and one in progress shows in its
-assignee's **Now** column.
+but the **Left out** line names it by key, a warning beside the timeline says
+the work may take longer than shown, and one in progress shows in its
+assignee's **Now** column. To see roughly where those tasks would land, tick
+**Also plan tasks with no estimate** and set how many days each should count
+as (1 by default). They are then planned like the rest, with a dotted outline
+in the timeline.
 
-The table lists everyone on the project, each specialization together under
+The options above sit beside the timeline, so each change shows on it at
+once. The timeline fits the forecast to the panel's width, with a label for
+every day once there is room. **+** and **−** zoom in and out, and **Fit to
+width** goes back.
+
+The table under the timeline lists everyone on the project, each specialization together under
 a heading of its own (the one that finishes last on top, and within it whoever
 finishes last first). For each person it shows what they are on now, the
 next task planned for them (assigned in Jira or suggested, and whether it is
-in the plan), how much is left, and the day they are done. The timeline
-below keeps the same order and fits the forecast to the panel's width, with a
-label for every day once there is room. **+** and **−** zoom in and out, and
-**Fit to width** goes back. A task that depends on one still in progress is
+in the plan), how much is left, and the day they are done. The timeline keeps
+the same order. A task that depends on one still in progress is
 not held back until that one finishes, so read those with care.
 
 ## Planning a sprint
+
+Sprint planning sits at the bottom of a tracker, closed. **Plan sprints**
+opens it, and **Hide sprint planning** closes it again.
+
+### Planning sprints automatically
+
+**Plan sprints automatically** cuts the work left into sprints. Pick when the
+first sprint starts (the next Monday by default), how long sprints are (1 to 4
+weeks), and how many days each person counts per sprint (8 of a 2-week
+sprint's 10 by default). Tick **Also plan tasks with no estimate** to count
+each of those as the days you set (1 by default) instead of leaving them out.
+Then press **Plan sprints**.
+
+The work is laid out the same way as in **Work left, by person**: work in
+progress stays with its assignee, Jira's assignees come first, low priority
+last, and everyone's days off count. Each person works at the share of the day
+their days per sprint come to (8 of 10 is 80%). You get how many sprints it
+takes, when the last one ends and when all the work is done, a table of
+sprints with the tasks that finish in each, and the timeline with a line where
+each sprint starts.
+
+### Picking a sprint by hand
 
 The **Sprint** section lists every open issue under the initiative, grouped by
 epic. Tick the ones you intend to do next.
@@ -515,6 +553,5 @@ estimates. Issues whose dates already match are left alone.
 | "Refreshing needs the Planner Mac app or a sync server" | A browser with no route to Jira. See [Running it in development](#running-it-in-development).       |
 | "Jira is rate-limiting this account"                    | Too many refreshes at once. Wait a minute.                                                          |
 | "Jira is unavailable (HTTP 502): Could not reach Jira…" | The request never reached Atlassian. The text after the colon names why (proxy, certificate, DNS).  |
-| Jira epics table is empty                               | The initiative has no epics under it by `parent`, "Parent Link" or the _initiates_ link.            |
 | Task comparison has unmatched rows                      | The names differ too much for a safe automatic match. Pick the corresponding Planner task manually. |
 | Status says "Not comparable yet"                        | No baseline plan, no plan generated on it, or no epics mapped.                                      |

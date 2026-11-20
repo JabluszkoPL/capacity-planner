@@ -138,6 +138,8 @@ export function mapIssue(raw: unknown, fieldIds: JiraFieldIds): JiraIssue {
   if (sprint) issue.sprint = sprint;
   const team = fieldIds.team ? teamName(fields[fieldIds.team]) : undefined;
   if (team) issue.team = team;
+  const priority = str(obj(fields.priority)?.name);
+  if (priority) issue.priority = priority;
   if (Array.isArray(fields.labels)) {
     const labels = fields.labels.filter(
       (l): l is string => typeof l === "string" && l.trim() !== "",

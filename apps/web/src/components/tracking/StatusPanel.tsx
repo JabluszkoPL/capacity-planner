@@ -109,93 +109,6 @@ function plural(n: number, word: string): string {
 }
 
 /**
- * The status line in words, with the buffer spelled out.
- *
- * The variance is measured against the plan re-run with *no* buffer (see
- * packages/core/src/tracking.ts), so "ahead by 27 days" never includes the
- * buffer — the buffer is extra runway on top. Without saying so, a reader
- * cannot tell whether they have 27 days of margin or 27 plus the buffer.
- */
-export function bufferExplanation(s: TrackerStatus): string | null {
-  if (s.kind === "no-baseline") return null;
-  const name = deadlineName(s);
-  // The plan's own finish with buffer is "the buffer"; any other deadline is
-  // just the slack before it.
-  const planBuffer =
-    s.deadlineKind === "end" && (s.deadlines?.endDateFromPlan ?? true);
-  const buffer = planBuffer
-    ? `the buffer (${plural(s.bufferDays, "working day")})`
-    : `the ${plural(s.bufferDays, "working day")} of slack before the ${name}`;
-  const date = s.deadline ?? s.bufferedEnd;
-  const on = date ? ` (${date})` : "";
-  // Counted on the team calendar in core, so a holiday between the two dates
-  // is not mistaken for margin.
-  const margin = s.marginDays;
-  const marginText =
-    margin === null
-      ? ""
-      : margin >= 0
-        ? ` That leaves ${plural(margin, "working day")} of margin before the ${name}${on}.`
-        : ` The projected finish is ${plural(-margin, "working day")} after the ${name}${on}.`;
-  const noBuffer = s.bufferDays <= 0;
-  const retimed = s.window
-    ? `Re-timed to your dates: ${s.scope === "development" ? "development has" : "the work has"} ${s.window.from} → ${s.window.to}, ${s.window.bufferPct}% buffer included, so the finish without buffer is ${s.unbufferedEnd} and the work is expected at an even pace until then. `
-    : "";
-  const held = s.capacityBound
-    ? `Its people can't keep that pace for the ${days(s.planRemainingDays)} plan days left, so they set it instead: "planned so far" is what they needed finished by today to be done by ${s.unbufferedEnd}. `
-    : "";
-  const decides = criticalName(s)
-    ? `${s.critical} finishes last, so the verdict here is its own reading: development is done only when every specialization is. `
-    : "";
-  const scope =
-    retimed +
-    held +
-    (s.scope === "development"
-      ? `Development only — ${(s.deadlines?.endPhase ?? []).join(", ")} is counted back from the end date, in the table below. `
-      : "") +
-    decides;
-
-  switch (s.kind) {
-    case "ahead":
-      return (
-        scope +
-        `Measured against the plan without its buffer: ${plural(s.varianceDays, "working day")} ahead of it. ` +
-        (noBuffer
-          ? `There is no slack before the ${name}.`
-          : `This does not include ${buffer}, which comes on top and is still unused.`) +
-        marginText
-      );
-    case "on-plan":
-      return (
-        scope +
-        "Measured against the plan without its buffer, and on it. " +
-        (noBuffer
-          ? `There is no slack before the ${name}.`
-          : `${buffer[0].toUpperCase()}${buffer.slice(1)} is still unused.`) +
-        marginText
-      );
-    case "using-buffer":
-      return (
-        scope +
-        `${plural(-s.varianceDays, "working day")} behind the plan without its buffer, ` +
-        `taken out of ${buffer}.` +
-        marginText
-      );
-    case "over-buffer":
-      return (
-        scope +
-        (s.varianceDays < 0
-          ? `${plural(-s.varianceDays, "working day")} behind the plan without its buffer` +
-            (noBuffer
-              ? "."
-              : `: all of ${buffer} and ${plural(s.overrunDays, "day")} beyond it.`)
-          : `The plan without its buffer already finishes after the ${name}.`) +
-        marginText
-      );
-  }
-}
-
-/**
  * The specialization that sets the headline, when it is worth naming: only
  * with more than one in the table, since with one the reading is plainly its.
  */
@@ -522,15 +435,20 @@ function SpecializationTable({
   rows,
   status,
   awaitingClose,
+  option,
 }: {
   rows: SpecializationStatus[];
   status: TrackerStatus;
   awaitingClose?: AwaitingCloseWhatIf | null;
+  /** Shown beside the view tabs. */
+  option?: React.ReactNode;
 }) {
   const [view, setView] = useSpecView();
   return (
     <section className="spec-status" aria-label="By specialization">
-      <SpecViewSwitch value={view} onChange={setView} />
+      <SpecViewSwitch value={view} onChange={setView}>
+        {option}
+      </SpecViewSwitch>
       {view === "table" ? (
         <SpecTable rows={rows} status={status} awaitingClose={awaitingClose} />
       ) : (
@@ -788,6 +706,24 @@ function BufferMeter({ status }: { status: TrackerStatus }) {
   );
 }
 
+function PastInProgressOption({
+  option,
+}: {
+  option: { checked: boolean; onChange: (checked: boolean) => void };
+}) {
+  return (
+    <label className="status-option">
+      <input
+        type="checkbox"
+        checked={option.checked}
+        onChange={(e) => option.onChange(e.target.checked)}
+      />{" "}
+      Count tasks past To Do and In Progress as done (in review, QA, ready to
+      deploy)
+    </label>
+  );
+}
+
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="fact">
@@ -827,6 +763,9 @@ export function StatusPanel({
 }: StatusPanelProps) {
   const label = statusLabel(status);
   const comparable = status.kind !== "no-baseline";
+  // With the per-specialization views shown, the option sits beside their
+  // tabs; without them it stays under the status line.
+  const specTabs = comparable && status.bySpecialization.length > 1;
 
   return (
     <section className="status-panel" aria-label="Delivery status">
@@ -840,20 +779,8 @@ export function StatusPanel({
       </p>
       {label.endDate && <p className="status-enddate">{label.endDate}</p>}
       {status.teamScope && <TeamScopeNote scope={status.teamScope} />}
-      {pastInProgress && (
-        <label className="status-option">
-          <input
-            type="checkbox"
-            checked={pastInProgress.checked}
-            onChange={(e) => pastInProgress.onChange(e.target.checked)}
-          />{" "}
-          Count tasks past To Do and In Progress as done (in review, QA, ready
-          to deploy)
-        </label>
-      )}
-
-      {comparable && (
-        <p className="status-explain">{bufferExplanation(status)}</p>
+      {pastInProgress && !specTabs && (
+        <PastInProgressOption option={pastInProgress} />
       )}
 
       {suspiciousLead(status) && (
@@ -974,11 +901,14 @@ export function StatusPanel({
         <AwaitingClose status={status} whatIf={awaitingClose} />
       )}
 
-      {comparable && status.bySpecialization.length > 1 && (
+      {specTabs && (
         <SpecializationTable
           rows={status.bySpecialization}
           status={status}
           awaitingClose={awaitingClose}
+          option={
+            pastInProgress && <PastInProgressOption option={pastInProgress} />
+          }
         />
       )}
 

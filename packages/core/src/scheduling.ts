@@ -60,6 +60,8 @@ import { addDays, fromISO, isWeekend, toISO } from "./dates";
  * A task someone already holds (`PlanOptions.assignees`, e.g. its Jira
  * assignee) is offered only to that person, so the rest of the plan works
  * around it. Without that option every task is handed out as described here.
+ * `PlanOptions.rank` reorders the list before the pass (lower rank first,
+ * list order within a rank); without it the list order stands.
  *
  * Everything above describes the default **balanced** mode. Passing
  * `{ mode: "smart" }` (see {@link PlanOptions}) instead runs a worker-driven,
@@ -232,6 +234,12 @@ export interface PlanOptions {
    * out as usual. Absent = every task is handed out as usual.
    */
   assignees?: { [taskId: string]: ID };
+  /**
+   * The order to take tasks in: task id -> rank, lower first. Tasks are
+   * walked by rank, and in list order within one rank; dependencies still
+   * come first. A task with no rank counts as 0. Absent = list order.
+   */
+  rank?: { [taskId: string]: number };
 }
 
 /**
@@ -347,6 +355,10 @@ export function runPlan(
         epicName: epic.name,
       })),
   );
+  // An explicit order, when given (see PlanOptions.rank). The sort is stable,
+  // so list order still decides within one rank.
+  const rank = options.rank;
+  if (rank) worklist.sort((a, b) => (rank[a.id] ?? 0) - (rank[b.id] ?? 0));
 
   // Epic ownership as a *preference* only (see the module doc): the members
   // assigned to an epic are the ones who should start it, but they're never

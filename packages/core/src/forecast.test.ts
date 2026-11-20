@@ -6,7 +6,7 @@ import type {
   Team,
   Tracker,
 } from "./types";
-import { remainingWork } from "./forecast";
+import { priorityRank, remainingWork } from "./forecast";
 
 const H = 3600;
 const TODAY = "2026-11-19"; // Thursday
@@ -257,6 +257,131 @@ describe("remainingWork", () => {
     });
     expect(w.people.find((p) => p.name === "Bo Lind")!.next?.taskId).toBe("t3");
     expect(w.people.find((p) => p.name === "Ana")!.tasks).toBe(0);
+  });
+
+  describe("the order of the work not started yet", () => {
+    const SOLO: Team[] = [
+      {
+        id: "team1",
+        name: "Core",
+        members: [{ id: "m1", name: "Ana", specialization: "dev" }],
+        offDays: {},
+      },
+    ];
+    const project: Project = {
+      ...PROJECT,
+      epics: [
+        {
+          id: "e1",
+          name: "Alpha",
+          tasks: [task("t1", 1), task("t2", 1), task("t3", 1)],
+        },
+      ],
+    };
+    const order = (children: JiraIssue[]) =>
+      remainingWork(tracker(children), project, SOLO, TODAY)!.items.map(
+        (a) => a.taskId,
+      );
+    const todo = (key: string, over: Partial<JiraIssue> = {}) =>
+      issue(key, "new", "To Do", over);
+    const ana = { accountId: "acc-ana", displayName: "Ana" };
+
+    it("follows the plan when nothing sets them apart", () => {
+      expect(order([todo("J-1"), todo("J-2"), todo("J-3")])).toEqual([
+        "t1",
+        "t2",
+        "t3",
+      ]);
+    });
+
+    it("takes what Jira already has on someone first", () => {
+      expect(
+        order([todo("J-1"), todo("J-2"), todo("J-3", { assignee: ana })]),
+      ).toEqual(["t3", "t1", "t2"]);
+    });
+
+    it("does low priority later and high priority sooner", () => {
+      expect(
+        order([
+          todo("J-1", { priority: "Low" }),
+          todo("J-2"),
+          todo("J-3", { priority: "Highest" }),
+        ]),
+      ).toEqual(["t3", "t2", "t1"]);
+    });
+
+    it("puts assigned work before priority", () => {
+      expect(
+        order([
+          todo("J-1", { priority: "Highest" }),
+          todo("J-2", { priority: "Lowest", assignee: ana }),
+          todo("J-3"),
+        ]),
+      ).toEqual(["t2", "t1", "t3"]);
+    });
+
+    it("ranks both of Jira's priority schemes, anything else as Medium", () => {
+      expect(
+        [
+          "Blocker",
+          "High",
+          "Major",
+          "Medium",
+          "Minor",
+          "Lowest",
+          "P9",
+          undefined,
+        ].map(priorityRank),
+      ).toEqual([0, 1, 1, 2, 3, 4, 2, 2]);
+    });
+  });
+
+  it("marks bugs and carries the priority", () => {
+    const children = CHILDREN.map((i) =>
+      i.key === "J-3" ? { ...i, issueType: "Bug", priority: "High" } : i,
+    );
+    const w = remainingWork(tracker(children), PROJECT, TEAMS, TODAY)!;
+    expect(w.items.find((a) => a.taskId === "t3")).toMatchObject({
+      bug: true,
+      priority: "High",
+    });
+    expect(w.items.find((a) => a.taskId === "t2")).toMatchObject({
+      bug: false,
+    });
+  });
+
+  it("spreads the work over more days at less than full capacity", () => {
+    const full = remainingWork(tracker(CHILDREN), PROJECT, TEAMS, TODAY)!;
+    const half = remainingWork(tracker(CHILDREN), PROJECT, TEAMS, TODAY, {
+      capacity: 0.5,
+    })!;
+    const days = (w: typeof full, id: string) =>
+      w.items.find((a) => a.taskId === id)!.workDays;
+    // t3 (5 days, scheduled) and t2 (2 days left, in progress with Bo).
+    expect([days(full, "t3"), days(full, "t2")]).toEqual([5, 2]);
+    expect([days(half, "t3"), days(half, "t2")]).toEqual([10, 4]);
+    expect(half.finish! > full.finish!).toBe(true);
+    // Out of range reads as full capacity.
+    expect(
+      remainingWork(tracker(CHILDREN), PROJECT, TEAMS, TODAY, { capacity: 3 }),
+    ).toEqual(full);
+  });
+
+  it("plans tasks with no estimate at the days asked for", () => {
+    const w = remainingWork(tracker(CHILDREN), PROJECT, TEAMS, TODAY, {
+      unestimatedDays: 1.5,
+    })!;
+    expect(w.unestimated).toBe(0);
+    expect(w.unestimatedTasks).toEqual([]);
+    expect(w.assumed).toBe(1);
+    expect(w.items.find((a) => a.taskId === "t4")).toMatchObject({
+      estimateDays: 1.5,
+      plannedDays: 1.5,
+      estimateFrom: "assumed",
+    });
+    const without = remainingWork(tracker(CHILDREN), PROJECT, TEAMS, TODAY)!;
+    expect(without.assumed).toBe(0);
+    expect(without.unestimated).toBe(1);
   });
 
   it("uses Jira's estimate when the plan has none", () => {

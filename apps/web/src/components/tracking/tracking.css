@@ -246,8 +246,8 @@
 .table-scroll {
   overflow-x: auto;
 }
-.epics-section,
 .tasks-section,
+.sprint-section,
 .history-panel,
 .sprint-panel,
 .remaining-work {
@@ -299,14 +299,8 @@
 }
 
 /* Mapping state. The tint is a hint; the select itself says what it is. */
-.epic-row.undecided td {
-  background: var(--warn-bg);
-}
 .task-row.undecided td {
   background: var(--warn-bg);
-}
-.epic-row.excluded td {
-  color: var(--muted);
 }
 .task-row.excluded td {
   color: var(--muted);
@@ -330,9 +324,6 @@
   color: var(--info-text);
 }
 
-.plan-only-epics {
-  margin-top: var(--space-2);
-}
 .plan-only-tasks {
   margin-top: var(--space-2);
 }
@@ -881,12 +872,6 @@
   width: 36%;
 }
 
-.status-explain {
-  margin: 0 0 var(--space-3);
-  font-size: 13px;
-  color: var(--text);
-  max-width: 72ch;
-}
 .status-option {
   display: block;
   margin: var(--space-2) 0;
@@ -1112,6 +1097,21 @@
   gap: var(--space-2);
   flex-wrap: wrap;
 }
+.forecast-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+.forecast-options .forecast-option {
+  margin-bottom: 0;
+}
+.forecast-unestimated {
+  font-size: 13px;
+  color: var(--warn-text);
+}
+.forecast-gantt + .table-scroll {
+  margin-top: var(--space-4);
+}
 .forecast-toolbar .seg-btn:disabled {
   opacity: 0.4;
   cursor: default;
@@ -1134,6 +1134,41 @@
     rgba(255, 255, 255, 0.25) 0 4px,
     transparent 4px 8px
   ) !important;
+}
+/* A bug keeps its specialization's colour, tinted red with a red edge, so
+   it reads as the same person's work and as a bug at once. */
+.gantt-bar.bug,
+.forecast-swatch.bug {
+  background-image: linear-gradient(
+    rgba(224, 49, 49, 0.45),
+    rgba(224, 49, 49, 0.45)
+  ) !important;
+  box-shadow: inset 4px 0 0 var(--danger);
+}
+.gantt-bar.bug.suggested {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.25) 0 4px,
+      transparent 4px 8px
+    ),
+    linear-gradient(rgba(224, 49, 49, 0.45), rgba(224, 49, 49, 0.45)) !important;
+}
+/* Planned on an estimate nobody gave it. */
+.gantt-bar.assumed,
+.forecast-swatch.assumed {
+  outline: 2px dotted var(--text);
+  outline-offset: -2px;
+}
+.forecast-option-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+}
+.forecast-days-input {
+  width: 4.5em;
+  font-size: 13px;
+  padding: 1px 4px;
 }
 .forecast-option {
   display: inline-flex;
@@ -1172,4 +1207,50 @@
 .forecast-table td.num,
 .forecast-table td:last-child {
   white-space: nowrap;
+}
+
+/* --- sprint planning: collapsed at the bottom, opened by a button --- */
+.sprint-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.sprint-section-body {
+  margin-top: var(--space-3);
+  scroll-margin-top: var(--space-4);
+}
+.sprint-auto {
+  margin-bottom: var(--space-6);
+}
+.sprint-auto-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  font-size: 13px;
+}
+.sprint-auto-form > label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+.sprint-auto-form > label > span:first-child {
+  color: var(--muted);
+}
+.sprint-auto-form input[type="number"]:not(.forecast-days-input) {
+  width: 6em;
+}
+.sprint-auto-unestimated {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  padding-bottom: 4px;
+}
+.sprint-auto-summary {
+  margin: var(--space-3) 0;
+}
+.sprint-auto-table {
+  margin-bottom: var(--space-4);
 }

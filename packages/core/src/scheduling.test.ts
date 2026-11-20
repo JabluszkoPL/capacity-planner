@@ -255,6 +255,51 @@ describe("runPlan — tasks someone already holds", () => {
   }
 });
 
+describe("runPlan — an explicit order", () => {
+  const team = asTeam({ members: [member("a", "FE")], offDays: {} });
+  const proj = project("2026-07-27", [
+    { id: "t1", estimateDays: 1, specialization: "FE" },
+    { id: "t2", estimateDays: 1, specialization: "FE" },
+    { id: "t3", estimateDays: 1, specialization: "FE" },
+  ]);
+  const order = (plan: Plan) =>
+    [...plan.assignments]
+      .sort((x, y) => x.start.localeCompare(y.start))
+      .map((x) => x.taskId);
+
+  for (const mode of ["balanced", "smart"] as const) {
+    it(`takes tasks by rank, list order within one (${mode})`, () => {
+      const plan = runPlanTeams(proj, [team], FIXED_NOW, {
+        mode,
+        rank: { t3: -1, t1: 2 },
+      });
+      expect(order(plan)).toEqual(["t3", "t2", "t1"]);
+    });
+
+    it(`still puts a prerequisite first (${mode})`, () => {
+      const withDep: Project = {
+        ...proj,
+        epics: proj.epics.map((e) => ({
+          ...e,
+          tasks: e.tasks.map((t) =>
+            t.id === "t3" ? { ...t, dependsOn: ["t1"] } : t,
+          ),
+        })),
+      };
+      const plan = runPlanTeams(withDep, [team], FIXED_NOW, {
+        mode,
+        rank: { t3: -1, t1: 2 },
+      });
+      expect(order(plan)).toEqual(["t2", "t1", "t3"]);
+    });
+  }
+
+  it("keeps list order without one", () => {
+    const plan = runPlanTeams(proj, [team], FIXED_NOW);
+    expect(order(plan)).toEqual(["t1", "t2", "t3"]);
+  });
+});
+
 describe("runPlan — excluded and unassigned", () => {
   it("never schedules excluded tasks (not in assignments nor unassigned)", () => {
     const team = { members: [member("a", "FE")], offDays: {} };

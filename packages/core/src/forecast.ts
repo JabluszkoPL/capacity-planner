@@ -10,8 +10,9 @@
  *   needs to pick them up. They are counted per specialization, because the
  *   tracker's status still counts them as work left until they are Done;
  *   `countWaiting: true` plans them too, at their whole estimate, to finish
- *   on the same work as the status. A task with no estimate — in the plan or in Jira — is never planned, only
- *   counted. A Jira task with no plan task is planned too, on Jira's
+ *   on the same work as the status. A task with no estimate — in the plan or
+ *   in Jira — is only counted, unless `unestimatedDays` gives it one to be
+ *   planned on. A Jira task with no plan task is planned too, on Jira's
  *   estimate, so the finish covers all the work in the initiative, not just
  *   what was planned up front.
  * - **From today, without buffer.** Every remaining task gets its plain
@@ -24,6 +25,11 @@
  *   is handed out by the scheduler, and marked as its suggestion. A Jira
  *   assignee is matched to a person by Jira account, by full name, or by a
  *   short name ("Michał K" for "Michał Kowalski") when only one person fits.
+ * - **Assigned work first, low priority last.** Of the work not started yet,
+ *   what Jira already has on someone is taken before what nobody holds, and
+ *   within each, by Jira priority (highest first; a task's priority is its
+ *   most urgent open issue's, and none counts as Medium). The plan's own order
+ *   decides between equals, and dependencies still come first.
  *
  * A Jira task with no plan task needs a specialization to be handed out: a
  * label naming one, else a tag in its summary ("[Backend] Wallet API"), else
@@ -46,6 +52,7 @@ import type {
   JiraIssue,
   Project,
   Team,
+  TeamInclusion,
   TaskItem,
   Tracker,
   UnassignedTask,
@@ -112,8 +119,15 @@ export interface ForecastItem extends Assignment {
   /** Under a nice-to-have epic: planned only on request, never in the status
    *  (see `RemainingWorkOptions.includeNiceToHave`). */
   niceToHave: boolean;
-  /** Where its estimate came from: the plan, or Jira when the plan has none. */
-  estimateFrom: "plan" | "jira";
+  /**
+   * Where its estimate came from: the plan, Jira when the plan has none, or
+   * `RemainingWorkOptions.unestimatedDays` when neither has one.
+   */
+  estimateFrom: "plan" | "jira" | "assumed";
+  /** One of its open Jira issues is a bug. */
+  bug: boolean;
+  /** The most urgent priority among its open Jira issues, by name. */
+  priority?: string;
   /** Its whole estimate; more than `estimateDays` when Jira says less is left. */
   plannedDays: number;
 }
@@ -132,6 +146,18 @@ export interface RemainingWorkOptions {
    * as the status leaves them out.
    */
   includeNiceToHave?: boolean;
+  /**
+   * Plan tasks with no estimate in the plan or Jira at this many plan days
+   * each, instead of only counting them. Absent or 0: they are left out.
+   */
+  unestimatedDays?: number;
+  /**
+   * The share of each working day people spend on this work, above 0 and up
+   * to 1: 0.8 lays out a 4-day task over 5 working days. For sprint planning,
+   * where people count fewer days per sprint than the sprint has. Absent or
+   * out of range: 1, every working day.
+   */
+  capacity?: number;
 }
 
 /** An open task with no estimate in the plan or Jira: not laid out. */
@@ -189,6 +215,8 @@ export interface RemainingWork {
   countWaiting: boolean;
   /** Open tasks with no estimate yet, left out of the forecast. */
   unestimated: number;
+  /** Tasks with no estimate planned at `unestimatedDays` instead. */
+  assumed: number;
   /** Those tasks, named, with who holds them in Jira when anyone does. */
   unestimatedTasks: UnestimatedTask[];
   /** Estimated tasks nobody on the plan can do. */
@@ -258,6 +286,10 @@ interface TaskState {
   /** Jira's estimate across its open issues, in plan days. */
   jiraDays: number;
   assignee?: JiraIssue["assignee"];
+  /** One of the open issues is a bug. */
+  bug: boolean;
+  /** The most urgent priority among the open issues. */
+  priority?: string;
 }
 
 function taskState(issues: JiraIssue[], hoursPerDay: number): TaskState {
@@ -281,8 +313,45 @@ function taskState(issues: JiraIssue[], hoursPerDay: number): TaskState {
       0,
     ),
     assignee: (working[0] ?? open.find((i) => i.assignee))?.assignee,
+    bug: open.some(isBug),
+    priority: open
+      .map((i) => i.priority)
+      .filter((p): p is string => Boolean(p))
+      .sort((a, b) => priorityRank(a) - priorityRank(b))[0],
   };
 }
+
+function isBug(issue: JiraIssue): boolean {
+  return /\bbug\b/i.test(issue.issueType ?? "");
+}
+
+/**
+ * How urgent a Jira priority is, 0 most: Jira's default scheme (Highest …
+ * Lowest) and the older one (Blocker … Trivial). Anything else, and no
+ * priority at all, counts as Medium.
+ */
+export function priorityRank(priority: string | undefined): number {
+  switch (normSpec(priority ?? "")) {
+    case "highest":
+    case "blocker":
+    case "critical":
+      return 0;
+    case "high":
+    case "major":
+      return 1;
+    case "low":
+    case "minor":
+      return 3;
+    case "lowest":
+    case "trivial":
+      return 4;
+    default:
+      return 2;
+  }
+}
+
+/** Ranks per group: everything assigned comes before anything unassigned. */
+const UNASSIGNED_RANK = 5;
 
 /**
  * The one person whose short name fits a Jira display name: same first name,
@@ -335,6 +404,12 @@ export function remainingWork(
   options: RemainingWorkOptions = {},
 ): RemainingWork | null {
   const countWaiting = options.countWaiting ?? false;
+  const assumedDays =
+    num(options.unestimatedDays) > 0 ? num(options.unestimatedDays) : 0;
+  const capacity =
+    num(options.capacity) > 0 && num(options.capacity) < 1
+      ? num(options.capacity)
+      : 1;
   // Issues under nice-to-have epics, to mark the work they become.
   const niceKeys = options.includeNiceToHave
     ? untrackedIssueKeys(tracker.snapshot, tracker.niceToHaveEpics)
@@ -373,7 +448,10 @@ export function remainingWork(
     else issuesOf.set(id, [issue]);
   }
 
-  const people = projectPeople(project, teams);
+  const people = projectPeople(project, teams).map((p) => ({
+    ...p,
+    speed: p.speed * capacity,
+  }));
   const byAccount = new Map<string, Person>();
   const byName = new Map<string, Person>();
   for (const p of people) {
@@ -397,10 +475,16 @@ export function remainingWork(
   >();
   const unestimatedTasks: UnestimatedTask[] = [];
   const states = new Map<ID, TaskState>();
-  const estimates = new Map<ID, { days: number; from: "plan" | "jira" }>();
+  const estimates = new Map<
+    ID,
+    { days: number; from: "plan" | "jira" | "assumed" }
+  >();
   const inPlan = new Set<ID>();
   // Tasks someone already holds in Jira, for the scheduler to respect.
   const assignees: { [taskId: string]: ID } = {};
+  // The order the scheduler takes them in: assigned first, then priority.
+  const rank: { [taskId: string]: number } = {};
+  let assumed = 0;
   // Each person's next free day, moved on by work they already have.
   const freeFrom = new Map<ID, string>();
   const pinned: ForecastItem[] = [];
@@ -414,7 +498,7 @@ export function remainingWork(
     epic: { id: ID; name: string },
     state: TaskState,
     estimate: number,
-    from: "plan" | "jira",
+    from: "plan" | "jira" | "assumed",
   ): TaskItem | null => {
     if (state.awaiting) {
       waitingToClose.tasks++;
@@ -430,6 +514,11 @@ export function remainingWork(
       if (!countWaiting) return null;
     }
     const person = personFor(state.assignee);
+    if (estimate <= EPS && assumedDays > 0) {
+      estimate = assumedDays;
+      from = "assumed";
+      assumed++;
+    }
     if (estimate <= EPS) {
       unestimatedTasks.push({
         key: state.open[0]?.key ?? null,
@@ -480,11 +569,15 @@ export function remainingWork(
         waiting: false,
         niceToHave: isNice(state.open.map((i) => i.key)),
         estimateFrom: from,
+        bug: state.bug,
+        priority: state.priority,
         plannedDays: round2(estimate),
       });
       return null;
     }
     if (person) assignees[task.id] = person.id;
+    rank[task.id] =
+      (person ? 0 : UNASSIGNED_RANK) + priorityRank(state.priority);
     return { ...task, estimateDays: remaining };
   };
 
@@ -565,7 +658,11 @@ export function remainingWork(
           .find(Boolean) ??
         personFor(issue.assignee)?.specialization ??
         mostCommon(siblingSpecs);
-      if (!specialization && !state.awaiting && state.jiraDays > EPS) {
+      if (
+        !specialization &&
+        !state.awaiting &&
+        (state.jiraDays > EPS || assumedDays > 0)
+      ) {
         noSpecialization.push({
           key: issue.key,
           summary: issue.summary || issue.key,
@@ -606,11 +703,31 @@ export function remainingWork(
       ),
     },
     // A team scoped to some epics may also take work Jira added outside them.
-    teamInclusions: project.teamInclusions?.map((inc) =>
-      inc.epicIds && inc.epicIds.length > 0 && !inc.exclusive
-        ? { ...inc, epicIds: [...inc.epicIds, ...extraIds] }
-        : inc,
-    ),
+    // Capacity scales each team's velocity, so the scheduler sees it too.
+    teamInclusions: (capacity < 1
+      ? (project.teamInclusions ??
+        teams.map((t): TeamInclusion => ({ teamId: t.id })))
+      : project.teamInclusions
+    )?.map((inc) => {
+      const scoped =
+        inc.epicIds && inc.epicIds.length > 0 && !inc.exclusive
+          ? { ...inc, epicIds: [...inc.epicIds, ...extraIds] }
+          : inc;
+      return capacity < 1
+        ? {
+            ...scoped,
+            velocity:
+              (num(inc.velocity) > 0 ? num(inc.velocity) : 1) * capacity,
+          }
+        : scoped;
+    }),
+    helpers:
+      capacity < 1
+        ? project.helpers?.map((h) => ({
+            ...h,
+            speed: (num(h.speed) > 0 ? num(h.speed) : 1) * capacity,
+          }))
+        : project.helpers,
     epics: allEpics.map((e) => ({
       ...e,
       dependsOn: e.dependsOn?.filter((id) => plannedEpics.has(id)),
@@ -624,6 +741,7 @@ export function remainingWork(
   const plan = runPlan(forward, teams, FORECAST_GENERATED_AT, {
     ...planOptionsFor(project),
     assignees,
+    rank,
   });
 
   const items: ForecastItem[] = [
@@ -640,6 +758,8 @@ export function remainingWork(
         waiting: state?.awaiting ?? false,
         niceToHave: isNice(state?.open.map((i) => i.key) ?? []),
         estimateFrom: estimates.get(a.taskId)?.from ?? "plan",
+        bug: state?.bug ?? false,
+        priority: state?.priority,
         plannedDays: round2(estimates.get(a.taskId)?.days ?? a.estimateDays),
       };
     }),
@@ -722,6 +842,7 @@ export function remainingWork(
     },
     countWaiting,
     unestimated: unestimatedTasks.length,
+    assumed,
     unestimatedTasks,
     unassigned: plan.unassigned,
     noSpecialization,

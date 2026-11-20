@@ -101,6 +101,15 @@ describe("mapIssue", () => {
     expect(mapIssue(legacy, FIELD_IDS).sprint).toBe("Old Sprint");
   });
 
+  it("keeps the priority's name, and omits a missing one", () => {
+    const urgent = { fields: { priority: { id: "1", name: "Highest" } } };
+    expect(mapIssue(urgent, FIELD_IDS).priority).toBe("Highest");
+    expect(mapIssue({ fields: {} }, FIELD_IDS).priority).toBeUndefined();
+    expect(
+      mapIssue({ fields: { priority: null } }, FIELD_IDS).priority,
+    ).toBeUndefined();
+  });
+
   it("keeps labels, dropping blanks, and omits an empty list", () => {
     const labelled = { fields: { labels: ["backend", "", 7, "QA"] } };
     expect(mapIssue(labelled, FIELD_IDS).labels).toEqual(["backend", "QA"]);

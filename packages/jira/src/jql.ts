@@ -33,6 +33,7 @@ export const BASE_ISSUE_FIELDS = [
   "duedate",
   "resolutiondate",
   "labels",
+  "priority",
   "updated",
 ] as const;
 

@@ -106,6 +106,102 @@
   color: var(--accent-text);
 }
 
+/* --- a section and the list that opens under it --- */
+.sidebar-section-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.sidebar-section-row .sidebar-link {
+  flex: 1;
+  min-width: 0;
+}
+.sidebar-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+}
+.sidebar-toggle:hover {
+  background: var(--hover-soft);
+  color: var(--text);
+}
+.sidebar-toggle .icon {
+  transition: transform 0.15s ease;
+}
+.sidebar-toggle.open .icon {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-toggle .icon {
+    transition: none;
+  }
+}
+
+.sidebar-items {
+  list-style: none;
+  margin: 2px 0 6px;
+  padding: 0 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  min-width: 0;
+}
+.sidebar-item:hover {
+  background: var(--hover-soft);
+}
+.sidebar-item.active {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+.sidebar-item-dot {
+  --dot: var(--faint);
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dot);
+}
+.sidebar-item.active .sidebar-item-dot {
+  --dot: var(--accent);
+}
+.sidebar-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-item-meta {
+  flex: none;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.sidebar-item-empty {
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .sidebar-spacer {
   flex: 1;
   min-height: var(--space-5);
@@ -188,6 +284,10 @@
   .sidebar-brand span,
   .sidebar-link span,
   .sidebar-status span:not(.sync-dot) {
+    display: none;
+  }
+  .sidebar-toggle,
+  .sidebar-items {
     display: none;
   }
   .sidebar-link {

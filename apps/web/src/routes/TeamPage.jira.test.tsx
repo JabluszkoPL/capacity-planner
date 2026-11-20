@@ -5,6 +5,7 @@
  * picked team lands on the page next to the hand-made one, editable like it.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AppState } from "@planner/core";
@@ -141,7 +142,9 @@ function renderPage() {
     <ToastProvider>
       <ConfirmProvider>
         <AppStoreProvider initial={initial}>
-          <TeamPage />
+          <MemoryRouter>
+            <TeamPage />
+          </MemoryRouter>
         </AppStoreProvider>
       </ConfirmProvider>
       <ToastHost />

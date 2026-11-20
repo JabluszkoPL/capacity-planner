@@ -9,9 +9,13 @@ reachable via `Tab` / `Shift+Tab`, and shows a visible focus ring
 ## Global
 
 - **Tab / Shift+Tab** — move forward / backward through every control.
-- **Sidebar** — `Projects`, `Teams` and `Tracking` are links (the current
-  one has `aria-current="page"`). At the bottom: the sync status (text, not
-  just a dot), **Jira** and **Settings** buttons.
+- **Sidebar** — `Projects`, `Teams` and `Tracking` are links. Each has a
+  **Show/Hide …** button (`aria-expanded`) that opens a labelled list of its
+  projects, teams or trackers under it; the section you are in opens by
+  itself, and a choice you make is remembered on the device. The page you are
+  on carries `aria-current="page"`: the project, team or tracker in the list,
+  or the section link on its overview. At the bottom: the sync status (text,
+  not just a dot), **Jira** and **Settings** buttons.
 - **View tabs** — a project or a tracker shows its views as a row of links
   under the page header, in a labelled `nav` ("Project views" / "Tracker
   views"); the current one has `aria-current="page"`. Each view has its own

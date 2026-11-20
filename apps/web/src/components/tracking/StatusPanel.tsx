@@ -211,6 +211,16 @@ export function suspiciousLead(s: TrackerStatus): boolean {
 }
 
 /**
+ * The rows in display order: development first, worst first as the status
+ * ranks them, then end-phase work (QA), which happens last and so reads last.
+ */
+export function endPhaseLast(
+  rows: SpecializationStatus[],
+): SpecializationStatus[] {
+  return [...rows.filter((r) => !r.phase), ...rows.filter((r) => r.phase)];
+}
+
+/**
  * How much of a specialization's own buffer a delay spends: days used, days
  * left and the share used. Null when it has no buffer to speak of.
  */
@@ -1043,7 +1053,7 @@ export function StatusPanel({
 
       {specTabs && (
         <SpecializationTable
-          rows={status.bySpecialization}
+          rows={endPhaseLast(status.bySpecialization)}
           status={status}
           awaitingClose={awaitingClose}
           option={

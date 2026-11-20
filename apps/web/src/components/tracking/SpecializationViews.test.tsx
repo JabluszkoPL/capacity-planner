@@ -3,7 +3,7 @@ import { afterEach, describe, it, expect } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { SpecializationStatus, TrackerStatus } from "@planner/core";
 import { StatusPanel } from "./StatusPanel";
-import { SPEC_VIEWS } from "./SpecializationViews";
+import { SPEC_VIEWS, gridLines } from "./SpecializationViews";
 
 const row = (over: Partial<SpecializationStatus>): SpecializationStatus => ({
   specialization: "Client",
@@ -101,5 +101,26 @@ describe("specialization views", () => {
     expect(
       screen.getByText("2 tasks without an estimate — not counted yet"),
     ).toBeInTheDocument();
+  });
+});
+
+describe("gridLines", () => {
+  const day = (iso: string) => Date.parse(iso + "T00:00:00Z") / 86_400_000;
+
+  it("draws month starts and Mondays on a range of a few months", () => {
+    const lines = gridLines({ from: day("2026-09-01"), to: day("2026-12-31") });
+    const months = lines.filter((l) => l.kind === "month");
+    const weeks = lines.filter((l) => l.kind === "week");
+    // Sep 1 sits on the left edge; Oct, Nov and Dec 1 inside.
+    expect(months).toHaveLength(4);
+    expect(months[0]!.pos).toBe(0);
+    expect(weeks.length).toBeGreaterThanOrEqual(16);
+    expect(lines.every((l) => l.pos >= 0 && l.pos <= 100)).toBe(true);
+  });
+
+  it("keeps only month lines on a long range", () => {
+    const lines = gridLines({ from: day("2026-01-01"), to: day("2026-12-31") });
+    expect(lines.every((l) => l.kind === "month")).toBe(true);
+    expect(lines).toHaveLength(12);
   });
 });

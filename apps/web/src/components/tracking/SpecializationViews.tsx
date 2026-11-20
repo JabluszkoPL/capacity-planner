@@ -297,6 +297,47 @@ function Axis({ domain }: { domain: Domain }) {
   );
 }
 
+/** Days a range may span and still show a line per week; past it, weekly
+ *  lines are closer than they are useful, so only months are drawn. */
+const WEEK_LINES_MAX_DAYS = 200;
+
+/** Where the month and week lines fall, in percent across the domain. */
+export function gridLines(
+  d: Domain,
+): { pos: number; kind: "month" | "week" }[] {
+  const out: { pos: number; kind: "month" | "week" }[] = [];
+  const span = d.to - d.from;
+  if (span <= 0) return out;
+  const weeks = span <= WEEK_LINES_MAX_DAYS;
+  for (let n = Math.ceil(d.from); n <= d.to; n++) {
+    const date = new Date(n * DAY_MS);
+    const pos = ((n - d.from) / span) * 100;
+    if (date.getUTCDate() === 1) out.push({ pos, kind: "month" });
+    // 1970-01-01 was a Thursday, so Monday is n % 7 === 4.
+    else if (weeks && ((n % 7) + 7) % 7 === 4) out.push({ pos, kind: "week" });
+  }
+  return out;
+}
+
+/**
+ * Faint vertical lines at each month start, and at each Monday when the range
+ * is short enough to read them, behind every lane. One layer over the whole
+ * chart column, so the lines run unbroken through the gaps between rows.
+ */
+function GridLines({ domain }: { domain: Domain }) {
+  return (
+    <div className="sv-gridlines" aria-hidden="true">
+      {gridLines(domain).map((g) => (
+        <span
+          key={g.pos}
+          className={"sv-gridline " + g.kind}
+          style={{ left: `${g.pos}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function TodayLine({ domain, today }: { domain: Domain; today: string }) {
   return (
     <span
@@ -433,6 +474,7 @@ function TimelineView({ rows, status }: ViewProps) {
       <div className="sv-grid">
         <div />
         <Axis domain={domain} />
+        <GridLines domain={domain} />
         {rows.map((r) => (
           <Row key={r.specialization}>
             <RowLabel r={r} status={status} />
@@ -484,6 +526,7 @@ function FinishView({ rows, status }: ViewProps) {
         <div />
         <Axis domain={domain} />
         <div />
+        <GridLines domain={domain} />
         {rows.map((r) => {
           const d = rowDates(r, status);
           const tone = specializationLabel(r).tone;

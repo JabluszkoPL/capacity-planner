@@ -94,7 +94,8 @@ or it will silently not persist.
 `window.planner` bridge is present. Do not fork the UI per platform.
 
 **Screens are built from the UI kit, inside one shell.** The left sidebar
-(`components/layout/Sidebar.tsx`) switches sections; there is no top bar. A
+(`components/layout/Sidebar.tsx`) switches sections and lists each one's
+projects, teams or trackers under it; there is no top bar. A
 project and a tracker are split into views (`lib/views.ts`, `?view=` in the
 URL), shown as tabs under the page header (`ui/ViewTabs`) and rendered one at
 a time — add a view there rather than growing a page. Every route renders `<Page>` +

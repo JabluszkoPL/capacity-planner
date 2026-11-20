@@ -232,6 +232,31 @@
   position: relative;
   min-width: 0;
 }
+
+/* Month and week lines: absolutely positioned in the chart column, so they
+   take no grid cell and span every row. Earlier in the DOM than the tracks,
+   which paint over them. */
+.sv-grid {
+  position: relative;
+}
+.sv-gridlines {
+  position: absolute;
+  grid-column: 2;
+  top: 22px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+.sv-gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed var(--border);
+}
+.sv-gridline.month {
+  border-left: 1px solid var(--border-strong);
+}
 .sv-today {
   position: absolute;
   top: -4px;

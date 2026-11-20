@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import { useSearchParams } from "react-router-dom";
 import { type Team, allMembers } from "@planner/core";
 import { useAppStore } from "@planner/client-runtime";
 
@@ -28,17 +36,41 @@ const ALL = "all";
  * kinds are edited the same way.
  *
  * With several teams a "Team" filter narrows both the rosters and the grid to
- * one of them. It only ever narrows the view: "All teams" is the default and
- * the page goes back to it whenever a team is added or removed, so a new team
- * never lands out of sight.
+ * one of them (`?team=<id>`, which the sidebar links to). It only ever
+ * narrows the view: "All teams" is the default and the page goes back to it
+ * whenever a team is added or removed, so a new team never lands out of sight.
  */
 export function TeamPage() {
   const { state, actions } = useAppStore();
   const teams = state.teams;
   const [jiraOpen, setJiraOpen] = useState(false);
-  const [filter, setFilter] = useState<string>(ALL);
+  // The filter lives in the URL (`?team=<id>`), so the sidebar can link
+  // straight to one team and the choice survives a reload.
+  const [params, setParams] = useSearchParams();
+  const filter = params.get("team") ?? ALL;
+  const setFilter = useCallback(
+    (id: string) =>
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (id === ALL) next.delete("team");
+          else next.set("team", id);
+          return next;
+        },
+        { replace: true },
+      ),
+    [setParams],
+  );
 
-  useEffect(() => setFilter(ALL), [teams.length]);
+  // Back to "All teams" when a team is added or removed here, so a new team
+  // never lands out of sight. Not on the first render: that would undo a link
+  // that opened the page on one team.
+  const teamCount = useRef(teams.length);
+  useEffect(() => {
+    if (teamCount.current === teams.length) return;
+    teamCount.current = teams.length;
+    setFilter(ALL);
+  }, [teams.length, setFilter]);
   const focused = teams.find((t) => t.id === filter);
   const shown = focused ? [focused] : teams;
 

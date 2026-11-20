@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { AppState } from "@planner/core";
 import { AppStoreProvider } from "@planner/client-runtime";
@@ -18,7 +18,14 @@ const STATE: AppState = {
       epics: [],
     },
   ],
-  teams: [],
+  teams: [
+    {
+      id: "team1",
+      name: "Stars",
+      members: [{ id: "m1", name: "Ada", specialization: "Backend" }],
+      offDays: {},
+    },
+  ],
 };
 
 function renderSidebar(path = "/") {
@@ -50,14 +57,50 @@ describe("Sidebar", () => {
     );
   });
 
-  it("keeps Projects active inside a project", () => {
+  it("opens the project list inside a project and marks that project", () => {
     renderSidebar("/project/p1?view=plan");
-    expect(screen.getByRole("link", { name: "Projects" })).toHaveAttribute(
+    const list = screen.getByRole("list", { name: "Projects" });
+    const item = within(list).getByRole("link", { name: "Aurora Launch" });
+    expect(item).toHaveAttribute("href", "/project/p1");
+    expect(item).toHaveAttribute("aria-current", "page");
+    // Projects stays highlighted, but the current page is the project.
+    const projects = screen.getByRole("link", { name: "Projects" });
+    expect(projects).toHaveClass("active");
+    expect(projects).not.toHaveAttribute("aria-current");
+    // A project's views are tabs on its page, not sidebar links.
+    expect(screen.queryByRole("link", { name: "Plan & timeline" })).toBeNull();
+  });
+
+  it("lists teams and trackers when their section is opened, and remembers it", () => {
+    const { unmount } = renderSidebar("/");
+    expect(screen.queryByRole("list", { name: "Teams" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show teams" }));
+    const teams = screen.getByRole("list", { name: "Teams" });
+    expect(within(teams).getByRole("link", { name: /Stars/ })).toHaveAttribute(
+      "href",
+      "/team?team=team1",
+    );
+    expect(screen.getByRole("button", { name: "Hide teams" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    unmount();
+    renderSidebar("/");
+    expect(screen.getByRole("list", { name: "Teams" })).toBeInTheDocument();
+  });
+
+  it("marks the team a /team?team= link opened", () => {
+    renderSidebar("/team?team=team1");
+    const teams = screen.getByRole("list", { name: "Teams" });
+    expect(within(teams).getByRole("link", { name: /Stars/ })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    // A project's views are tabs on its page, not sidebar links.
-    expect(screen.queryByRole("link", { name: "Plan & timeline" })).toBeNull();
+  });
+
+  it("says when a section has nothing in it", () => {
+    renderSidebar("/tracking");
+    expect(screen.getByText("No trackers yet")).toBeInTheDocument();
   });
 
   it("keeps Tracking active inside a tracker", () => {

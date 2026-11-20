@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { AppState } from "@planner/core";
+import { MemoryRouter } from "react-router-dom";
 import { AppStoreProvider } from "@planner/client-runtime";
 import { ConfirmProvider } from "../components/ui/ConfirmDialog";
 import { TeamPage } from "./TeamPage";
@@ -25,11 +26,13 @@ function stateWith(
   };
 }
 
-function renderTeam(initial: AppState) {
+function renderTeam(initial: AppState, path = "/team") {
   return render(
     <ConfirmProvider>
       <AppStoreProvider initial={initial}>
-        <TeamPage />
+        <MemoryRouter initialEntries={[path]}>
+          <TeamPage />
+        </MemoryRouter>
       </AppStoreProvider>
     </ConfirmProvider>,
   );
@@ -81,5 +84,30 @@ describe("TeamPage roster", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Add person" }));
     expect(datalistValues(container).sort()).toEqual(["Backend", "Frontend"]);
+  });
+});
+
+describe("TeamPage team filter", () => {
+  const twoTeams = (): AppState => ({
+    projects: [],
+    teams: [
+      { id: "t1", name: "Stars", members: [], offDays: {} },
+      { id: "t2", name: "Bulls", members: [], offDays: {} },
+    ],
+  });
+  const shownTeams = () =>
+    screen
+      .getAllByLabelText("Team name")
+      .map((el) => (el as HTMLInputElement).value);
+
+  it("opens on the team a link names (?team=)", () => {
+    renderTeam(twoTeams(), "/team?team=t2");
+    expect(shownTeams()).toEqual(["Bulls"]);
+    expect(screen.getByLabelText("Team")).toHaveValue("t2");
+  });
+
+  it("shows every team for an unknown id", () => {
+    renderTeam(twoTeams(), "/team?team=gone");
+    expect(shownTeams()).toEqual(["Stars", "Bulls"]);
   });
 });

@@ -8,6 +8,7 @@ import {
   specializationLabel,
   statusLabel,
   suspiciousLead,
+  endPhaseLast,
 } from "./StatusPanel";
 
 function status(overrides: Partial<TrackerStatus> = {}): TrackerStatus {
@@ -866,5 +867,25 @@ describe("QA using its buffer", () => {
         },
       }).text,
     ).toBe("Using 3 of 4 buffer days (75%) · 1 day left");
+  });
+});
+
+describe("endPhaseLast", () => {
+  it("keeps development in the status's order and puts end-phase work last", () => {
+    const row = (specialization: string, phase = false) =>
+      ({
+        specialization,
+        ...(phase ? { phase: { schedule: [] } } : {}),
+      }) as unknown as SpecializationStatus;
+    const ordered = endPhaseLast([
+      row("QA", true),
+      row("Backend"),
+      row("Client"),
+    ]);
+    expect(ordered.map((r) => r.specialization)).toEqual([
+      "Backend",
+      "Client",
+      "QA",
+    ]);
   });
 });

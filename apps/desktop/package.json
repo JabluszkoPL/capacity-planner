@@ -1,6 +1,6 @@
 {
   "name": "@planner/desktop",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": true,
   "description": "Planner for macOS",
   "author": "Planner contributors",
